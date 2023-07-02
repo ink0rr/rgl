@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "install": "deno install --allow-read --allow-write --allow-env --allow-net --allow-run --name rgl cli.ts",
+    "uninstall": "deno uninstall rgl"
+  },
+  "fmt": {
+    "lineWidth": 120
+  }
+}

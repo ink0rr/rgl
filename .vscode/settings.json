@@ -1,0 +1,10 @@
+{
+  "deno.enable": true,
+  "editor.rulers": [120],
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}

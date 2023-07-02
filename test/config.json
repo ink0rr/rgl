@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json",
+  "author": "Your name",
+  "name": "Project name",
+  "packs": {
+    "behaviorPack": "./packs/BP",
+    "resourcePack": "./packs/RP"
+  },
+  "regolith": {
+    "dataPath": "./packs/data",
+    "filterDefinitions": {
+      "dummy": {
+        // "runWith": "deno",
+        // "script": "./filters/dummy/dummy.ts"
+      }
+    },
+    "profiles": {
+      "default": {
+        "export": {
+          "target": "local"
+        },
+        "filters": [
+          {
+            "filter": "dummy"
+          }
+        ]
+      }
+    }
+  }
+}
