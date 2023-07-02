@@ -16,7 +16,7 @@ export async function runSubprocess(name: string, command: string, args: string[
   await process.stdout.pipeTo(
     new WritableStream({
       write(chunk) {
-        logger.debug(`[${name}] ${decoder.decode(chunk).replace(/\n$/, "")}`);
+        logger.info(`[${name}] ${decoder.decode(chunk).replace(/\n$/, "")}`);
       },
     }),
   );
