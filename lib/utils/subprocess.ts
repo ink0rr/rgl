@@ -23,10 +23,7 @@ export async function runSubprocess(name: string, command: string, args: string[
   await process.stderr.pipeTo(
     new WritableStream({
       write(chunk) {
-        logger.error({
-          badge: false,
-          message: `[${name}] ${decoder.decode(chunk).replace(/\n$/, "")}`,
-        });
+        logger.error(`[${name}] ${decoder.decode(chunk).replace(/\n$/, "")}`);
       },
     }),
   );

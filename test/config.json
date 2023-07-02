@@ -10,8 +10,8 @@
     "dataPath": "./data",
     "filterDefinitions": {
       "dummy": {
-        // "runWith": "deno",
-        // "script": "./filters/dummy/dummy.ts"
+        "runWith": "deno",
+        "script": "./filters/dummy/dummy.ts"
       }
     },
     "profiles": {
