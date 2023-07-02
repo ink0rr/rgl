@@ -1,5 +1,6 @@
 import { clean } from "./commands/clean.ts";
 import { run } from "./commands/run.ts";
+import { watch } from "./commands/watch.ts";
 import { Command, fromZodError, z } from "./deps.ts";
 import { logger } from "./lib/utils/logger.ts";
 
@@ -11,6 +12,7 @@ if (import.meta.main) {
       .arguments("<command>")
       .command("clean", clean)
       .command("run", run)
+      .command("watch", watch)
       .parse(Deno.args);
   } catch (e) {
     if (e instanceof z.ZodError) {

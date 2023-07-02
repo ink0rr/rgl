@@ -1,32 +1,21 @@
-import { copy, join } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { loadConfig } from "./config.ts";
+import { Config, Profile } from "./config.ts";
 import { Filter } from "./filter.ts";
 import { DenoFilter } from "./filter_deno.ts";
 import { RemoteFilter } from "./filter_remote.ts";
 
-export async function runProfile(profileName: string) {
-  const config = await loadConfig();
-  const profile = config.profiles.get(profileName);
-
-  if (!profile) {
-    throw new Error(`Profile "${profileName}" not found`);
-  }
-
-  // Initialze tmp dir
-  const tmp = "./.regolith/tmp";
-  await Deno.remove(tmp, { recursive: true }).catch(() => {});
-  await Deno.mkdir(tmp, { recursive: true }).catch(() => {});
-
-  const { behaviorPack, resourcePack } = config.packs;
-  await Promise.all([
-    copy(behaviorPack, join(tmp, "BP")),
-    copy(resourcePack, join(tmp, "RP")),
-  ]);
-
+export async function runProfile(config: Config, profile: Profile) {
   for (const entry of profile.filters) {
     if (entry.disabled) {
       logger.info(`Filter "${entry.filter}" is disabled, skipping...`);
+      continue;
+    }
+    if (entry.profile) {
+      const profile = config.profiles.get(entry.profile);
+      if (!profile) {
+        throw Error(`Profile "${entry.profile}" does not exist in profiles`);
+      }
+      await runProfile(config, profile);
       continue;
     }
     if (entry.filter) {
@@ -42,12 +31,13 @@ export async function runProfile(profileName: string) {
           filter = new DenoFilter(entry.filter, filterDefinition.script);
           break;
         case "":
-          filter = new RemoteFilter();
+          filter = new RemoteFilter(entry.filter);
           break;
         default:
-          throw Error("Invalid filter definition");
+          throw Error(`Invalid filter definition: ${entry.filter}`);
       }
-      filter.run(entry.arguments, entry.settings);
+      logger.info(`Running filter "${entry.filter}"`);
+      await filter.run(entry.arguments, entry.settings);
     }
   }
 }

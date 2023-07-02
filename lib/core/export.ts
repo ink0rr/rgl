@@ -1,20 +1,6 @@
-import { join } from "../../deps.ts";
-import { Profile } from "./config.ts";
-
-export function getExportPaths(name: string, profile: Profile) {
-  const target = profile.export.target;
-  switch (target) {
-    case "development":
-      return getDevelopmentPaths(name);
-    case "local":
-      return {
-        bp: "./build/BP",
-        rp: "./build/RP",
-      };
-    default:
-      throw new Error(`Unknown export target: ${target}`);
-  }
-}
+import { copy, join } from "../../deps.ts";
+import { logger } from "../utils/logger.ts";
+import { Config, Profile } from "./config.ts";
 
 function findComMojangPath() {
   if (Deno.build.os === "windows") {
@@ -36,14 +22,52 @@ function findComMojangPath() {
   throw new Error("Not implemented");
 }
 
-function getDevelopmentPaths(name: string) {
-  const comMojang = findComMojangPath();
-  return {
-    bp: join(comMojang, "development_behavior_packs", `${name}_bp`),
-    rp: join(comMojang, "development_resource_packs", `${name}_rp`),
-  };
+function getExportPaths(name: string, profile: Profile) {
+  const target = profile.export.target;
+  switch (target) {
+    case "development": {
+      const comMojang = findComMojangPath();
+      return {
+        bpPath: join(comMojang, "development_behavior_packs", `${name}_bp`),
+        rpPath: join(comMojang, "development_resource_packs", `${name}_rp`),
+      };
+    }
+    case "exact":
+      return {
+        bpPath: profile.export.bpPath,
+        rpPath: profile.export.rpPath,
+      };
+    case "local":
+      return {
+        bpPath: "./build/BP",
+        rpPath: "./build/RP",
+      };
+    default:
+      throw new Error(`Unsupported export target: ${target}`);
+  }
 }
 
-export function exportProject(){
-  
+export async function exportProject(config: Config, profile: Profile) {
+  const { bpPath, rpPath } = getExportPaths(config.name, profile);
+
+  await Promise.all([
+    Deno.remove(bpPath, { recursive: true }).catch(() => {}),
+    Deno.remove(rpPath, { recursive: true }).catch(() => {}),
+  ]);
+
+  logger.info(`Moving files to target location: 
+      BP: ${bpPath}
+      RP: ${rpPath}`);
+
+  try {
+    await Promise.all([
+      Deno.rename(join("./.regolith/tmp/BP"), bpPath),
+      Deno.rename(join("./.regolith/tmp/RP"), rpPath),
+    ]);
+  } catch {
+    await Promise.all([
+      copy(join("./.regolith/tmp/BP"), bpPath),
+      copy(join("./.regolith/tmp/RP"), rpPath),
+    ]);
+  }
 }

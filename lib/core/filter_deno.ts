@@ -1,3 +1,4 @@
+import { resolve } from "../../deps.ts";
 import { runSubprocess } from "../utils/subprocess.ts";
 import { Filter } from "./filter.ts";
 
@@ -14,6 +15,6 @@ export class DenoFilter extends Filter {
     if (settings) {
       args.unshift(JSON.stringify(settings));
     }
-    await runSubprocess(this.name, "deno", ["run", "-A", this.script].concat(args));
+    await runSubprocess(this.name, "deno", ["run", "-A", resolve(this.script)].concat(args));
   }
 }

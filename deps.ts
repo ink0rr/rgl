@@ -1,3 +1,4 @@
+export { debounce } from "https://deno.land/std@0.190.0/async/mod.ts";
 export * as colors from "https://deno.land/std@0.190.0/fmt/colors.ts";
 export { copy, exists, move } from "https://deno.land/std@0.190.0/fs/mod.ts";
 export * as JSONC from "https://deno.land/std@0.190.0/jsonc/mod.ts";

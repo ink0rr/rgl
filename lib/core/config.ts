@@ -32,7 +32,11 @@ const profileSchema = z.object({
   export: z.discriminatedUnion("target", [
     z.object({
       target: z.literal("development"),
-      readOnly: z.boolean().optional(),
+    }),
+    z.object({
+      target: z.literal("exact"),
+      bpPath: z.string(),
+      rpPath: z.string(),
     }),
     z.object({
       target: z.literal("local"),
@@ -55,45 +59,39 @@ const configSchema = z.object({
   }),
 });
 
-type ConfigSchema = z.infer<typeof configSchema>;
+export type Profile = z.infer<typeof profileSchema>;
 
 export class Config {
-  #config: ConfigSchema;
-  constructor(config: ConfigSchema) {
-    this.#config = config;
-  }
+  private constructor(
+    private config: z.infer<typeof configSchema>,
+  ) {}
 
   get name() {
-    return this.#config.name;
+    return this.config.name;
   }
 
   get packs() {
-    return this.#config.packs;
+    return this.config.packs;
   }
 
   get dataPath() {
-    return this.#config.regolith.dataPath;
+    return this.config.regolith.dataPath;
   }
 
   get filterDefinitions() {
-    return this.#config.regolith.filterDefinitions;
+    return this.config.regolith.filterDefinitions;
   }
 
   get profiles() {
-    return this.#config.regolith.profiles;
+    return this.config.regolith.profiles;
   }
 
   async save() {
-    await writeJson("./config.json", this.#config);
+    await writeJson("./config.json", this.config);
   }
 
   static async load() {
     const config = await readJson("./config.json").then(configSchema.parse);
     return new Config(config);
   }
-}
-
-export async function loadConfig(): Promise<Config> {
-  const config = await readJson("./config.json").then(configSchema.parse);
-  return new Config(config);
 }
