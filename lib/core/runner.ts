@@ -8,8 +8,10 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
   const config = await Config.load();
   const profile = config.profiles.get(profileName);
   if (!profile) {
-    throw Error(`Profile "${profileName}" does not exist`);
+    throw Error(`Profile "${profileName}" does not exist!`);
   }
+
+  logger.info(`Running "${profileName}" profile.`);
 
   const tmp = "./.regolith/tmp";
   await Deno.remove(tmp, { recursive: true }).catch(() => {});
@@ -19,6 +21,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
   await Promise.all([
     copy(behaviorPack, join(tmp, "BP")),
     copy(resourcePack, join(tmp, "RP")),
+    copy(config.dataPath, join(tmp, "data")),
   ]);
 
   await runProfile(config, profile);

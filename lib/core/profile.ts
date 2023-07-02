@@ -15,6 +15,7 @@ export async function runProfile(config: Config, profile: Profile) {
       if (!profile) {
         throw Error(`Profile "${entry.profile}" does not exist in profiles`);
       }
+      logger.info(`Running "${entry.profile}" profile filters`);
       await runProfile(config, profile);
       continue;
     }
