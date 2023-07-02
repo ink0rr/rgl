@@ -1,4 +1,4 @@
-import { z } from "../../deps.ts";
+import { resolve, z } from "../../deps.ts";
 import { readJson, writeJson } from "../utils/fs.ts";
 
 const filterDefinitionSchema = z.object({
@@ -10,7 +10,7 @@ const filterDefinitionSchema = z.object({
   if (value.runWith) {
     return z.object({
       runWith: z.string(),
-      script: z.string(),
+      script: z.string().transform((value) => resolve(value)),
     }).parse(value);
   }
   return z.object({
