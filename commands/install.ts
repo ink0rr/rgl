@@ -1,5 +1,5 @@
 import { Command, semver } from "../deps.ts";
-import { ProjectConfig } from "../lib/core/project_config.ts";
+import { getProjectConfig } from "../lib/core/config.ts";
 import { downloadFilter, installFilter } from "../lib/core/install.ts";
 
 export const install = new Command()
@@ -10,14 +10,14 @@ export const install = new Command()
   )
   .arguments("[...filters:string]")
   .action(async (_, ...filters) => {
-    const config = await ProjectConfig.load();
+    const config = await getProjectConfig();
     if (filters.length) {
       for (const filter of filters) {
         await installFilter(config, filter);
       }
       await config.save();
     } else {
-      for (const [name, def] of config.filterDefinitions) {
+      for (const [name, def] of config.regolith.filterDefinitions) {
         if (def.runWith !== undefined) continue;
         const ref = semver.valid(def.version) ? `${name}-${def.version}` : def.version;
         await downloadFilter(name, def.url, ref);

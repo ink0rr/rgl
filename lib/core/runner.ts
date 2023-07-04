@@ -1,12 +1,12 @@
 import { copy, debounce, join, resolve } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
+import { getProjectConfig } from "./config.ts";
 import { exportProject } from "./export.ts";
 import { runProfile } from "./profile.ts";
-import { ProjectConfig } from "./project_config.ts";
 
 export async function runOrWatch(profileName: string, watch?: boolean) {
-  const config = await ProjectConfig.load();
-  const profile = config.profiles.get(profileName);
+  const config = await getProjectConfig();
+  const profile = config.regolith.profiles.get(profileName);
   if (!profile) {
     throw Error(`Profile "${profileName}" does not exist!`);
   }
@@ -21,7 +21,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
   await Promise.all([
     copy(behaviorPack, join(tmp, "BP")),
     copy(resourcePack, join(tmp, "RP")),
-    Deno.symlink(resolve(config.dataPath), join(tmp, "data"), { type: "dir" }),
+    Deno.symlink(resolve(config.regolith.dataPath), join(tmp, "data"), { type: "dir" }),
   ]);
 
   await runProfile(config, profile);
@@ -30,7 +30,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
 
   if (watch) {
     const watcher = Deno.watchFs([
-      config.dataPath,
+      config.regolith.dataPath,
       config.packs.behaviorPack,
       config.packs.resourcePack,
     ]);

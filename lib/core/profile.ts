@@ -1,5 +1,6 @@
+import { Profile } from "../schemas/profile.ts";
 import { logger } from "../utils/logger.ts";
-import { ProjectConfig, Profile } from "./project_config.ts";
+import { ProjectConfig } from "./config.ts";
 import { runFilter } from "./filter.ts";
 
 export async function runProfile(config: ProjectConfig, profile: Profile) {
@@ -9,7 +10,7 @@ export async function runProfile(config: ProjectConfig, profile: Profile) {
       continue;
     }
     if (entry.profile) {
-      const profile = config.profiles.get(entry.profile);
+      const profile = config.regolith.profiles.get(entry.profile);
       if (!profile) {
         throw Error(`Profile "${entry.profile}" does not exist in profiles`);
       }
@@ -20,7 +21,7 @@ export async function runProfile(config: ProjectConfig, profile: Profile) {
 
     const name = entry.filter;
     if (name) {
-      const def = config.filterDefinitions.get(name);
+      const def = config.regolith.filterDefinitions.get(name);
       if (!def) {
         logger.warn(`Filter "${name}" does not exist in filterDefinitions`);
         continue;

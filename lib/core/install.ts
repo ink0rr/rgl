@@ -1,8 +1,8 @@
 import { copy, exists, join, semver } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { ProjectConfig } from "./project_config.ts";
+import { getFilterCacheDir } from "./cache.ts";
+import { ProjectConfig } from "./config.ts";
 import { resolveURL } from "./resolver.ts";
-import { getFilterCacheDir } from "./user_config.ts";
 
 export async function installFilter(config: ProjectConfig, filter: string) {
   let name: string;
@@ -37,7 +37,7 @@ export async function installFilter(config: ProjectConfig, filter: string) {
   }
   await downloadFilter(name, url, ref);
 
-  config.filterDefinitions.set(name, {
+  config.regolith.filterDefinitions.set(name, {
     url,
     version: version ?? ref,
   });
@@ -73,6 +73,7 @@ export async function downloadFilter(name: string, url: string, ref: string, for
   }).output();
 
   await copy(join(cache, name), filterDir);
+  // TODO: Install filter dependencies
 
   logger.info(`Filter "${name}" downloaded successfully.`);
 }

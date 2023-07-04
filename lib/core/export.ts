@@ -1,6 +1,7 @@
 import { copy, join } from "../../deps.ts";
+import { Profile } from "../schemas/profile.ts";
 import { logger } from "../utils/logger.ts";
-import { ProjectConfig, Profile } from "./project_config.ts";
+import { ProjectConfig } from "./config.ts";
 
 function findComMojangPath() {
   if (Deno.build.os === "windows") {
@@ -68,6 +69,29 @@ export async function exportProject(config: ProjectConfig, profile: Profile) {
     await Promise.all([
       copy(join("./.regolith/tmp/BP"), bpPath),
       copy(join("./.regolith/tmp/RP"), rpPath),
+    ]);
+  }
+}
+
+export async function exportFrom(from: string, to: { bpPath: string; rpPath: string }) {
+  await Promise.all([
+    Deno.remove(to.bpPath, { recursive: true }).catch(() => {}),
+    Deno.remove(to.rpPath, { recursive: true }).catch(() => {}),
+  ]);
+
+  logger.info(`Moving files to target location: 
+      BP: ${to.bpPath}
+      RP: ${to.rpPath}`);
+
+  try {
+    await Promise.all([
+      Deno.rename(join(from, "BP"), to.bpPath),
+      Deno.rename(join(from, "RP"), to.rpPath),
+    ]);
+  } catch {
+    await Promise.all([
+      copy(join(from, "BP"), to.bpPath),
+      copy(join(from, "RP"), to.rpPath),
     ]);
   }
 }

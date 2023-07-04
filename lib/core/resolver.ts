@@ -1,10 +1,12 @@
 import { join } from "../../deps.ts";
 import { readJson } from "../utils/fs.ts";
-import { getRegolithCacheDir } from "./user_config.ts";
+import { getRegolithCacheDir } from "./cache.ts";
 
-const defaultResolver = await readJson<{ filters: Record<string, { url: string }> }>(
-  join(getRegolithCacheDir(), "resolvers", "resolver_0.json"),
-);
+type Resolver = {
+  filters: Record<string, { url: string }>;
+};
+
+const defaultResolver = await readJson<Resolver>(join(getRegolithCacheDir(), "resolvers", "resolver_0.json"));
 
 export function resolveURL(name: string) {
   const resolver = new Map(Object.entries(defaultResolver.filters));
