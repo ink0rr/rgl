@@ -1,8 +1,6 @@
 import { logger } from "../utils/logger.ts";
 import { Config, Profile } from "./config.ts";
-import { Filter } from "./filter.ts";
-import { DenoFilter } from "./filter_deno.ts";
-import { RemoteFilter } from "./filter_remote.ts";
+import { runFilter } from "./filter.ts";
 
 export async function runProfile(config: Config, profile: Profile) {
   for (const entry of profile.filters) {
@@ -19,26 +17,21 @@ export async function runProfile(config: Config, profile: Profile) {
       await runProfile(config, profile);
       continue;
     }
-    if (entry.filter) {
-      const filterDefinition = config.filterDefinitions.get(entry.filter);
-      if (!filterDefinition) {
-        logger.warn(`Filter "${entry.filter}" does not exist in filterDefinitions`);
+
+    const name = entry.filter;
+    if (name) {
+      const def = config.filterDefinitions.get(name);
+      if (!def) {
+        logger.warn(`Filter "${name}" does not exist in filterDefinitions`);
         continue;
       }
 
-      let filter: Filter;
-      switch (filterDefinition.runWith) {
-        case "deno":
-          filter = new DenoFilter(entry.filter, filterDefinition.script);
-          break;
-        case "":
-          filter = new RemoteFilter(entry.filter);
-          break;
-        default:
-          throw Error(`Invalid filter definition: ${entry.filter}`);
+      logger.info(`Running filter "${name}"`);
+      const runArgs = entry.arguments ?? [];
+      if (entry.settings) {
+        runArgs.unshift(JSON.stringify(entry.settings));
       }
-      logger.info(`Running filter "${entry.filter}"`);
-      await filter.run(entry.arguments, entry.settings);
+      await runFilter(name, runArgs, def);
     }
   }
 }
