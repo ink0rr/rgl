@@ -26,6 +26,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
 
   await runProfile(config, profile);
   await exportProject(config, profile);
+  await Deno.remove(tmp, { recursive: true }).catch(() => {});
   logger.info(`Successfully ran the "${profileName}" profile.`);
 
   if (watch) {
