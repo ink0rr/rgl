@@ -1,8 +1,8 @@
-import { copy, debounce, join } from "../../deps.ts";
+import { copy, debounce, join, resolve } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { ProjectConfig } from "./project_config.ts";
 import { exportProject } from "./export.ts";
 import { runProfile } from "./profile.ts";
+import { ProjectConfig } from "./project_config.ts";
 
 export async function runOrWatch(profileName: string, watch?: boolean) {
   const config = await ProjectConfig.load();
@@ -21,7 +21,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
   await Promise.all([
     copy(behaviorPack, join(tmp, "BP")),
     copy(resourcePack, join(tmp, "RP")),
-    copy(config.dataPath, join(tmp, "data")),
+    Deno.symlink(resolve(config.dataPath), join(tmp, "data"), { type: "dir" }),
   ]);
 
   await runProfile(config, profile);
