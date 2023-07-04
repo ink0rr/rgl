@@ -1,4 +1,5 @@
-import { crypto, join, toHashString } from "../../deps.ts";
+import { crypto, join, toHashString, z } from "../../deps.ts";
+import { readJson } from "../utils/fs.ts";
 
 /**
  * Lousy port of Go `os.UserCacheDir()`
@@ -41,4 +42,18 @@ export async function getFilterCacheDir(url: string) {
   const md5 = await crypto.subtle.digest("MD5", encoder.encode(url));
 
   return join(getRegolithCacheDir(), "filter-cache", toHashString(md5));
+}
+
+const userConfigSchema = z.object({});
+
+export class UserConfig {
+  private constructor(
+    private readonly config: z.infer<typeof userConfigSchema>,
+  ) {}
+
+  static async load() {
+    const path = join(getUserCacheDir(), "regolith", "user_config.json");
+    const config = await readJson(path).then(userConfigSchema.parse);
+    return new UserConfig(config);
+  }
 }

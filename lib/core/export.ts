@@ -1,6 +1,6 @@
 import { copy, join } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { Config, Profile } from "./config.ts";
+import { ProjectConfig, Profile } from "./project_config.ts";
 
 function findComMojangPath() {
   if (Deno.build.os === "windows") {
@@ -47,7 +47,7 @@ function getExportPaths(name: string, profile: Profile) {
   }
 }
 
-export async function exportProject(config: Config, profile: Profile) {
+export async function exportProject(config: ProjectConfig, profile: Profile) {
   const { bpPath, rpPath } = getExportPaths(config.name, profile);
 
   await Promise.all([

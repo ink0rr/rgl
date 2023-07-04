@@ -1,11 +1,11 @@
 import { copy, debounce, join } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { Config } from "./config.ts";
+import { ProjectConfig } from "./project_config.ts";
 import { exportProject } from "./export.ts";
 import { runProfile } from "./profile.ts";
 
 export async function runOrWatch(profileName: string, watch?: boolean) {
-  const config = await Config.load();
+  const config = await ProjectConfig.load();
   const profile = config.profiles.get(profileName);
   if (!profile) {
     throw Error(`Profile "${profileName}" does not exist!`);

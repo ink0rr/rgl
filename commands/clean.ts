@@ -1,5 +1,5 @@
 import { Command } from "../deps.ts";
-import { Config } from "../lib/core/config.ts";
+import { ProjectConfig } from "../lib/core/project_config.ts";
 import { logger } from "../lib/utils/logger.ts";
 import { getDevelopmentPaths } from "../lib/utils/paths.ts";
 
@@ -7,7 +7,7 @@ export const clean = new Command()
   .name("clean")
   .description("Clean")
   .action(async () => {
-    const config = await Config.load();
+    const config = await ProjectConfig.load();
 
     logger.info("Cleaning development export paths...");
     const { developmentBehaviorPacks, developmentResourcePacks } = getDevelopmentPaths(config.name);

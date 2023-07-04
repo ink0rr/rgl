@@ -1,10 +1,10 @@
 import { copy, exists, join, semver } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
-import { Config } from "./config.ts";
+import { ProjectConfig } from "./project_config.ts";
 import { resolveURL } from "./resolver.ts";
 import { getFilterCacheDir } from "./user_config.ts";
 
-export async function installFilter(config: Config, filter: string) {
+export async function installFilter(config: ProjectConfig, filter: string) {
   let name: string;
   let url: string;
   let version: string | undefined;

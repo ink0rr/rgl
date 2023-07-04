@@ -1,7 +1,7 @@
 import { exists } from "https://deno.land/std@0.190.0/fs/exists.ts";
 import { join, resolve } from "../../deps.ts";
 import { runSubprocess } from "../utils/subprocess.ts";
-import { FilterDefinition } from "./config.ts";
+import { FilterDefinition } from "./project_config.ts";
 import { readJson } from "../utils/fs.ts";
 
 type Filter = {

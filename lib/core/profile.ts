@@ -1,8 +1,8 @@
 import { logger } from "../utils/logger.ts";
-import { Config, Profile } from "./config.ts";
+import { ProjectConfig, Profile } from "./project_config.ts";
 import { runFilter } from "./filter.ts";
 
-export async function runProfile(config: Config, profile: Profile) {
+export async function runProfile(config: ProjectConfig, profile: Profile) {
   for (const entry of profile.filters) {
     if (entry.disabled) {
       logger.info(`Filter "${entry.filter}" is disabled, skipping...`);

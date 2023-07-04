@@ -1,5 +1,5 @@
 import { Command, semver } from "../deps.ts";
-import { Config } from "../lib/core/config.ts";
+import { ProjectConfig } from "../lib/core/project_config.ts";
 import { downloadFilter, installFilter } from "../lib/core/install.ts";
 
 export const install = new Command()
@@ -10,7 +10,7 @@ export const install = new Command()
   )
   .arguments("[...filters:string]")
   .action(async (_, ...filters) => {
-    const config = await Config.load();
+    const config = await ProjectConfig.load();
     if (filters.length) {
       for (const filter of filters) {
         await installFilter(config, filter);

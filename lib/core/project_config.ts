@@ -68,7 +68,7 @@ export type RunFilter = z.infer<typeof runFilterSchema>;
 
 export type Profile = z.infer<typeof profileSchema>;
 
-export class Config {
+export class ProjectConfig {
   private constructor(
     private config: z.infer<typeof configSchema>,
   ) {}
@@ -104,6 +104,6 @@ export class Config {
 
   static async load() {
     const config = await readJson("./config.json").then(configSchema.parse);
-    return new Config(config);
+    return new ProjectConfig(config);
   }
 }
