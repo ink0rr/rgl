@@ -1,3 +1,4 @@
+import { config } from "./commands/config.ts";
 import { install } from "./commands/install.ts";
 import { run } from "./commands/run.ts";
 import { watch } from "./commands/watch.ts";
@@ -10,6 +11,7 @@ if (import.meta.main) {
       .name("rgl")
       .description("Oversimplified Regolith runner")
       .arguments("<command>")
+      .command("config", config)
       .command("install", install)
       .command("run", run)
       .command("watch", watch)
