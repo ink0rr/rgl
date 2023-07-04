@@ -1,7 +1,6 @@
 import { z } from "../../deps.ts";
 
 export const filterDefinitionSchema = z.object({
-  name: z.string().optional(),
   runWith: z.string().optional(),
   script: z.string().optional(),
   command: z.string().optional(),

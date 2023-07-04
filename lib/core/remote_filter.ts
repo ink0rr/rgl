@@ -1,5 +1,9 @@
 import { copy, exists, join, semver } from "../../deps.ts";
+import { remoteFilterSchema } from "../schemas/remote_filter.ts";
+import { readJson } from "../utils/fs.ts";
+import { logger } from "../utils/logger.ts";
 import { getFilterCacheDir } from "./cache.ts";
+import { getFilter } from "./filter.ts";
 
 export async function installRemoteFilter(name: string, url: string, ref: string, force = true) {
   const filterDir = join(".regolith", "cache", "filters", name);
@@ -26,7 +30,17 @@ export async function installRemoteFilter(name: string, url: string, ref: string
   }).output();
 
   await copy(join(cache, name), filterDir);
-  // TODO: Install filter dependencies
+
+  // Install filter dependencies
+  const filterConfig = await readJson(join(filterDir, "filter.json")).then(remoteFilterSchema.parse);
+  for (const entry of filterConfig.filters) {
+    // TODO: Handle requirements field
+    const filter = getFilter(entry.runWith);
+    if (filter.installDependencies) {
+      logger.info(`Installing dependencies for "${name}"...`);
+      await filter.installDependencies(filterDir);
+    }
+  }
 }
 
 export async function getFilterRef(name: string, url: string, version?: string) {

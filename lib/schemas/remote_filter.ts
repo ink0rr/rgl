@@ -1,8 +1,15 @@
 import { z } from "../../deps.ts";
-import { filterDefinitionSchema } from "./filter_definition.ts";
+
+const remoteFilterDefinitionSchema = z.object({
+  name: z.string().optional(),
+  runWith: z.string(),
+  script: z.string().optional(),
+  command: z.string().optional(),
+  requirements: z.string().optional(),
+});
 
 export const remoteFilterSchema = z.object({
-  filters: z.array(filterDefinitionSchema),
+  filters: z.array(remoteFilterDefinitionSchema),
   version: z.string().optional(),
 });
 
