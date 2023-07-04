@@ -1,36 +1,17 @@
 import { copy, join } from "../../deps.ts";
 import { Profile } from "../schemas/profile.ts";
 import { logger } from "../utils/logger.ts";
+import { findMojangDir } from "../utils/mojang_dir.ts";
 import { ProjectConfig } from "./config.ts";
 
-function findComMojangPath() {
-  if (Deno.build.os === "windows") {
-    const localAppData = Deno.env.get("LOCALAPPDATA");
-    if (!localAppData) {
-      throw new Error("LOCALAPPDATA not found");
-    }
-    const comMojangPath = join(
-      localAppData,
-      "Packages",
-      "Microsoft.MinecraftUWP_8wekyb3d8bbwe",
-      "LocalState",
-      "games",
-      "com.mojang",
-    );
-    return comMojangPath;
-  }
-
-  throw new Error("Not implemented");
-}
-
-function getExportPaths(name: string, profile: Profile) {
+async function getExportPaths(name: string, profile: Profile) {
   const target = profile.export.target;
   switch (target) {
     case "development": {
-      const comMojang = findComMojangPath();
+      const mojangDir = await findMojangDir();
       return {
-        bpPath: join(comMojang, "development_behavior_packs", `${name}_bp`),
-        rpPath: join(comMojang, "development_resource_packs", `${name}_rp`),
+        bpPath: join(mojangDir, "development_behavior_packs", `${name}_bp`),
+        rpPath: join(mojangDir, "development_resource_packs", `${name}_rp`),
       };
     }
     case "exact":
@@ -49,7 +30,7 @@ function getExportPaths(name: string, profile: Profile) {
 }
 
 export async function exportProject(config: ProjectConfig, profile: Profile) {
-  const { bpPath, rpPath } = getExportPaths(config.name, profile);
+  const { bpPath, rpPath } = await getExportPaths(config.name, profile);
 
   await Promise.all([
     Deno.remove(bpPath, { recursive: true }).catch(() => {}),

@@ -1,4 +1,4 @@
-import { join } from "../../deps.ts";
+import { exists, join } from "../../deps.ts";
 import { projectConfigSchema } from "../schemas/project_config.ts";
 import { userConfigSchema } from "../schemas/user_config.ts";
 import { readJson, writeJson } from "../utils/fs.ts";
@@ -21,10 +21,14 @@ export async function getProjectConfig() {
 export type ProjectConfig = Awaited<ReturnType<typeof getProjectConfig>>;
 
 export async function getUserConfig() {
-  const config = await readJson(join(getRegolithCacheDir(), "user_config.json")).then(userConfigSchema.parse);
+  const path = join(getRegolithCacheDir(), "user_config.json");
+  if (!await exists(path)) {
+    await writeJson(path, {});
+  }
+  const config = await readJson(path).then(userConfigSchema.parse);
   return Object.assign(config, {
     async save() {
-      await writeJson("./user_config.json", config);
+      await writeJson(path, config);
     },
   });
 }
