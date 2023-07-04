@@ -1,27 +1,31 @@
 import { Profile } from "../schemas/profile.ts";
 import { logger } from "../utils/logger.ts";
-import { ProjectConfig } from "./config.ts";
+import { useContext } from "./context.ts";
 import { runFilter } from "./filter.ts";
 
-export async function runProfile(config: ProjectConfig, profile: Profile) {
+export async function runProfile(profile: Profile) {
+  const context = useContext();
   for (const entry of profile.filters) {
     if (entry.disabled) {
       logger.info(`Filter "${entry.filter}" is disabled, skipping...`);
       continue;
     }
+    if (entry.profile === context.currentProfile) {
+      throw new Error(`Found circular dependency in profile "${context.currentProfile}"`);
+    }
     if (entry.profile) {
-      const profile = config.regolith.profiles.get(entry.profile);
+      const profile = context.profiles.get(entry.profile);
       if (!profile) {
-        throw Error(`Profile "${entry.profile}" does not exist in profiles`);
+        throw new Error(`Profile "${entry.profile}" does not exist in profiles`);
       }
       logger.info(`Running "${entry.profile}" profile filters`);
-      await runProfile(config, profile);
+      await runProfile(profile);
       continue;
     }
 
     const name = entry.filter;
     if (name) {
-      const def = config.regolith.filterDefinitions.get(name);
+      const def = context.filterDefinitions.get(name);
       if (!def) {
         logger.warn(`Filter "${name}" does not exist in filterDefinitions`);
         continue;

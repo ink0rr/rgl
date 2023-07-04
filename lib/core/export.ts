@@ -1,78 +1,62 @@
-import { copy, join } from "../../deps.ts";
-import { Profile } from "../schemas/profile.ts";
+import { copy, join, move } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
 import { findMojangDir } from "../utils/mojang_dir.ts";
-import { ProjectConfig } from "./config.ts";
+import { useContext } from "./context.ts";
 
-async function getExportPaths(name: string, profile: Profile) {
-  const target = profile.export.target;
-  switch (target) {
+export async function getExportPaths() {
+  const context = useContext();
+  const e = context.export;
+  switch (e.target) {
     case "development": {
       const mojangDir = await findMojangDir();
       return {
-        bpPath: join(mojangDir, "development_behavior_packs", `${name}_bp`),
-        rpPath: join(mojangDir, "development_resource_packs", `${name}_rp`),
+        behaviorPack: join(mojangDir, "development_behavior_packs", `${context.name}_bp`),
+        resourcePack: join(mojangDir, "development_resource_packs", `${context.name}_rp`),
       };
     }
     case "exact":
       return {
-        bpPath: profile.export.bpPath,
-        rpPath: profile.export.rpPath,
+        behaviorPack: e.bpPath,
+        resourcePack: e.rpPath,
       };
     case "local":
       return {
-        bpPath: "./build/BP",
-        rpPath: "./build/RP",
+        behaviorPack: "./build/BP",
+        resourcePack: "./build/RP",
       };
-    default:
-      throw new Error(`Unsupported export target: ${target}`);
   }
 }
 
-export async function exportProject(config: ProjectConfig, profile: Profile) {
-  const { bpPath, rpPath } = await getExportPaths(config.name, profile);
+export async function exportProject() {
+  const context = useContext();
+  const paths = await getExportPaths();
 
   await Promise.all([
-    Deno.remove(bpPath, { recursive: true }).catch(() => {}),
-    Deno.remove(rpPath, { recursive: true }).catch(() => {}),
+    Deno.remove(paths.behaviorPack, { recursive: true }),
+    Deno.remove(paths.resourcePack, { recursive: true }),
   ]);
 
   logger.info(`Moving files to target location: 
-      BP: ${bpPath}
-      RP: ${rpPath}`);
+      BP: ${paths.behaviorPack}
+      RP: ${paths.resourcePack}`);
+
+  const temp = {
+    behaviorPack: join(context.temp, "BP"),
+    resourcePack: join(context.temp, "RP"),
+  };
 
   try {
     await Promise.all([
-      Deno.rename(join("./.regolith/tmp/BP"), bpPath),
-      Deno.rename(join("./.regolith/tmp/RP"), rpPath),
+      move(temp.behaviorPack, paths.behaviorPack),
+      move(temp.resourcePack, paths.resourcePack),
     ]);
-  } catch {
+  } catch (err) {
+    if (context.export.target === "development") {
+      throw err;
+    }
     await Promise.all([
-      copy(join("./.regolith/tmp/BP"), bpPath),
-      copy(join("./.regolith/tmp/RP"), rpPath),
-    ]);
-  }
-}
-
-export async function exportFrom(from: string, to: { bpPath: string; rpPath: string }) {
-  await Promise.all([
-    Deno.remove(to.bpPath, { recursive: true }).catch(() => {}),
-    Deno.remove(to.rpPath, { recursive: true }).catch(() => {}),
-  ]);
-
-  logger.info(`Moving files to target location: 
-      BP: ${to.bpPath}
-      RP: ${to.rpPath}`);
-
-  try {
-    await Promise.all([
-      Deno.rename(join(from, "BP"), to.bpPath),
-      Deno.rename(join(from, "RP"), to.rpPath),
-    ]);
-  } catch {
-    await Promise.all([
-      copy(join(from, "BP"), to.bpPath),
-      copy(join(from, "RP"), to.rpPath),
+      copy(temp.behaviorPack, paths.behaviorPack),
+      copy(temp.resourcePack, paths.resourcePack),
     ]);
   }
 }

@@ -1,6 +1,7 @@
 import { copy, debounce, join, resolve } from "../../deps.ts";
 import { logger } from "../utils/logger.ts";
 import { getProjectConfig } from "./config.ts";
+import { createContext } from "./context.ts";
 import { exportProject } from "./export.ts";
 import { runProfile } from "./profile.ts";
 
@@ -13,21 +14,23 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
 
   logger.info(`Running "${profileName}" profile.`);
 
-  const tmp = "./.regolith/tmp";
-  await Deno.remove(tmp, { recursive: true }).catch(() => {});
-  await Deno.mkdir(tmp, { recursive: true }).catch(() => {});
+  const [context, disposeContext] = await createContext(config, profileName, profile.export);
 
-  const { behaviorPack, resourcePack } = config.packs;
+  await Deno.remove(context.temp, { recursive: true }).catch(() => {});
+  await Deno.mkdir(context.temp, { recursive: true }).catch(() => {});
+
   await Promise.all([
-    copy(behaviorPack, join(tmp, "BP")),
-    copy(resourcePack, join(tmp, "RP")),
-    Deno.symlink(resolve(config.regolith.dataPath), join(tmp, "data"), { type: "dir" }),
+    copy(context.packs.behaviorPack, join(context.temp, "BP")),
+    copy(context.packs.resourcePack, join(context.temp, "RP")),
+    Deno.symlink(resolve(context.dataPath), join(context.temp, "data"), { type: "dir" }),
   ]);
+  await runProfile(profile);
+  await exportProject();
 
-  await runProfile(config, profile);
-  await exportProject(config, profile);
-  await Deno.remove(tmp, { recursive: true }).catch(() => {});
+  // Clean up
+  await Deno.remove(context.temp, { recursive: true }).catch(() => {});
   logger.info(`Successfully ran the "${profileName}" profile.`);
+  disposeContext();
 
   if (watch) {
     const watcher = Deno.watchFs([

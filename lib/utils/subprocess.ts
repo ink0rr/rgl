@@ -1,9 +1,11 @@
+import { useContext } from "../core/context.ts";
 import { logger } from "./logger.ts";
 
 export async function runSubprocess(name: string, command: string, args: string[]) {
+  const context = useContext();
   const process = new Deno.Command(command, {
     args,
-    cwd: "./.regolith/tmp",
+    cwd: context.temp,
     stderr: "piped",
     stdout: "piped",
     stdin: "null",
