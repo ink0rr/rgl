@@ -34,12 +34,9 @@ export function getRegolithCacheDir() {
   return join(getUserCacheDir(), "regolith");
 }
 
-/**
- * @param url with the `https://` prefix
- */
-export async function getFilterCacheDir(url: string) {
+export async function getFilterCacheDir(httpUrl: string) {
   const encoder = new TextEncoder();
-  const md5 = await crypto.subtle.digest("MD5", encoder.encode(url));
+  const md5 = await crypto.subtle.digest("MD5", encoder.encode(httpUrl));
 
   return join(getRegolithCacheDir(), "filter-cache", toHashString(md5));
 }

@@ -1,60 +1,13 @@
 import { copy, exists, join, semver } from "../../deps.ts";
-import { logger } from "../utils/logger.ts";
 import { getFilterCacheDir } from "./cache.ts";
-import { ProjectConfig } from "./config.ts";
-import { resolveURL } from "./resolver.ts";
 
-export async function installFilter(config: ProjectConfig, filter: string) {
-  let name: string;
-  let url: string;
-  let version: string | undefined;
-
-  if (filter.includes("==")) {
-    const splitted = filter.split("==");
-    if (splitted.length != 2) {
-      throw new Error(`Invalid filter name: ${filter}`);
-    }
-    [url, version] = splitted;
-  } else {
-    url = filter;
-  }
-
-  if (url.includes("/")) {
-    const splitted = url.split("/");
-    name = splitted.pop()!;
-    url = splitted.join("/");
-    if (url.match(/^hhtps?:\/\//i)) {
-      throw new Error(`Invalid URL: ${url}`);
-    }
-  } else {
-    name = url;
-    url = resolveURL(name);
-  }
-
-  const ref = await getFilterRef(name, url, version);
-  if (!ref) {
-    throw new Error(`Unable to find version of the filter that satisfies the specified constraints.`);
-  }
-  await downloadFilter(name, url, ref);
-
-  config.regolith.filterDefinitions.set(name, {
-    url,
-    version: version ?? ref,
-  });
-}
-
-export async function downloadFilter(name: string, url: string, ref: string, force = true) {
-  await Deno.mkdir(join(".regolith", "cache", "filters"), { recursive: true }).catch(() => {});
-
+export async function installRemoteFilter(name: string, url: string, ref: string, force = true) {
   const filterDir = join(".regolith", "cache", "filters", name);
   if (await exists(filterDir) && !force) {
     throw new Error(`Filter "${name}" already exists. Use --force to overwrite.`);
   } else {
     await Deno.remove(filterDir, { recursive: true }).catch(() => {});
   }
-
-  logger.info(`Downloading filter "${name}"...`);
-  logger.info(`Filter "${name}" resolved to ${url}`);
 
   const httpUrl = `https://${url}`;
   const cache = await getFilterCacheDir(httpUrl);
@@ -66,7 +19,7 @@ export async function downloadFilter(name: string, url: string, ref: string, for
       cwd: cache,
     }).output();
   }
-  logger.info(`Checking out "${ref}"...`);
+
   await new Deno.Command("git", {
     args: ["checkout", ref],
     cwd: cache,
@@ -74,11 +27,9 @@ export async function downloadFilter(name: string, url: string, ref: string, for
 
   await copy(join(cache, name), filterDir);
   // TODO: Install filter dependencies
-
-  logger.info(`Filter "${name}" downloaded successfully.`);
 }
 
-async function getFilterRef(name: string, url: string, version?: string) {
+export async function getFilterRef(name: string, url: string, version?: string) {
   if (version && semver.valid(version)) {
     return `${name}-${version}`;
   }
@@ -96,7 +47,6 @@ async function getFilterRef(name: string, url: string, version?: string) {
         tags.push(tag);
       }
     }
-
     const tag = semver.sort(tags).at(-1);
     if (tag) {
       return `${name}-${tag}`;
@@ -109,7 +59,6 @@ async function getFilterRef(name: string, url: string, version?: string) {
     }).output();
 
     const sha = decoder.decode(process.stdout).split("\n").at(1)?.split("\t").at(0);
-
     return sha;
   }
 }
