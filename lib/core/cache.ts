@@ -1,4 +1,4 @@
-import { join, toHashString } from "../../deps.ts";
+import { crypto, join, toHashString } from "../../deps.ts";
 
 /**
  * https://pkg.go.dev/os#UserCacheDir
