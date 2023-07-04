@@ -18,6 +18,6 @@ export async function readJson<T>(path: string) {
   return JSONC.parse(data) as T;
 }
 
-export async function writeJson(path: string, data: unknown) {
-  await outputFile(path, JSON.stringify(data, null, 2));
+export async function writeJson(path: string, data: unknown, replacer?: (key: string, value: unknown) => unknown) {
+  await outputFile(path, JSON.stringify(data, replacer, 2));
 }

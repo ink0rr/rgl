@@ -1,8 +1,10 @@
 export { debounce } from "https://deno.land/std@0.190.0/async/mod.ts";
+export { crypto, toHashString } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 export * as colors from "https://deno.land/std@0.190.0/fmt/colors.ts";
 export { copy, exists, move } from "https://deno.land/std@0.190.0/fs/mod.ts";
 export * as JSONC from "https://deno.land/std@0.190.0/jsonc/mod.ts";
 export { dirname, join, resolve } from "https://deno.land/std@0.190.0/path/mod.ts";
+export * as semver from "https://deno.land/std@0.190.0/semver/mod.ts";
 export * from "https://deno.land/x/cliffy@v0.25.7/mod.ts";
 export { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 export { lookpath } from "npm:lookpath";

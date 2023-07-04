@@ -1,4 +1,4 @@
-import { join } from "../../deps.ts";
+import { crypto, join, toHashString } from "../../deps.ts";
 
 /**
  * Lousy port of Go `os.UserCacheDir()`
@@ -32,6 +32,13 @@ function getUserCacheDir() {
   return dir;
 }
 
-function _getUserConfigPath() {
-  return join(getUserCacheDir(), "regolith", "user_config.json");
+export function getRegolithCacheDir() {
+  return join(getUserCacheDir(), "regolith");
+}
+
+export async function getFilterCacheDir(url: string) {
+  const encoder = new TextEncoder();
+  const md5 = await crypto.subtle.digest("MD5", encoder.encode(url));
+
+  return join(getRegolithCacheDir(), "filter-cache", toHashString(md5));
 }

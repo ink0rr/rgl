@@ -1,4 +1,5 @@
 import { clean } from "./commands/clean.ts";
+import { install } from "./commands/install.ts";
 import { run } from "./commands/run.ts";
 import { watch } from "./commands/watch.ts";
 import { Command, fromZodError, z } from "./deps.ts";
@@ -11,6 +12,7 @@ if (import.meta.main) {
       .description("Oversimplified Regolith runner")
       .arguments("<command>")
       .command("clean", clean)
+      .command("install", install)
       .command("run", run)
       .command("watch", watch)
       .parse(Deno.args);
