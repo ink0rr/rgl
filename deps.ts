@@ -1,7 +1,7 @@
 export { debounce } from "https://deno.land/std@0.190.0/async/mod.ts";
 export { crypto, toHashString } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 export * as colors from "https://deno.land/std@0.190.0/fmt/colors.ts";
-export { copy, exists, move } from "https://deno.land/std@0.190.0/fs/mod.ts";
+export { copy, emptyDir, exists, move } from "https://deno.land/std@0.190.0/fs/mod.ts";
 export * as JSONC from "https://deno.land/std@0.190.0/jsonc/mod.ts";
 export { dirname, join, resolve } from "https://deno.land/std@0.190.0/path/mod.ts";
 export * as semver from "https://deno.land/std@0.190.0/semver/mod.ts";

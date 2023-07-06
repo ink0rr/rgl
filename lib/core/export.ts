@@ -1,4 +1,5 @@
 import { copy, join, move } from "../../deps.ts";
+import { rmdir } from "../utils/fs.ts";
 import { logger } from "../utils/logger.ts";
 import { findMojangDir } from "../utils/mojang_dir.ts";
 import { useContext } from "./context.ts";
@@ -32,8 +33,8 @@ export async function exportProject() {
   const paths = await getExportPaths();
 
   await Promise.all([
-    Deno.remove(paths.behaviorPack, { recursive: true }),
-    Deno.remove(paths.resourcePack, { recursive: true }),
+    rmdir(paths.behaviorPack),
+    rmdir(paths.resourcePack),
   ]);
 
   logger.info(`Moving files to target location: 

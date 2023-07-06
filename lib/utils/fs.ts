@@ -21,3 +21,7 @@ export async function readJson<T>(path: string) {
 export async function writeJson(path: string, data: unknown, replacer?: (key: string, value: unknown) => unknown) {
   await outputFile(path, JSON.stringify(data, replacer, 2));
 }
+
+export async function rmdir(path: string) {
+  await Deno.remove(path, { recursive: true }).catch(() => {});
+}

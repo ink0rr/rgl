@@ -1,4 +1,5 @@
-import { copy, debounce, join, resolve } from "../../deps.ts";
+import { copy, debounce, emptyDir, join, resolve } from "../../deps.ts";
+import { rmdir } from "../utils/fs.ts";
 import { logger } from "../utils/logger.ts";
 import { getProjectConfig } from "./config.ts";
 import { createContext } from "./context.ts";
@@ -16,8 +17,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
 
   const [context, disposeContext] = await createContext(config, profileName, profile.export);
 
-  await Deno.remove(context.temp, { recursive: true }).catch(() => {});
-  await Deno.mkdir(context.temp, { recursive: true }).catch(() => {});
+  await emptyDir(context.temp);
 
   await Promise.all([
     copy(context.packs.behaviorPack, join(context.temp, "BP")),
@@ -28,7 +28,7 @@ export async function runOrWatch(profileName: string, watch?: boolean) {
   await exportProject();
 
   // Clean up
-  await Deno.remove(context.temp, { recursive: true }).catch(() => {});
+  await rmdir(context.temp);
   logger.info(`Successfully ran the "${profileName}" profile.`);
   disposeContext();
 
