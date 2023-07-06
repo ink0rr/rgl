@@ -1,6 +1,6 @@
 import { Command, semver } from "../deps.ts";
 import { getProjectConfig } from "../lib/core/config.ts";
-import { getFilterRef, installRemoteFilter } from "../lib/core/remote_filter.ts";
+import { getFilterRef, installRemoteFilter, refToVersion } from "../lib/core/remote_filter.ts";
 import { resolveURL } from "../lib/core/resolver.ts";
 import { logger } from "../lib/utils/logger.ts";
 
@@ -26,7 +26,7 @@ export const install = new Command()
         await installRemoteFilter(name, url, ref);
         config.regolith.filterDefinitions.set(name, {
           url,
-          version: semver.valid(ref.split(`${name}-`)[1]) ?? ref,
+          version: refToVersion(ref),
         });
         logger.info(`Filter "${name}" installed successfully.`);
       }

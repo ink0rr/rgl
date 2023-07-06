@@ -1,6 +1,6 @@
 import { copy, exists, join, semver } from "../../deps.ts";
 import { remoteFilterSchema } from "../schemas/remote_filter.ts";
-import { readJson } from "../utils/fs.ts";
+import { readJson, writeJson } from "../utils/fs.ts";
 import { logger } from "../utils/logger.ts";
 import { getFilterCacheDir } from "./cache.ts";
 import { getFilter } from "./filter.ts";
@@ -31,8 +31,13 @@ export async function installRemoteFilter(name: string, url: string, ref: string
 
   await copy(join(cache, name), filterDir);
 
+  // Add version to filter.json
+  const filterConfigPath = join(filterDir, "filter.json");
+  const filterConfig = await readJson(filterConfigPath).then(remoteFilterSchema.parse);
+  filterConfig.version = refToVersion(ref);
+  await writeJson(filterConfigPath, filterConfig);
+
   // Install filter dependencies
-  const filterConfig = await readJson(join(filterDir, "filter.json")).then(remoteFilterSchema.parse);
   for (const entry of filterConfig.filters) {
     // TODO: Handle requirements field
     const filter = getFilter(entry.runWith);
@@ -75,4 +80,8 @@ export async function getFilterRef(name: string, url: string, version?: string) 
     const sha = decoder.decode(process.stdout).split("\n").at(1)?.split("\t").at(0);
     return sha;
   }
+}
+
+export function refToVersion(ref: string) {
+  return semver.valid(ref.split("-")[1]) ?? ref;
 }
