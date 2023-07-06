@@ -10,7 +10,6 @@ if (import.meta.main) {
     await new Command()
       .name("rgl")
       .description("Oversimplified Regolith runner")
-      .arguments("<command>")
       .command("config", config)
       .command("install", install)
       .command("run", run)
