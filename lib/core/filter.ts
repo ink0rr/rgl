@@ -1,5 +1,4 @@
-import { exists } from "https://deno.land/std@0.190.0/fs/exists.ts";
-import { join, resolve } from "../../deps.ts";
+import { exists, join, resolve } from "../../deps.ts";
 import { FilterDefinition } from "../schemas/filter_definition.ts";
 import { remoteFilterSchema } from "../schemas/remote_filter.ts";
 import { readJson } from "../utils/fs.ts";
@@ -47,6 +46,9 @@ export function getFilter(type: string): Filter {
           args: [script, ...args],
         }),
         installDependencies: async (cwd) => {
+          if (!await exists(join(cwd, "requirements.txt"))) {
+            return;
+          }
           await new Deno.Command("pip", {
             args: ["install", "-r", "requirements.txt"],
             cwd,
