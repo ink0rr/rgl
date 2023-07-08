@@ -20,7 +20,7 @@ export async function findMojangDir() {
     const { mojang_dir } = await getUserConfig();
     if (!mojang_dir) {
       throw new Error(
-        `Non-windows machine detected, you have to specify your own com.mojang folder using "rgl config --mojang-dir=<DIR>"`,
+        `Non-windows machine detected, you have to specify your own com.mojang folder using "rgl config --mojang_dir=<DIR>"`,
       );
     }
     dir = mojang_dir;
