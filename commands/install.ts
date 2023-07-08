@@ -15,20 +15,18 @@ export const install = new Command()
     const config = await getProjectConfig();
     if (filters.length) {
       for (const filter of filters) {
-        const { name, url, version } = parseFilterInfo(filter);
+        const { name, url, version } = await parseFilterInfo(filter);
 
-        logger.info(`Installing filter "${name}"...`);
         const ref = await getFilterRef(name, url, version);
         if (!ref) {
           throw new Error(`Unable to find version of the filter that satisfies the specified constraints.`);
         }
-        logger.info(`Resolved filter "${name}" to ${url}@${ref}`);
+        logger.info(`Filter "${name}" resolved to ${url}@${ref}`);
         await installRemoteFilter(name, url, ref);
         config.regolith.filterDefinitions.set(name, {
           url,
           version: refToVersion(ref),
         });
-        logger.info(`Filter "${name}" installed successfully.`);
       }
       await config.save();
     } else {
@@ -40,7 +38,7 @@ export const install = new Command()
     }
   });
 
-function parseFilterInfo(filter: string) {
+async function parseFilterInfo(filter: string) {
   let name: string;
   let url: string;
   let version: string | undefined;
@@ -64,7 +62,7 @@ function parseFilterInfo(filter: string) {
     }
   } else {
     name = url;
-    url = resolveURL(name);
+    url = await resolveURL(name);
   }
   return { name, url, version };
 }

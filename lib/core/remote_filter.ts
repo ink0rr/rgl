@@ -13,6 +13,8 @@ export async function installRemoteFilter(name: string, url: string, ref: string
     await Deno.remove(filterDir, { recursive: true }).catch(() => {});
   }
 
+  logger.info(`Installing filter "${name}"...`);
+
   const httpUrl = `https://${url}`;
   const cache = await getFilterCacheDir(httpUrl);
 
@@ -46,6 +48,7 @@ export async function installRemoteFilter(name: string, url: string, ref: string
       await filter.installDependencies(filterDir);
     }
   }
+  logger.info(`Filter "${name}" installed successfully.`);
 }
 
 export async function getFilterRef(name: string, url: string, version?: string) {
