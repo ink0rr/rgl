@@ -1,4 +1,4 @@
-import { exists, join, resolve } from "../../deps.ts";
+import { exists, join, lookpath, resolve } from "../../deps.ts";
 import { FilterDefinition } from "../schemas/filter_definition.ts";
 import { remoteFilterSchema } from "../schemas/remote_filter.ts";
 import { readJson } from "../utils/fs.ts";
@@ -8,6 +8,9 @@ type Filter = {
   getRunCommand: (script: string, args: string[]) => { command: string; args: string[] };
   installDependencies?: (cwd: string) => Promise<void>;
 };
+
+// Probably should move this somewhere else
+const python = await lookpath("python") ? "python" : "python3";
 
 export function getFilter(type: string): Filter {
   switch (type) {
@@ -42,7 +45,7 @@ export function getFilter(type: string): Filter {
     case "python":
       return {
         getRunCommand: (script: string, args: string[]) => ({
-          command: "python",
+          command: python,
           args: [script, ...args],
         }),
         installDependencies: async (cwd) => {
@@ -54,13 +57,6 @@ export function getFilter(type: string): Filter {
             cwd,
           }).output();
         },
-      };
-    case "shell":
-      return {
-        getRunCommand: (script: string, args: string[]) => ({
-          command: "python",
-          args: [script, ...args],
-        }),
       };
     default:
       throw new Error(`Filter "${type}" is not supported.`);
