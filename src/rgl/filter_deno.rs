@@ -12,7 +12,7 @@ impl Filter for FilterDeno {
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
         let script = match Path::new(&self.script).canonicalize() {
             Ok(script) => script.display().to_string(),
-            Err(_) => return Err(RglError::PathNotExistsError(self.name.to_owned())),
+            Err(_) => return Err(RglError::PathNotExistsError(self.script.to_owned())),
         };
 
         let output = Subprocess::new("deno")
@@ -26,12 +26,10 @@ impl Filter for FilterDeno {
                 if output.status.success() {
                     Ok(())
                 } else {
-                    Err(RglError::FilterRunError(
-                        String::from_utf8_lossy(&output.stderr).to_string(),
-                    ))
+                    Err(RglError::FilterRunError(self.name.to_owned()))
                 }
             }
-            Err(e) => Err(RglError::FilterRunError(e.to_string())),
+            Err(_) => panic!("Unhandled error"),
         }
     }
 }

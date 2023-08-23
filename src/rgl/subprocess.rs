@@ -1,4 +1,5 @@
-use std::{ffi::OsStr, io, path::Path, process};
+use super::{Result, RglError};
+use std::{ffi::OsStr, path::Path, process};
 
 pub struct Subprocess {
     command: process::Command,
@@ -36,8 +37,13 @@ impl Subprocess {
         self
     }
 
-    pub fn run(&mut self) -> Result<process::Output, io::Error> {
-        let handler = self.command.spawn()?;
-        handler.wait_with_output()
+    pub fn run(&mut self) -> Result<process::Output> {
+        match self.command.spawn() {
+            Ok(handler) => match handler.wait_with_output() {
+                Ok(output) => Ok(output),
+                Err(e) => Err(RglError::SubprocessError(e.to_string())),
+            },
+            Err(e) => Err(RglError::SubprocessError(e.to_string())),
+        }
     }
 }
