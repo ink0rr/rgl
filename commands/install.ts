@@ -57,7 +57,7 @@ async function parseFilterInfo(filter: string) {
     const splitted = url.split("/");
     name = splitted.pop()!;
     url = splitted.join("/");
-    if (url.match(/^hhtps?:\/\//i)) {
+    if (url.match(/^https?:\/\//i)) {
       throw new Error(`Invalid URL: ${url}`);
     }
   } else {
