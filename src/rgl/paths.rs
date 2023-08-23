@@ -1,6 +1,26 @@
 use super::{Result, RglError};
 use std::path::{Path, PathBuf};
 
+#[cfg(target_os = "linux")]
+pub fn find_mojang_dir() -> PathBuf {
+    Path::new(env!("HOME"))
+        .join(".local")
+        .join("share")
+        .join("mcpelauncher")
+        .join("games")
+        .join("com.mojang")
+}
+
+#[cfg(target_os = "macos")]
+pub fn find_mojang_dir() -> PathBuf {
+    Path::new(env!("HOME"))
+        .join("Library")
+        .join("Application Support")
+        .join("mcpelauncher")
+        .join("games")
+        .join("com.mojang")
+}
+
 #[cfg(target_os = "windows")]
 pub fn find_mojang_dir() -> PathBuf {
     Path::new(env!("LOCALAPPDATA"))

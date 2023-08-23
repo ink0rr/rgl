@@ -76,7 +76,30 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
     Ok(())
 }
 
-#[cfg(any(target_os = "windows"))]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
+    use std::os::unix;
+
+    let from = match from.as_ref().canonicalize() {
+        Ok(path) => path,
+        Err(_) => {
+            return Err(RglError::PathNotExistsError(
+                from.as_ref().display().to_string(),
+            ))
+        }
+    };
+
+    if let Err(e) = unix::fs::symlink(&from, &to) {
+        return Err(RglError::SymlinkError(
+            from.display().to_string(),
+            to.as_ref().display().to_string(),
+            e.to_string(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     use std::os::windows;
 

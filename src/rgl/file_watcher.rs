@@ -1,12 +1,12 @@
 use super::{Result, RglError};
-use notify::{Error, ReadDirectoryChangesWatcher, RecursiveMode};
+use notify::{Error, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
 use simplelog::error;
 use std::{path::Path, sync::mpsc::Receiver, time::Duration};
 
 pub struct FileWatcher {
     rx: Receiver<std::result::Result<Vec<DebouncedEvent>, Vec<Error>>>,
-    debouncer: Debouncer<ReadDirectoryChangesWatcher>,
+    debouncer: Debouncer<RecommendedWatcher>,
 }
 
 impl FileWatcher {
