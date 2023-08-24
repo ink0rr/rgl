@@ -3,7 +3,7 @@ extern crate simplelog;
 
 mod rgl;
 
-use clap::{Arg, ArgAction, Command};
+use clap::{crate_version, Arg, ArgAction, Command};
 use log::LevelFilter;
 use simplelog::{error, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
@@ -24,7 +24,7 @@ fn main() {
         .bin_name("rgl")
         .about("Not Regolith")
         .author("ink0rr")
-        .version("1.0.0")
+        .version(crate_version!())
         .arg_required_else_help(true)
         .subcommand_required(true)
         .subcommand(

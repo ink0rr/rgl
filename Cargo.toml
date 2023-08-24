@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.3.22" }
+clap = { version = "4.3.22", features = ["cargo"] }
 log = "0.4.20"
 notify = "6.0.1"
 notify-debouncer-mini = "0.3.0"
