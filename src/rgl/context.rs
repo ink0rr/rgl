@@ -1,4 +1,4 @@
-use super::{Config, FileWatcher, FilterDefinition, Profile, Result, RglError};
+use super::{Config, FileWatcher, FilterDefinition, Profile, RglResult, RglError};
 use std::collections::HashMap;
 
 pub struct RunContext {
@@ -24,21 +24,25 @@ impl RunContext {
         }
     }
 
-    pub fn get_profile(&self, profile_name: &str) -> Result<&Profile> {
+    pub fn get_profile(&self, profile_name: &str) -> RglResult<&Profile> {
         match self.profiles.get(profile_name) {
             Some(profile) => Ok(profile),
-            None => Err(RglError::ProfileNotFoundError(profile_name.to_owned())),
+            None => Err(RglError::ProfileNotFoundError {
+                profile_name: profile_name.to_owned(),
+            }),
         }
     }
 
-    pub fn get_filter_def(&self, filter_name: &str) -> Result<&FilterDefinition> {
+    pub fn get_filter_def(&self, filter_name: &str) -> RglResult<&FilterDefinition> {
         match self.filter_definitions.get(filter_name) {
             Some(filter_def) => Ok(filter_def),
-            None => Err(RglError::FilterNotDefinedError(filter_name.to_owned())),
+            None => Err(RglError::FilterNotDefinedError {
+                filter_name: filter_name.to_owned(),
+            }),
         }
     }
 
-    pub fn watch_project_files(&self) -> Result<()> {
+    pub fn watch_project_files(&self) -> RglResult<()> {
         let mut file_watcher = FileWatcher::new();
 
         file_watcher.watch(&self.data_path)?;

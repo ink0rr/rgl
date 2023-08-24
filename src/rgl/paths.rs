@@ -1,4 +1,3 @@
-use super::{Result, RglError};
 use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "linux")]
@@ -31,10 +30,9 @@ pub fn find_mojang_dir() -> PathBuf {
         .join("com.mojang")
 }
 
-pub fn find_temp_dir(target: &str) -> Result<PathBuf> {
+pub fn find_temp_dir(target: &str) -> PathBuf {
     match target {
-        "development" => Ok(find_mojang_dir().join(".regolith")),
-        "local" => Ok(Path::new(".").join(".regolith").join("tmp")),
-        _ => Err(RglError::ExportTargetError(target.to_owned())),
+        "development" => find_mojang_dir().join(".regolith"),
+        _ => Path::new(".").join(".regolith").join("tmp"),
     }
 }

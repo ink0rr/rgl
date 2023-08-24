@@ -1,4 +1,4 @@
-use super::{FilterRunner, Result, RglError, RunContext};
+use super::{FilterRunner, RglError, RglResult, RunContext};
 use serde::{Deserialize, Serialize};
 use simplelog::info;
 use std::path::PathBuf;
@@ -15,12 +15,12 @@ pub struct Export {
 }
 
 impl Profile {
-    pub fn run(&self, context: &RunContext, temp: &PathBuf) -> Result<()> {
+    pub fn run(&self, context: &RunContext, temp: &PathBuf) -> RglResult<()> {
         for entry in self.filters.iter() {
             if entry.profile == Some(context.root_profile.to_string().to_owned()) {
-                return Err(RglError::CircularProfileReferenceError(
-                    context.root_profile.to_owned(),
-                ));
+                return Err(RglError::CircularProfileReferenceError {
+                    profile_name: context.root_profile.to_owned(),
+                });
             }
 
             if let Some(profile_name) = &entry.profile {

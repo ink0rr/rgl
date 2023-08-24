@@ -1,10 +1,10 @@
-use super::{FilterDeno, FilterNode, FilterRemote, Result, RglError, WrappedErrorContent};
+use super::{FilterDeno, FilterNode, FilterRemote, RglError, RglResult};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::path::PathBuf;
 
 pub trait Filter {
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()>;
+    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
 }
 
 #[derive(Serialize, Deserialize)]
@@ -27,18 +27,20 @@ pub struct FilterDefinition {
 }
 
 impl FilterDefinition {
-    pub fn to_filter(&self, name: &str) -> Result<Box<dyn Filter>> {
+    pub fn to_filter(&self, name: &str) -> RglResult<Box<dyn Filter>> {
         match &self.run_with {
             Some(run_with) => match run_with.as_str() {
                 "deno" => Ok(Box::new(self.to_filter_impl::<FilterDeno>(name)?)),
                 "nodejs" => Ok(Box::new(self.to_filter_impl::<FilterNode>(name)?)),
-                _ => Err(RglError::FilterNotSupportedError(name.to_owned())),
+                _ => Err(RglError::FilterTypeNotSupportedError {
+                    filter_type: run_with.to_owned(),
+                }),
             },
             None => Ok(Box::new(FilterRemote::new(&name)?)),
         }
     }
 
-    fn to_filter_impl<T>(&self, name: &str) -> Result<T>
+    fn to_filter_impl<T>(&self, name: &str) -> RglResult<T>
     where
         T: DeserializeOwned,
     {
@@ -46,10 +48,10 @@ impl FilterDefinition {
         value["name"] = json!(name);
         match serde_json::from_value::<T>(value) {
             Ok(v) => Ok(v),
-            Err(e) => Err(RglError::WrappedError(WrappedErrorContent {
-                root: RglError::InvalidFilterDefinitionError(name.to_owned()).into(),
+            Err(e) => Err(RglError::InvalidFilterDefinitionError {
+                filter_name: name.to_owned(),
                 cause: RglError::ParseJsonError(e).into(),
-            })),
+            }),
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::{Filter, Result, RglError, Subprocess};
+use super::{Filter, RglError, RglResult, Subprocess};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -9,27 +9,31 @@ pub struct FilterNode {
 }
 
 impl Filter for FilterNode {
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
         let script = match Path::new(&self.script).canonicalize() {
             Ok(script) => script.display().to_string(),
-            Err(_) => return Err(RglError::PathNotExistsError(self.script.to_owned())),
+            Err(_) => {
+                return Err(RglError::InvalidFilterDefinitionError {
+                    filter_name: self.name.to_owned(),
+                    cause: RglError::PathNotExistsError {
+                        path: self.script.to_owned(),
+                    }
+                    .into(),
+                })
+            }
         };
 
         let output = Subprocess::new("node")
             .arg(&script)
             .args(run_args)
             .current_dir(temp)
-            .run();
+            .run()?;
 
-        match output {
-            Ok(output) => {
-                if output.status.success() {
-                    Ok(())
-                } else {
-                    Err(RglError::FilterRunError(self.name.to_owned()))
-                }
-            }
-            Err(_) => panic!("Unhandled error"),
+        match output.status.success() {
+            true => Ok(()),
+            false => Err(RglError::FilterRunError {
+                filter_name: self.name.to_owned(),
+            }),
         }
     }
 }

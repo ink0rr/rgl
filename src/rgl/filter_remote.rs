@@ -1,4 +1,4 @@
-use super::{read_json, Filter, FilterDefinition, Result, RglError, WrappedErrorContent};
+use super::{read_json, Filter, FilterDefinition, RglError, RglResult};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -13,23 +13,23 @@ pub struct FilterRemote {
 }
 
 impl FilterRemote {
-    pub fn new(name: &str) -> Result<Self> {
+    pub fn new(name: &str) -> RglResult<Self> {
         let filter_dir = Path::new(".regolith")
             .join("cache")
             .join("filters")
             .join(name);
 
         if !filter_dir.is_dir() {
-            return Err(RglError::FilterNotInstalledError(name.to_owned()));
+            return Err(RglError::FilterNotInstalledError {
+                filter_name: name.to_owned(),
+            });
         }
 
         match read_json::<FilterRemote>(filter_dir.join("filter.json")) {
-            Err(e) => {
-                return Err(RglError::WrappedError(WrappedErrorContent {
-                    root: RglError::FilterConfigError(name.to_owned()).into(),
-                    cause: e.into(),
-                }))
-            }
+            Err(e) => Err(RglError::FilterConfigError {
+                filter_name: name.to_owned(),
+                cause: e.into(),
+            }),
             Ok(mut filter_config) => {
                 filter_config.name = name.to_owned();
                 filter_config.filter_dir = filter_dir;
@@ -40,19 +40,14 @@ impl FilterRemote {
 }
 
 impl Filter for FilterRemote {
-    fn run(&mut self, temp: &std::path::PathBuf, run_args: &Vec<String>) -> Result<()> {
-        let filter_dir = Path::new(".regolith")
-            .join("cache")
-            .join("filters")
-            .join(&self.name);
-
+    fn run(&mut self, temp: &std::path::PathBuf, run_args: &Vec<String>) -> RglResult<()> {
         for entry in self.filters.iter_mut() {
             if let Some(script) = &entry.script {
-                entry.script = Some(filter_dir.join(script).display().to_string().to_owned())
+                let script = self.filter_dir.join(script);
+                entry.script = Some(script.display().to_string())
             }
             entry.to_filter(&self.name)?.run(temp, run_args)?;
         }
-
         Ok(())
     }
 }

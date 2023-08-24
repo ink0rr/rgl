@@ -1,4 +1,4 @@
-use super::{Result, RglError};
+use super::{RglError, RglResult};
 use notify::{Error, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
 use simplelog::error;
@@ -19,14 +19,17 @@ impl FileWatcher {
         Self { rx, debouncer }
     }
 
-    pub fn watch(&mut self, path: &str) -> Result<()> {
-        match &self
+    pub fn watch(&mut self, path: &str) -> RglResult<()> {
+        match self
             .debouncer
             .watcher()
             .watch(Path::new(path), RecursiveMode::Recursive)
         {
             Ok(_) => Ok(()),
-            Err(cause) => Err(RglError::WatchError(path.to_string(), cause.to_string())),
+            Err(cause) => Err(RglError::WatchError {
+                path: path.to_owned(),
+                cause: RglError::WrapError(cause.into()).into(),
+            }),
         }
     }
 
