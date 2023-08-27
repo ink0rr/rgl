@@ -13,9 +13,9 @@ impl Filter for FilterNode {
         let script = match Path::new(&self.script).canonicalize() {
             Ok(script) => script.display().to_string(),
             Err(_) => {
-                return Err(RglError::InvalidFilterDefinitionError {
+                return Err(RglError::InvalidFilterDefinition {
                     filter_name: self.name.to_owned(),
-                    cause: RglError::PathNotExistsError {
+                    cause: RglError::PathNotExists {
                         path: self.script.to_owned(),
                     }
                     .into(),
@@ -31,7 +31,7 @@ impl Filter for FilterNode {
 
         match output.status.success() {
             true => Ok(()),
-            false => Err(RglError::FilterRunError {
+            false => Err(RglError::FilterRunFailed {
                 filter_name: self.name.to_owned(),
             }),
         }

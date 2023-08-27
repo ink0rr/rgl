@@ -5,10 +5,10 @@ use std::{fs, io, path::Path};
 
 pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     if let Err(e) = _copy_dir(&from, &to) {
-        return Err(RglError::CopyDirError {
+        return Err(RglError::CopyDir {
             from: from.as_ref().display().to_string(),
             to: to.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         });
     }
     Ok(())
@@ -31,9 +31,9 @@ fn _copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> io::Result<()> {
 pub fn empty_dir(path: impl AsRef<Path>) -> RglResult<()> {
     rimraf(&path)?;
     if let Err(e) = fs::create_dir_all(&path) {
-        return Err(RglError::EmptyDirError {
+        return Err(RglError::EmptyDir {
             path: path.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         });
     }
     Ok(())
@@ -42,10 +42,10 @@ pub fn empty_dir(path: impl AsRef<Path>) -> RglResult<()> {
 pub fn move_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     rimraf(&to)?;
     if let Err(e) = fs::rename(&from, &to) {
-        return Err(RglError::MoveError {
+        return Err(RglError::MoveDir {
             from: from.as_ref().display().to_string(),
             to: to.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         });
     }
     Ok(())
@@ -56,14 +56,14 @@ where
     T: de::DeserializeOwned,
 {
     match fs::read_to_string(&path) {
-        Err(e) => Err(RglError::ReadFileError {
+        Err(e) => Err(RglError::ReadFile {
             path: path.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         }),
         Ok(data) => match serde_json::from_str(&data) {
-            Err(error) => Err(RglError::ReadJsonError {
+            Err(error) => Err(RglError::ReadJson {
                 path: path.as_ref().display().to_string(),
-                cause: RglError::ParseJsonError(error).into(),
+                cause: RglError::SerdeJson(error).into(),
             }),
             Ok(config) => Ok(config),
         },
@@ -73,7 +73,7 @@ where
 pub fn rimraf(path: impl AsRef<Path>) -> RglResult<()> {
     if let Err(e) = fs::remove_dir_all(&path) {
         if e.kind() != io::ErrorKind::NotFound {
-            return Err(RglError::RimrafError {
+            return Err(RglError::Rimraf {
                 path: path.as_ref().display().to_string(),
             });
         }
@@ -88,17 +88,17 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     let from = match from.as_ref().canonicalize() {
         Ok(path) => path,
         Err(_) => {
-            return Err(RglError::PathNotExistsError {
+            return Err(RglError::PathNotExists {
                 path: from.as_ref().display().to_string(),
             })
         }
     };
 
     if let Err(e) = unix::fs::symlink(&from, &to) {
-        return Err(RglError::SymlinkError {
+        return Err(RglError::Symlink {
             from: from.display().to_string(),
             to: to.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         });
     }
     Ok(())
@@ -111,17 +111,17 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     let from = match from.as_ref().canonicalize() {
         Ok(path) => path,
         Err(_) => {
-            return Err(RglError::PathNotExistsError {
+            return Err(RglError::PathNotExists {
                 path: from.as_ref().display().to_string(),
             })
         }
     };
 
     if let Err(e) = windows::fs::symlink_dir(&from, &to) {
-        return Err(RglError::SymlinkError {
+        return Err(RglError::Symlink {
             from: from.display().to_string(),
             to: to.as_ref().display().to_string(),
-            cause: RglError::WrapError(e.into()).into(),
+            cause: RglError::Wrap(e.into()).into(),
         });
     }
     Ok(())

@@ -20,13 +20,13 @@ impl FilterRemote {
             .join(name);
 
         if !filter_dir.is_dir() {
-            return Err(RglError::FilterNotInstalledError {
+            return Err(RglError::FilterNotInstalled {
                 filter_name: name.to_owned(),
             });
         }
 
         match read_json::<FilterRemote>(filter_dir.join("filter.json")) {
-            Err(e) => Err(RglError::FilterConfigError {
+            Err(e) => Err(RglError::FilterConfig {
                 filter_name: name.to_owned(),
                 cause: e.into(),
             }),

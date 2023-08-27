@@ -32,7 +32,7 @@ impl FilterDefinition {
             Some(run_with) => match run_with.as_str() {
                 "deno" => Ok(Box::new(self.to_filter_impl::<FilterDeno>(name)?)),
                 "nodejs" => Ok(Box::new(self.to_filter_impl::<FilterNode>(name)?)),
-                _ => Err(RglError::FilterTypeNotSupportedError {
+                _ => Err(RglError::FilterTypeNotSupported {
                     filter_type: run_with.to_owned(),
                 }),
             },
@@ -48,9 +48,9 @@ impl FilterDefinition {
         value["name"] = json!(name);
         match serde_json::from_value::<T>(value) {
             Ok(v) => Ok(v),
-            Err(e) => Err(RglError::InvalidFilterDefinitionError {
+            Err(e) => Err(RglError::InvalidFilterDefinition {
                 filter_name: name.to_owned(),
-                cause: RglError::ParseJsonError(e).into(),
+                cause: RglError::SerdeJson(e).into(),
             }),
         }
     }

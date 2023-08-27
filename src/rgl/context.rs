@@ -27,7 +27,7 @@ impl RunContext {
     pub fn get_profile(&self, profile_name: &str) -> RglResult<&Profile> {
         match self.profiles.get(profile_name) {
             Some(profile) => Ok(profile),
-            None => Err(RglError::ProfileNotFoundError {
+            None => Err(RglError::ProfileNotFound {
                 profile_name: profile_name.to_owned(),
             }),
         }
@@ -36,7 +36,7 @@ impl RunContext {
     pub fn get_filter_def(&self, filter_name: &str) -> RglResult<&FilterDefinition> {
         match self.filter_definitions.get(filter_name) {
             Some(filter_def) => Ok(filter_def),
-            None => Err(RglError::FilterNotDefinedError {
+            None => Err(RglError::FilterNotDefined {
                 filter_name: filter_name.to_owned(),
             }),
         }

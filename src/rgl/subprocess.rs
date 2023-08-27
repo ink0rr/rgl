@@ -41,12 +41,12 @@ impl Subprocess {
         match self.command.spawn() {
             Ok(handler) => match handler.wait_with_output() {
                 Ok(output) => Ok(output),
-                Err(e) => Err(RglError::SubprocessError {
-                    cause: RglError::WrapError(e.into()).into(),
+                Err(e) => Err(RglError::Subprocess {
+                    cause: RglError::Wrap(e.into()).into(),
                 }),
             },
-            Err(e) => Err(RglError::SubprocessError {
-                cause: RglError::WrapError(e.into()).into(),
+            Err(e) => Err(RglError::Subprocess {
+                cause: RglError::Wrap(e.into()).into(),
             }),
         }
     }

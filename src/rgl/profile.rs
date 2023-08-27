@@ -18,7 +18,7 @@ impl Profile {
     pub fn run(&self, context: &RunContext, temp: &PathBuf) -> RglResult<()> {
         for entry in self.filters.iter() {
             if entry.profile == Some(context.root_profile.to_string().to_owned()) {
-                return Err(RglError::CircularProfileReferenceError {
+                return Err(RglError::CircularProfileReference {
                     profile_name: context.root_profile.to_owned(),
                 });
             }

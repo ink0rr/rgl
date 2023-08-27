@@ -2,102 +2,102 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum RglError {
-    CircularProfileReferenceError {
+    CircularProfileReference {
         profile_name: String,
     },
-    ConfigError {
+    Config {
         cause: Box<RglError>,
     },
-    CopyDirError {
+    CopyDir {
         from: String,
         to: String,
         cause: Box<RglError>,
     },
-    EmptyDirError {
+    EmptyDir {
         path: String,
         cause: Box<RglError>,
     },
-    ExportError {
+    ExportFailed {
         cause: Box<RglError>,
     },
-    ExportTargetError {
-        target: String,
-    },
-    FilterConfigError {
+    FilterConfig {
         filter_name: String,
         cause: Box<RglError>,
     },
-    FilterNotDefinedError {
+    FilterNotDefined {
         filter_name: String,
     },
-    FilterNotInstalledError {
+    FilterNotInstalled {
         filter_name: String,
     },
-    FilterRunError {
+    FilterRunFailed {
         filter_name: String,
     },
-    FilterTypeNotSupportedError {
+    FilterTypeNotSupported {
         filter_type: String,
     },
-    InvalidFilterDefinitionError {
+    InvalidExportTarget {
+        target: String,
+    },
+    InvalidFilterDefinition {
         filter_name: String,
         cause: Box<RglError>,
     },
-    MoveError {
+    MoveDir {
         from: String,
         to: String,
         cause: Box<RglError>,
     },
-    ParseJsonError(serde_json::Error),
-    PathNotExistsError {
+    PathNotExists {
         path: String,
     },
-    ProfileNotFoundError {
+    ProfileNotFound {
         profile_name: String,
     },
-    ReadFileError {
+    ReadFile {
         path: String,
         cause: Box<RglError>,
     },
-    ReadJsonError {
+    ReadJson {
         path: String,
         cause: Box<RglError>,
     },
-    RimrafError {
+    Rimraf {
         path: String,
     },
-    SubprocessError {
+    SerdeJson(serde_json::Error),
+    Subprocess {
         cause: Box<RglError>,
     },
-    SymlinkError {
+    Symlink {
         from: String,
         to: String,
         cause: Box<RglError>,
     },
-    WatchError {
+    WatchDir {
         path: String,
         cause: Box<RglError>,
     },
-    WrapError(Box<dyn std::error::Error>),
+    Wrap(Box<dyn std::error::Error>),
 }
 
 impl fmt::Display for RglError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RglError::CircularProfileReferenceError { profile_name } => {
+            RglError::CircularProfileReference { profile_name } => {
                 write!(
                     f,
                     "<red>[+]</> Found circular profile reference in <b>{profile_name}</>"
                 )
             }
-            RglError::ConfigError { cause } => {
+            RglError::Config { cause } => {
                 write!(
                     f,
                     "<red>[+]</> Could not load config.json\n\
                      {cause}"
                 )
             }
-            RglError::CopyDirError { from, to, cause } => {
+            RglError::CopyDir { from, to, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to copy directory\n\
@@ -106,7 +106,7 @@ impl fmt::Display for RglError {
                      {cause}"
                 )
             }
-            RglError::EmptyDirError { path, cause } => {
+            RglError::EmptyDir { path, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to empty directory\n\
@@ -114,92 +114,92 @@ impl fmt::Display for RglError {
                      {cause}"
                 )
             }
-            RglError::ExportError { cause } => {
+            RglError::ExportFailed { cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to export project\n\
                      {cause}"
                 )
             }
-            RglError::ExportTargetError { target } => {
-                write!(f, "<red>[+]</> Export target <b>{target}</> is not valid")
-            }
-            RglError::FilterConfigError { filter_name, cause } => {
+            RglError::FilterConfig { filter_name, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to load config for filter <b>{filter_name}</>\n\
                      {cause}"
                 )
             }
-            RglError::FilterNotDefinedError { filter_name } => {
+            RglError::FilterNotDefined { filter_name } => {
                 write!(
                     f,
                     "<red>[+]</> Filter <b>{filter_name}</> not defined in filter_definitions"
                 )
             }
-            RglError::FilterNotInstalledError { filter_name } => {
+            RglError::FilterNotInstalled { filter_name } => {
                 write!(f, "<red>[+]</> Filter <b>{filter_name}</> not installed, run \"rgl install\" to install it")
             }
-            RglError::FilterRunError { filter_name } => {
+            RglError::FilterRunFailed { filter_name } => {
                 write!(f, "<red>[+]</> Failed running filter <b>{filter_name}</>")
             }
-            RglError::FilterTypeNotSupportedError { filter_type } => {
+            RglError::FilterTypeNotSupported { filter_type } => {
                 write!(
                     f,
                     "<red>[+]</> Filter type <b>{filter_type}</> not supported"
                 )
             }
-            RglError::InvalidFilterDefinitionError { filter_name, cause } => {
+            RglError::InvalidExportTarget { target } => {
+                write!(f, "<red>[+]</> Export target <b>{target}</> is not valid")
+            }
+            RglError::InvalidFilterDefinition { filter_name, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Invalid filter definition for <b>{filter_name}</>\n\
                      {cause}"
                 )
             }
-            RglError::MoveError { from, to, cause } => {
+            RglError::MoveDir { from, to, cause } => {
                 write!(
                     f,
-                    "<red>[+]</> Failed to move files\n\
+                    "<red>[+]</> Failed to move directory\n\
                      <yellow> >></> From: {from}\n\
                      <yellow> >></> To: {to}\n\
                      {cause}"
                 )
             }
-            RglError::ParseJsonError(error) => {
-                write!(f, "<red>[+]</> Parse error, {error}")
-            }
-            RglError::PathNotExistsError { path } => {
+            RglError::PathNotExists { path } => {
                 write!(f, "<red>[+]</> Path <b>{path}</> does not exists")
             }
-            RglError::ProfileNotFoundError { profile_name } => {
+            RglError::ProfileNotFound { profile_name } => {
                 write!(f, "<red>[+]</> Profile <b>{profile_name}</> not found")
             }
-            RglError::ReadFileError { path, cause } => {
+            RglError::ReadFile { path, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to read file {path}\n\
                      {cause}"
                 )
             }
-            RglError::ReadJsonError { path, cause } => {
+            RglError::ReadJson { path, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to load JSON file\n\
-                    <yellow> >></> Path: {path}\n\
-                    {cause}"
+                     <yellow> >></> Path: {path}\n\
+                     {cause}"
                 )
             }
-            RglError::RimrafError { path } => {
+            RglError::Rimraf { path } => {
                 write!(f, "<red>[+]</> Failed to remove directory {path}")
             }
-            RglError::SubprocessError { cause } => {
+            RglError::SerdeJson(error) => {
+                write!(f, "<red>[+]</> Parse error, {error}")
+            }
+            RglError::Subprocess { cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed running subprocess\n\
                      {cause}"
                 )
             }
-            RglError::SymlinkError { from, to, cause } => {
+            RglError::Symlink { from, to, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to create symlink\n\
@@ -208,7 +208,7 @@ impl fmt::Display for RglError {
                      {cause}"
                 )
             }
-            RglError::WatchError { path, cause } => {
+            RglError::WatchDir { path, cause } => {
                 write!(
                     f,
                     "<red>[+]</> Failed to watch directory\n\
@@ -216,7 +216,7 @@ impl fmt::Display for RglError {
                      {cause}"
                 )
             }
-            RglError::WrapError(error) => {
+            RglError::Wrap(error) => {
                 write!(f, "<red>[+]</> {error}")
             }
         }

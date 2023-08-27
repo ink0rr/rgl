@@ -43,6 +43,6 @@ pub struct FilterRunner {
 pub fn get_config() -> RglResult<Config> {
     match read_json::<Config>("./config.json") {
         Ok(config) => Ok(config),
-        Err(e) => Err(RglError::ConfigError { cause: e.into() }),
+        Err(e) => Err(RglError::Config { cause: e.into() }),
     }
 }

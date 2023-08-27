@@ -20,7 +20,7 @@ fn get_export_paths(name: &str, target: &str) -> RglResult<(PathBuf, PathBuf)> {
             let rp = build.join("RP");
             Ok((bp, rp))
         }
-        _ => Err(RglError::ExportTargetError {
+        _ => Err(RglError::InvalidExportTarget {
             target: target.to_owned(),
         }),
     }

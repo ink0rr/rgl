@@ -26,9 +26,9 @@ impl FileWatcher {
             .watch(Path::new(path), RecursiveMode::Recursive)
         {
             Ok(_) => Ok(()),
-            Err(cause) => Err(RglError::WatchError {
+            Err(cause) => Err(RglError::WatchDir {
                 path: path.to_owned(),
-                cause: RglError::WrapError(cause.into()).into(),
+                cause: RglError::Wrap(cause.into()).into(),
             }),
         }
     }
