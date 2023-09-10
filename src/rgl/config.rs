@@ -1,4 +1,4 @@
-use super::{read_json, FilterDefinition, Profile, RglError, RglResult};
+use super::{read_json, write_json, FilterDefinition, Profile, RglError, RglResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -40,9 +40,14 @@ pub struct FilterRunner {
     pub settings: Option<HashMap<String, Value>>,
 }
 
-pub fn get_config() -> RglResult<Config> {
-    match read_json::<Config>("./config.json") {
-        Ok(config) => Ok(config),
-        Err(e) => Err(RglError::Config { cause: e.into() }),
+impl Config {
+    pub fn load() -> RglResult<Config> {
+        match read_json::<Config>("./config.json") {
+            Ok(config) => Ok(config),
+            Err(e) => Err(RglError::Config { cause: e.into() }),
+        }
+    }
+    pub fn save(&self) -> RglResult<()> {
+        write_json("./config.json", self)
     }
 }

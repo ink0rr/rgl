@@ -1,11 +1,11 @@
 use super::{
-    copy_dir, empty_dir, export_project, find_temp_dir, get_config, symlink, RglError, RglResult,
+    copy_dir, empty_dir, export_project, find_temp_dir, symlink, Config, RglError, RglResult,
     RunContext,
 };
 use simplelog::{info, warn};
 
 pub fn run_or_watch(profile_name: &str, watch: bool) -> RglResult<()> {
-    let config = get_config()?;
+    let config = Config::load()?;
 
     let context = RunContext::new(config, profile_name);
     let profile = context.get_profile(profile_name)?;

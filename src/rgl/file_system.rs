@@ -126,3 +126,25 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     }
     Ok(())
 }
+
+pub fn write_json<T>(path: impl AsRef<Path>, data: &T) -> RglResult<()>
+where
+    T: serde::Serialize,
+{
+    let data = match serde_json::to_string_pretty(data) {
+        Err(e) => {
+            return Err(RglError::WriteJson {
+                path: path.as_ref().display().to_string(),
+                cause: RglError::SerdeJson(e).into(),
+            })
+        }
+        Ok(data) => data,
+    };
+    match fs::write(&path, data) {
+        Err(e) => Err(RglError::WriteJson {
+            path: path.as_ref().display().to_string(),
+            cause: RglError::Wrap(e.into()).into(),
+        }),
+        Ok(_) => Ok(()),
+    }
+}

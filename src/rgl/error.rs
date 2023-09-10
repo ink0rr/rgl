@@ -79,6 +79,10 @@ pub enum RglError {
         cause: Box<RglError>,
     },
     Wrap(Box<dyn std::error::Error>),
+    WriteJson {
+        path: String,
+        cause: Box<RglError>,
+    },
 }
 
 impl fmt::Display for RglError {
@@ -218,6 +222,14 @@ impl fmt::Display for RglError {
             }
             RglError::Wrap(error) => {
                 write!(f, "<red>[+]</> {error}")
+            }
+            RglError::WriteJson { path, cause } => {
+                write!(
+                    f,
+                    "<red>[+]</> Failed to write JSON file\n\
+                     <yellow> >></> Path: {path}\n\
+                     {cause}"
+                )
             }
         }
     }

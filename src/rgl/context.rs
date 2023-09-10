@@ -1,4 +1,4 @@
-use super::{Config, FileWatcher, FilterDefinition, Profile, RglResult, RglError};
+use super::{Config, FileWatcher, FilterDefinition, Profile, RglError, RglResult};
 use std::collections::HashMap;
 
 pub struct RunContext {
