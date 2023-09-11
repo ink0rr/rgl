@@ -1,6 +1,5 @@
 use super::{read_json, write_json, FilterDefinition, Profile, RglError, RglResult};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]
@@ -26,18 +25,6 @@ pub struct Regolith {
     pub data_path: String,
     pub filter_definitions: HashMap<String, FilterDefinition>,
     pub profiles: HashMap<String, Profile>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct FilterRunner {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub arguments: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub profile: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub settings: Option<HashMap<String, Value>>,
 }
 
 impl Config {

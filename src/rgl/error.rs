@@ -36,6 +36,11 @@ pub enum RglError {
     FilterTypeNotSupported {
         filter_type: String,
     },
+    FilterVersionMismatch {
+        filter_name: String,
+        installed_version: String,
+        required_version: String,
+    },
     InvalidExportTarget {
         target: String,
     },
@@ -47,6 +52,9 @@ pub enum RglError {
         from: String,
         to: String,
         cause: Box<RglError>,
+    },
+    NestedRemoteFilter {
+        filter_name: String,
     },
     PathNotExists {
         path: String,
@@ -150,6 +158,19 @@ impl fmt::Display for RglError {
                     "<red>[+]</> Filter type <b>{filter_type}</> not supported"
                 )
             }
+            RglError::FilterVersionMismatch {
+                filter_name,
+                installed_version,
+                required_version,
+            } => {
+                write!(
+                    f,
+                    "<red>[+]</> Filter version mismatch\n\
+                     <yellow> >></> Filter: {filter_name}\n\
+                     <yellow> >></> Installed version: {installed_version}\n\
+                     <yellow> >></> Required version: {required_version}"
+                )
+            }
             RglError::InvalidExportTarget { target } => {
                 write!(f, "<red>[+]</> Export target <b>{target}</> is not valid")
             }
@@ -167,6 +188,13 @@ impl fmt::Display for RglError {
                      <yellow> >></> From: {from}\n\
                      <yellow> >></> To: {to}\n\
                      {cause}"
+                )
+            }
+            RglError::NestedRemoteFilter { filter_name } => {
+                write!(
+                    f,
+                    "<red>[+]</> Found nested remote filter definition in filter <b>{filter_name}</>\n\
+                     <yellow> >></> This feature is not supported"
                 )
             }
             RglError::PathNotExists { path } => {

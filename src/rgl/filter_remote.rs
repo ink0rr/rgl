@@ -3,16 +3,16 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterRemote {
+pub struct FilterRemoteConfig {
     #[serde(skip_serializing, skip_deserializing)]
     name: String,
     #[serde(skip_serializing, skip_deserializing)]
     filter_dir: PathBuf,
     pub filters: Vec<FilterDefinition>,
-    pub version: Option<String>,
+    pub version: String,
 }
 
-impl FilterRemote {
+impl FilterRemoteConfig {
     pub fn new(name: &str) -> RglResult<Self> {
         let filter_dir = Path::new(".regolith")
             .join("cache")
@@ -25,7 +25,7 @@ impl FilterRemote {
             });
         }
 
-        match read_json::<FilterRemote>(filter_dir.join("filter.json")) {
+        match read_json::<FilterRemoteConfig>(filter_dir.join("filter.json")) {
             Err(e) => Err(RglError::FilterConfig {
                 filter_name: name.to_owned(),
                 cause: e.into(),
@@ -39,14 +39,20 @@ impl FilterRemote {
     }
 }
 
-impl Filter for FilterRemote {
+impl Filter for FilterRemoteConfig {
     fn run(&mut self, temp: &std::path::PathBuf, run_args: &Vec<String>) -> RglResult<()> {
         for entry in self.filters.iter_mut() {
-            if let Some(script) = &entry.script {
-                let script = self.filter_dir.join(script);
-                entry.script = Some(script.display().to_string())
+            match entry {
+                FilterDefinition::FilterLocal(def) => {
+                    def.script = self.filter_dir.join(&def.script).display().to_string();
+                    entry.to_filter(&self.name)?.run(temp, run_args)?
+                }
+                FilterDefinition::FilterRemote(_) => {
+                    return Err(RglError::NestedRemoteFilter {
+                        filter_name: self.name.to_owned(),
+                    })
+                }
             }
-            entry.to_filter(&self.name)?.run(temp, run_args)?;
         }
         Ok(())
     }

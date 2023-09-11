@@ -8,6 +8,15 @@ pub struct FilterDeno {
     pub script: String,
 }
 
+impl FilterDeno {
+    pub fn new(name: &str, script: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            script: script.to_owned(),
+        }
+    }
+}
+
 impl Filter for FilterDeno {
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
         let script = match Path::new(&self.script).canonicalize() {

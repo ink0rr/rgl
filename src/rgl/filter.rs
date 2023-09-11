@@ -1,6 +1,5 @@
-use super::{FilterDeno, FilterNode, FilterRemote, RglError, RglResult};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::json;
+use super::{FilterDeno, FilterNode, FilterRemoteConfig, RglError, RglResult};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub trait Filter {
@@ -8,50 +7,54 @@ pub trait Filter {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum FilterDefinition {
+    FilterLocal(FilterLocal),
+    FilterRemote(FilterRemote),
+}
+
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FilterDefinition {
+pub struct FilterLocal {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub command: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exe: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub requirements: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub run_with: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub script: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<String>,
+    name: Option<String>,
+    pub run_with: String,
+    pub script: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FilterRemote {
+    pub url: String,
+    pub version: String,
 }
 
 impl FilterDefinition {
     pub fn to_filter(&self, name: &str) -> RglResult<Box<dyn Filter>> {
-        match &self.run_with {
-            Some(run_with) => match run_with.as_str() {
-                "deno" => Ok(Box::new(self.to_filter_impl::<FilterDeno>(name)?)),
-                "nodejs" => Ok(Box::new(self.to_filter_impl::<FilterNode>(name)?)),
-                _ => Err(RglError::FilterTypeNotSupported {
-                    filter_type: run_with.to_owned(),
-                }),
+        let filter: Box<dyn Filter> = match self {
+            FilterDefinition::FilterLocal(def) => match def.run_with.as_str() {
+                "deno" => Box::new(FilterDeno::new(name, &def.script)),
+                "nodejs" => Box::new(FilterNode::new(name, &def.script)),
+                filter_type => {
+                    return Err(RglError::FilterTypeNotSupported {
+                        filter_type: filter_type.to_owned(),
+                    })
+                }
             },
-            None => Ok(Box::new(FilterRemote::new(&name)?)),
-        }
-    }
-
-    fn to_filter_impl<T>(&self, name: &str) -> RglResult<T>
-    where
-        T: DeserializeOwned,
-    {
-        let mut value = json!(self);
-        value["name"] = json!(name);
-        match serde_json::from_value::<T>(value) {
-            Ok(v) => Ok(v),
-            Err(e) => Err(RglError::InvalidFilterDefinition {
-                filter_name: name.to_owned(),
-                cause: RglError::SerdeJson(e).into(),
-            }),
-        }
+            FilterDefinition::FilterRemote(def) => {
+                let filter_remote = FilterRemoteConfig::new(name)?;
+                if def.version != "HEAD"
+                    && def.version != "latest"
+                    && def.version != filter_remote.version
+                {
+                    return Err(RglError::FilterVersionMismatch {
+                        filter_name: name.to_owned(),
+                        installed_version: filter_remote.version,
+                        required_version: def.version.to_owned(),
+                    });
+                }
+                Box::new(filter_remote)
+            }
+        };
+        Ok(filter)
     }
 }
