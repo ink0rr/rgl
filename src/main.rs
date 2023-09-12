@@ -5,7 +5,7 @@ mod rgl;
 
 use clap::{crate_version, Arg, ArgAction, Command};
 use log::LevelFilter;
-use simplelog::{error, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
+use simplelog::{error, info, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
 fn main() {
     let config = ConfigBuilder::new()
@@ -28,6 +28,13 @@ fn main() {
         .arg_required_else_help(true)
         .subcommand_required(true)
         .subcommand(
+            Command::new("install")
+                .alias("i")
+                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file.")
+                .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
+                .arg(Arg::new("force").short('f').long("force").action(ArgAction::SetTrue)),
+        )
+        .subcommand(
             Command::new("run")
                 .about("Runs Regolith with specified profile")
                 .arg(Arg::new("profile").action(ArgAction::Set)),
@@ -40,8 +47,30 @@ fn main() {
         .get_matches();
 
     match matches.subcommand() {
-        Some(("run", run_matches)) => {
-            let profile = match run_matches.get_one::<String>("profile") {
+        Some(("install", matches)) => {
+            info!("Installing filters...");
+            let filters: Option<Vec<&String>> = match matches.get_many::<String>("filters") {
+                Some(filters) => Some(filters.collect::<Vec<&String>>()),
+                None => None,
+            };
+            let force = matches.get_flag("force");
+            match filters {
+                Some(filters) => {
+                    if let Err(e) = rgl::install_add(filters, force) {
+                        error!("Error installing filter\n{e}");
+                        std::process::exit(1);
+                    }
+                }
+                None => {
+                    if let Err(e) = rgl::install_filters(force) {
+                        error!("Error installing filters\n{e}");
+                        std::process::exit(1);
+                    }
+                }
+            };
+        }
+        Some(("run", matches)) => {
+            let profile = match matches.get_one::<String>("profile") {
                 Some(profile) => profile,
                 None => "default",
             };
@@ -50,8 +79,8 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        Some(("watch", watch_matches)) => {
-            let profile = match watch_matches.get_one::<String>("profile") {
+        Some(("watch", matches)) => {
+            let profile = match matches.get_one::<String>("profile") {
                 Some(profile) => profile,
                 None => "default",
             };

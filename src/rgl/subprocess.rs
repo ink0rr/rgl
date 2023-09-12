@@ -50,4 +50,13 @@ impl Subprocess {
             }),
         }
     }
+
+    pub fn run_silent(&mut self) -> RglResult<process::Output> {
+        match self.command.output() {
+            Ok(output) => Ok(output),
+            Err(e) => Err(RglError::Subprocess {
+                cause: RglError::Wrap(e.into()).into(),
+            }),
+        }
+    }
 }

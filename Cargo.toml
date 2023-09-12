@@ -9,8 +9,10 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.22", features = ["cargo"] }
 log = "0.4.20"
+md5 = "0.7.0"
 notify = "6.0.1"
 notify-debouncer-mini = "0.3.0"
+semver = "1.0.18"
 serde = { version = "1.0.183", features = ["derive"] }
 serde_json = "1.0.105"
 simplelog = { version = "0.12.1", features = ["paris"] }

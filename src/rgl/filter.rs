@@ -1,21 +1,24 @@
-use super::{FilterDeno, FilterNode, FilterRemoteConfig, RglError, RglResult};
+use super::{FilterDeno, FilterNode, FilterRemote, RglError, RglResult};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub trait Filter {
+    fn install_dependencies(&self) -> RglResult<()> {
+        Ok(())
+    }
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum FilterDefinition {
-    FilterLocal(FilterLocal),
-    FilterRemote(FilterRemote),
+    Local(LocalFilterDefinition),
+    Remote(RemoteFilterDefinition),
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FilterLocal {
+pub struct LocalFilterDefinition {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     pub run_with: String,
@@ -23,7 +26,7 @@ pub struct FilterLocal {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterRemote {
+pub struct RemoteFilterDefinition {
     pub url: String,
     pub version: String,
 }
@@ -31,7 +34,7 @@ pub struct FilterRemote {
 impl FilterDefinition {
     pub fn to_filter(&self, name: &str) -> RglResult<Box<dyn Filter>> {
         let filter: Box<dyn Filter> = match self {
-            FilterDefinition::FilterLocal(def) => match def.run_with.as_str() {
+            FilterDefinition::Local(def) => match def.run_with.as_str() {
                 "deno" => Box::new(FilterDeno::new(name, &def.script)),
                 "nodejs" => Box::new(FilterNode::new(name, &def.script)),
                 filter_type => {
@@ -40,8 +43,8 @@ impl FilterDefinition {
                     })
                 }
             },
-            FilterDefinition::FilterRemote(def) => {
-                let filter_remote = FilterRemoteConfig::new(name)?;
+            FilterDefinition::Remote(def) => {
+                let filter_remote = FilterRemote::new(name)?;
                 if def.version != "HEAD"
                     && def.version != "latest"
                     && def.version != filter_remote.version

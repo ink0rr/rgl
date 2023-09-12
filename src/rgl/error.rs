@@ -20,6 +20,9 @@ pub enum RglError {
     ExportFailed {
         cause: Box<RglError>,
     },
+    FilterAlreadyInstalled {
+        filter_name: String,
+    },
     FilterConfig {
         filter_name: String,
         cause: Box<RglError>,
@@ -28,6 +31,9 @@ pub enum RglError {
         filter_name: String,
     },
     FilterNotInstalled {
+        filter_name: String,
+    },
+    FilterResolveFailed {
         filter_name: String,
     },
     FilterRunFailed {
@@ -41,12 +47,20 @@ pub enum RglError {
         installed_version: String,
         required_version: String,
     },
+    FilterVersionResolveFailed {
+        name: String,
+        url: String,
+        version: String,
+    },
     InvalidExportTarget {
         target: String,
     },
     InvalidFilterDefinition {
         filter_name: String,
         cause: Box<RglError>,
+    },
+    InvalidInstallArg {
+        arg: String,
     },
     MoveDir {
         from: String,
@@ -133,6 +147,12 @@ impl fmt::Display for RglError {
                      {cause}"
                 )
             }
+            RglError::FilterAlreadyInstalled { filter_name } => {
+                write!(
+                    f,
+                    "Filter {filter_name} already installed, use --force to overwrite"
+                )
+            }
             RglError::FilterConfig { filter_name, cause } => {
                 write!(
                     f,
@@ -151,6 +171,12 @@ impl fmt::Display for RglError {
             }
             RglError::FilterRunFailed { filter_name } => {
                 write!(f, "<red>[+]</> Failed running filter <b>{filter_name}</>")
+            }
+            RglError::FilterResolveFailed { filter_name } => {
+                write!(
+                    f,
+                    "<red>[+]</> Failed to resolve filter <b>{filter_name}</>"
+                )
             }
             RglError::FilterTypeNotSupported { filter_type } => {
                 write!(
@@ -171,6 +197,15 @@ impl fmt::Display for RglError {
                      <yellow> >></> Required version: {required_version}"
                 )
             }
+            RglError::FilterVersionResolveFailed { name, url, version } => {
+                write!(
+                    f,
+                    "<red>[+]</> Failed to resolve filter version\n\
+                     <yellow> >></> Filter: {name}\n\
+                     <yellow> >></> URL: {url}\n\
+                     <yellow> >></> Version: {version}"
+                )
+            }
             RglError::InvalidExportTarget { target } => {
                 write!(f, "<red>[+]</> Export target <b>{target}</> is not valid")
             }
@@ -180,6 +215,9 @@ impl fmt::Display for RglError {
                     "<red>[+]</> Invalid filter definition for <b>{filter_name}</>\n\
                      {cause}"
                 )
+            }
+            RglError::InvalidInstallArg { arg } => {
+                write!(f, "<red>[+]</> Invalid install argument <b>{arg}</>")
             }
             RglError::MoveDir { from, to, cause } => {
                 write!(
