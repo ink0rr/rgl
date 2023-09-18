@@ -1,6 +1,7 @@
 use super::{read_json, write_json, FilterDefinition, Profile, RglError, RglResult};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -23,8 +24,8 @@ pub struct Packs {
 #[serde(rename_all = "camelCase")]
 pub struct Regolith {
     pub data_path: String,
-    pub filter_definitions: HashMap<String, FilterDefinition>,
-    pub profiles: HashMap<String, Profile>,
+    pub filter_definitions: BTreeMap<String, FilterDefinition>,
+    pub profiles: IndexMap<String, Profile>,
 }
 
 impl Config {

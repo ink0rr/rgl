@@ -1,14 +1,15 @@
 use super::{Config, FileWatcher, FilterDefinition, Profile, RglError, RglResult};
-use std::collections::HashMap;
+use indexmap::IndexMap;
+use std::collections::BTreeMap;
 
 pub struct RunContext {
     pub name: String,
     pub behavior_pack: String,
     pub resource_pack: String,
     pub data_path: String,
+    pub filter_definitions: BTreeMap<String, FilterDefinition>,
+    pub profiles: IndexMap<String, Profile>,
     pub root_profile: String,
-    pub profiles: HashMap<String, Profile>,
-    pub filter_definitions: HashMap<String, FilterDefinition>,
 }
 
 impl RunContext {
@@ -18,9 +19,9 @@ impl RunContext {
             behavior_pack: config.packs.behavior_pack,
             resource_pack: config.packs.resource_pack,
             data_path: config.regolith.data_path,
-            root_profile: profile.to_string(),
-            profiles: config.regolith.profiles,
             filter_definitions: config.regolith.filter_definitions,
+            profiles: config.regolith.profiles,
+            root_profile: profile.to_string(),
         }
     }
 
