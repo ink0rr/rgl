@@ -3,7 +3,14 @@ use std::path::PathBuf;
 
 #[cfg(any(target_os = "windows"))]
 fn get_user_cache_dir() -> PathBuf {
-    PathBuf::from(std::env!("LocalAppData").to_string())
+    PathBuf::from(std::env!("LocalAppData"))
+}
+
+#[cfg(any(target_os = "macos"))]
+fn get_user_cache_dir() -> PathBuf {
+    PathBuf::from(std::env!("HOME"))
+        .join("Library")
+        .join("Caches")
 }
 
 pub fn get_regolith_cache_dir() -> PathBuf {
