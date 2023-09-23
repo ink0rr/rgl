@@ -28,6 +28,10 @@ fn main() {
         .arg_required_else_help(true)
         .subcommand_required(true)
         .subcommand(
+            Command::new("init")
+                .about("Initializes a new Regolith project in the current directory"),
+        )
+        .subcommand(
             Command::new("install")
                 .alias("i")
                 .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file.")
@@ -47,6 +51,12 @@ fn main() {
         .get_matches();
 
     match matches.subcommand() {
+        Some(("init", _)) => {
+            if let Err(e) = rgl::init() {
+                error!("Error initializing project\n{e}");
+                std::process::exit(1);
+            }
+        }
         Some(("install", matches)) => {
             info!("Installing filters...");
             let filters: Option<Vec<&String>> = match matches.get_many::<String>("filters") {

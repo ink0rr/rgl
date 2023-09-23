@@ -13,6 +13,7 @@ pub enum RglError {
         to: String,
         cause: Box<RglError>,
     },
+    CurrentDirNotEmpty,
     EmptyDir {
         path: String,
         cause: Box<RglError>,
@@ -101,6 +102,10 @@ pub enum RglError {
         cause: Box<RglError>,
     },
     Wrap(Box<dyn std::error::Error>),
+    WriteFile {
+        path: String,
+        cause: Box<RglError>,
+    },
     WriteJson {
         path: String,
         cause: Box<RglError>,
@@ -131,6 +136,9 @@ impl fmt::Display for RglError {
                      <yellow> >></> To: {to}\n\
                      {cause}"
                 )
+            }
+            RglError::CurrentDirNotEmpty => {
+                write!(f, "<red>[+]</> Current directory is not empty")
             }
             RglError::EmptyDir { path, cause } => {
                 write!(
@@ -288,6 +296,14 @@ impl fmt::Display for RglError {
             }
             RglError::Wrap(error) => {
                 write!(f, "<red>[+]</> {error}")
+            }
+            RglError::WriteFile { path, cause } => {
+                write!(
+                    f,
+                    "<red>[+]</> Failed to write file\n\
+                     <yellow> >></> Path: {path}\n\
+                     {cause}"
+                )
             }
             RglError::WriteJson { path, cause } => {
                 write!(

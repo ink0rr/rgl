@@ -127,6 +127,16 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     Ok(())
 }
 
+pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> RglResult<()> {
+    match fs::write(&path, contents) {
+        Err(e) => Err(RglError::WriteFile {
+            path: path.as_ref().display().to_string(),
+            cause: RglError::Wrap(e.into()).into(),
+        }),
+        Ok(_) => Ok(()),
+    }
+}
+
 pub fn write_json<T>(path: impl AsRef<Path>, data: &T) -> RglResult<()>
 where
     T: serde::Serialize,
@@ -138,13 +148,7 @@ where
                 cause: RglError::SerdeJson(e).into(),
             })
         }
-        Ok(data) => data,
+        Ok(data) => data + "\n",
     };
-    match fs::write(&path, data) {
-        Err(e) => Err(RglError::WriteJson {
-            path: path.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        }),
-        Ok(_) => Ok(()),
-    }
+    write_file(&path, data)
 }
