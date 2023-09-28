@@ -56,8 +56,6 @@ impl FilterInstaller {
     }
 
     pub fn install(&self, force: bool) -> RglResult<()> {
-        info!("Installing filter <b>{}</>...", self.name);
-
         let filter_dir = Path::new(".regolith")
             .join("cache")
             .join("filters")

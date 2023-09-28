@@ -5,7 +5,7 @@ mod rgl;
 
 use clap::{crate_version, Arg, ArgAction, Command};
 use log::LevelFilter;
-use simplelog::{error, info, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
+use simplelog::{error, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
 fn main() {
     let config = ConfigBuilder::new()
@@ -58,7 +58,6 @@ fn main() {
             }
         }
         Some(("install", matches)) => {
-            info!("Installing filters...");
             let filters: Option<Vec<&String>> = match matches.get_many::<String>("filters") {
                 Some(filters) => Some(filters.collect::<Vec<&String>>()),
                 None => None,

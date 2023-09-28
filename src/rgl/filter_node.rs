@@ -20,7 +20,7 @@ impl FilterNode {
 
 impl Filter for FilterNode {
     fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
-        info!("Installing npm dependencies...");
+        info!("Installing npm dependencies for <b>{}</>...", self.name);
         let npm = match cfg!(target_os = "windows") {
             true => "npm.cmd",
             false => "npm",
