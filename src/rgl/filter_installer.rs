@@ -96,7 +96,8 @@ impl FilterInstaller {
 
         let filter_config = FilterRemote::new(&self.name)?;
         for entry in filter_config.filters {
-            entry.to_filter(&self.name)?.install_dependencies()?;
+            let filter = entry.to_filter(&self.name)?;
+            filter.install_dependencies(filter_dir.to_owned())?;
         }
         Ok(())
     }

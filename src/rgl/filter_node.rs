@@ -1,5 +1,6 @@
 use super::{Filter, RglError, RglResult, Subprocess};
 use serde::{Deserialize, Serialize};
+use simplelog::info;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
@@ -18,6 +19,18 @@ impl FilterNode {
 }
 
 impl Filter for FilterNode {
+    fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
+        info!("Installing npm dependencies...");
+        let npm = match cfg!(target_os = "windows") {
+            true => "npm.cmd",
+            false => "npm",
+        };
+        Subprocess::new(npm)
+            .args(vec!["i", "--no-fund", "--no-audit"])
+            .current_dir(filter_dir)
+            .run_silent()?;
+        Ok(())
+    }
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
         let script = match Path::new(&self.script).canonicalize() {
             Ok(script) => script.display().to_string(),
