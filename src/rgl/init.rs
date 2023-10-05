@@ -1,6 +1,7 @@
-use super::{empty_dir, write_file, write_json, RglError, RglResult};
+use super::{empty_dir, write_file, write_json, Config, Manifest, PackType, RglError, RglResult};
 use dialoguer::{theme::ColorfulTheme, Input};
-use serde_json::{json, Value};
+use log::info;
+use serde_json::json;
 use std::env;
 use uuid::Uuid;
 
@@ -49,7 +50,7 @@ pub fn init() -> RglResult<()> {
 
     write_json(
         format!("{bp}/manifest.json"),
-        &create_manifest(
+        &Manifest::new(
             PackType::Behavior,
             &bp_header,
             &rp_header,
@@ -58,7 +59,7 @@ pub fn init() -> RglResult<()> {
     )?;
     write_json(
         format!("{rp}/manifest.json"),
-        &create_manifest(
+        &Manifest::new(
             PackType::Resource,
             &rp_header,
             &bp_header,
@@ -79,90 +80,15 @@ pub fn init() -> RglResult<()> {
     )?;
     write_file(".gitignore", "/build\n/.regolith\n")?;
 
-    write_json(
-        "./config.json",
-        &json!({
-            "$schema": "https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json",
-            "author": "Your name",
-            "name": name,
-            "packs": {
-                "behaviorPack": bp,
-                "resourcePack": rp,
-            },
-            "regolith": {
-                "dataPath": "./data",
-                "filterDefinitions": {},
-                "profiles": {
-                    "default": {
-                        "export": {
-                            "target": "development",
-                        },
-                        "filters": [],
-                    },
-                    "build": {
-                        "export": {
-                            "target": "local",
-                        },
-                        "filters": [
-                            {
-                                "profile": "default",
-                            },
-                        ],
-                    },
-                },
-            },
-        }),
-    )
-}
-
-enum PackType {
-    Behavior,
-    Resource,
-}
-
-fn create_manifest(
-    pack_type: PackType,
-    header_uuid: &str,
-    deps_uuid: &str,
-    min_engine_version: &str,
-) -> Value {
-    let version = vec![1, 0, 0];
-    json!({
-        "format_version": 2,
-        "header": {
-            "name": "pack.name",
-            "description": "pack.description",
-            "uuid": header_uuid,
-            "version": version,
-            "min_engine_version": min_engine_version.split(".").map(|s| s.parse::<u8>().unwrap()).collect::<Vec<u8>>(),
-        },
-        "modules": [
-            {
-                "type": match pack_type {
-                    PackType::Behavior => "data",
-                    PackType::Resource => "resources",
-                },
-                "uuid": Uuid::new_v4().to_string(),
-                "version": version,
-            },
-        ],
-        "dependencies": [
-            {
-                "uuid": deps_uuid,
-                "version": version,
-            },
-        ],
-    })
+    Config::new(name).save()?;
+    info!("Project initialized");
+    Ok(())
 }
 
 fn create_lang(pack_type: PackType, name: &str) -> String {
-    let suffix = match pack_type {
-        PackType::Behavior => "BP",
-        PackType::Resource => "RP",
-    };
-    let pack_type = match pack_type {
-        PackType::Behavior => "Behavior Pack",
-        PackType::Resource => "Resource Pack",
+    let (pack_type, suffix) = match pack_type {
+        PackType::Behavior => ("Behavior Pack", "BP"),
+        PackType::Resource => ("Resource Pack", "RP"),
     };
     format!(
         "pack.name={name} {suffix}\n\
