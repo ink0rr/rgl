@@ -1,4 +1,5 @@
 use super::{RglError, RglResult};
+use dunce::canonicalize;
 use std::{ffi::OsStr, path::Path, process};
 
 pub struct Subprocess {
@@ -35,6 +36,12 @@ impl Subprocess {
     {
         self.command.current_dir(dir);
         self
+    }
+
+    pub fn setup_env(&mut self) -> RglResult<&mut Self> {
+        let root_dir = canonicalize(Path::new(".")).map_err(|err| RglError::Wrap(err.into()))?;
+        self.command.env("ROOT_DIR", root_dir);
+        Ok(self)
     }
 
     pub fn run(&mut self) -> RglResult<process::Output> {

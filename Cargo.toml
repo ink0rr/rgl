@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.22", features = ["cargo"] }
 dialoguer = "0.11.0"
+dunce = "1.0.4"
 indexmap = { version = "2.0.0", features = ["serde"] }
 log = "0.4.20"
 md5 = "0.7.0"

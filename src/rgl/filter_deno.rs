@@ -36,6 +36,7 @@ impl Filter for FilterDeno {
             .args(vec!["run", "-A", &script])
             .args(run_args)
             .current_dir(temp)
+            .setup_env()?
             .run()?;
 
         match output.status.success() {

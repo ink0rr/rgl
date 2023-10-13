@@ -49,6 +49,7 @@ impl Filter for FilterNode {
             .arg(&script)
             .args(run_args)
             .current_dir(temp)
+            .setup_env()?
             .run()?;
 
         match output.status.success() {
