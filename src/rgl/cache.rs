@@ -3,6 +3,12 @@ use super::RglResult;
 use md5;
 use std::path::PathBuf;
 
+#[cfg(any(target_os = "linux"))]
+fn get_user_cache_dir() -> RglResult<PathBuf> {
+    let home = get_env("HOME")?;
+    Ok(PathBuf::from(home).join(".cache"))
+}
+
 #[cfg(any(target_os = "macos"))]
 fn get_user_cache_dir() -> RglResult<PathBuf> {
     let home = get_env("HOME")?;
