@@ -16,6 +16,10 @@ PowerShell (Windows):
 irm https://raw.githubusercontent.com/ink0rr/rgl/main/scripts/install.ps1 | iex
 ```
 
+### Uninstall
+
+Delete the `~/.rgl` directory.
+
 ## Compatibility
 
 - The Shell installer can be used on Windows with [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about), [MSYS](https://www.msys2.org) or equivalent set of tools.
