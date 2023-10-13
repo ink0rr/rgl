@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 fn get_export_paths(name: &str, target: &str) -> RglResult<(PathBuf, PathBuf)> {
     match target {
         "development" => {
-            let mojang_dir = find_mojang_dir();
+            let mojang_dir = find_mojang_dir()?;
             let bp = mojang_dir
                 .join("development_behavior_packs")
                 .join(format!("{name}_bp"));

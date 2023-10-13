@@ -15,7 +15,7 @@ struct ResolverData {
 fn get_resolver() -> RglResult<Resolver> {
     // TODO: Get resolvers from user config
     let resolver_url = "https://github.com/Bedrock-OSS/regolith-filter-resolver";
-    let cache = get_resolver_cache_dir(resolver_url);
+    let cache = get_resolver_cache_dir(resolver_url)?;
     if !cache.is_dir() {
         empty_dir(&cache)?;
         Subprocess::new("git")

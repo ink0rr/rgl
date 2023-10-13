@@ -9,7 +9,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> RglResult<()> {
 
     let context = RunContext::new(config, profile_name);
     let profile = context.get_profile(profile_name)?;
-    let temp = find_temp_dir(&profile.export.target);
+    let temp = find_temp_dir(&profile.export.target)?;
 
     empty_dir(&temp)?;
     copy_dir(&context.behavior_pack, temp.join("BP"))?;

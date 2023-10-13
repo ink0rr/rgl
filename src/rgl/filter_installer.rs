@@ -70,7 +70,7 @@ impl FilterInstaller {
         }
 
         let https_url = format!("https://{}", self.url);
-        let cache_dir = get_filter_cache_dir(&https_url);
+        let cache_dir = get_filter_cache_dir(&https_url)?;
 
         if !cache_dir.exists() {
             empty_dir(&cache_dir)?;

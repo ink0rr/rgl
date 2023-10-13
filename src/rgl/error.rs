@@ -18,6 +18,9 @@ pub enum RglError {
         path: String,
         cause: Box<RglError>,
     },
+    EnvironmentVariable {
+        name: String,
+    },
     ExportFailed {
         cause: Box<RglError>,
     },
@@ -147,6 +150,9 @@ impl fmt::Display for RglError {
                      <yellow> >></> Path: {path}\n\
                      {cause}"
                 )
+            }
+            RglError::EnvironmentVariable { name } => {
+                write!(f, "<red>[+]</> Environment variable <b>{name}</> not found")
             }
             RglError::ExportFailed { cause } => {
                 write!(
