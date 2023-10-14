@@ -1,6 +1,7 @@
 use super::{Filter, RglError, RglResult, Subprocess};
+use dunce::canonicalize;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 pub struct FilterDeno {
@@ -19,8 +20,7 @@ impl FilterDeno {
 
 impl Filter for FilterDeno {
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let script = Path::new(&self.script)
-            .canonicalize()
+        let script = canonicalize(&self.script)
             .map(|script| script.display().to_string())
             .map_err(|_| RglError::InvalidFilterDefinition {
                 filter_name: self.name.to_owned(),

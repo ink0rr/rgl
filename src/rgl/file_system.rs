@@ -1,4 +1,5 @@
 use super::{RglError, RglResult};
+use dunce::canonicalize;
 use serde::de;
 use serde_json;
 use std::{fs, io, path::Path};
@@ -71,13 +72,7 @@ pub fn rimraf(path: impl AsRef<Path>) -> RglResult<()> {
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     use std::os::unix;
 
-    let from = from
-        .as_ref()
-        .canonicalize()
-        .map_err(|_| RglError::PathNotExists {
-            path: from.as_ref().display().to_string(),
-        })?;
-
+    let from = canonicalize(&from).map_err(|e| RglError::Wrap(e.into()))?;
     unix::fs::symlink(&from, &to).map_err(|e| RglError::Symlink {
         from: from.display().to_string(),
         to: to.as_ref().display().to_string(),
@@ -89,13 +84,7 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     use std::os::windows;
 
-    let from = from
-        .as_ref()
-        .canonicalize()
-        .map_err(|_| RglError::PathNotExists {
-            path: from.as_ref().display().to_string(),
-        })?;
-
+    let from = canonicalize(&from).map_err(|e| RglError::Wrap(e.into()))?;
     windows::fs::symlink_dir(&from, &to).map_err(|e| RglError::Symlink {
         from: from.display().to_string(),
         to: to.as_ref().display().to_string(),

@@ -39,7 +39,7 @@ impl Subprocess {
     }
 
     pub fn setup_env(&mut self) -> RglResult<&mut Self> {
-        let root_dir = canonicalize(Path::new(".")).map_err(|err| RglError::Wrap(err.into()))?;
+        let root_dir = canonicalize(".").map_err(|err| RglError::Wrap(err.into()))?;
         self.command.env("ROOT_DIR", root_dir);
         Ok(self)
     }
