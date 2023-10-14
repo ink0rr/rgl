@@ -19,6 +19,34 @@ impl FilterNode {
 }
 
 impl Filter for FilterNode {
+    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+        let script = Path::new(&self.script)
+            .canonicalize()
+            .map(|script| script.display().to_string())
+            .map_err(|_| RglError::InvalidFilterDefinition {
+                filter_name: self.name.to_owned(),
+                cause: RglError::PathNotExists {
+                    path: self.script.to_owned(),
+                }
+                .into(),
+            })?;
+
+        let output = Subprocess::new("node")
+            .arg(&script)
+            .args(run_args)
+            .current_dir(temp)
+            .setup_env()?
+            .run()?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(RglError::FilterRunFailed {
+                filter_name: self.name.to_owned(),
+            })
+        }
+    }
+
     fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
         info!("Installing npm dependencies for <b>{}</>...", self.name);
         let npm = match cfg!(target_os = "windows") {
@@ -30,33 +58,5 @@ impl Filter for FilterNode {
             .current_dir(filter_dir)
             .run_silent()?;
         Ok(())
-    }
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let script = match Path::new(&self.script).canonicalize() {
-            Ok(script) => script.display().to_string(),
-            Err(_) => {
-                return Err(RglError::InvalidFilterDefinition {
-                    filter_name: self.name.to_owned(),
-                    cause: RglError::PathNotExists {
-                        path: self.script.to_owned(),
-                    }
-                    .into(),
-                })
-            }
-        };
-
-        let output = Subprocess::new("node")
-            .arg(&script)
-            .args(run_args)
-            .current_dir(temp)
-            .setup_env()?
-            .run()?;
-
-        match output.status.success() {
-            true => Ok(()),
-            false => Err(RglError::FilterRunFailed {
-                filter_name: self.name.to_owned(),
-            }),
-        }
     }
 }

@@ -20,17 +20,13 @@ impl FileWatcher {
     }
 
     pub fn watch(&mut self, path: &str) -> RglResult<()> {
-        match self
-            .debouncer
+        self.debouncer
             .watcher()
             .watch(Path::new(path), RecursiveMode::Recursive)
-        {
-            Ok(_) => Ok(()),
-            Err(cause) => Err(RglError::WatchDir {
+            .map_err(|e| RglError::WatchDir {
                 path: path.to_owned(),
-                cause: RglError::Wrap(cause.into()).into(),
-            }),
-        }
+                cause: RglError::Wrap(e.into()).into(),
+            })
     }
 
     pub fn wait_changes(&self) {

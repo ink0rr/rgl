@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub trait Filter {
+    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
     fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
         let _ = filter_dir;
         Ok(())
     }
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
 }
 
 #[derive(Serialize, Deserialize)]

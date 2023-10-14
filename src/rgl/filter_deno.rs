@@ -19,18 +19,16 @@ impl FilterDeno {
 
 impl Filter for FilterDeno {
     fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let script = match Path::new(&self.script).canonicalize() {
-            Ok(script) => script.display().to_string(),
-            Err(_) => {
-                return Err(RglError::InvalidFilterDefinition {
-                    filter_name: self.name.to_owned(),
-                    cause: RglError::PathNotExists {
-                        path: self.script.to_owned(),
-                    }
-                    .into(),
-                })
-            }
-        };
+        let script = Path::new(&self.script)
+            .canonicalize()
+            .map(|script| script.display().to_string())
+            .map_err(|_| RglError::InvalidFilterDefinition {
+                filter_name: self.name.to_owned(),
+                cause: RglError::PathNotExists {
+                    path: self.script.to_owned(),
+                }
+                .into(),
+            })?;
 
         let output = Subprocess::new("deno")
             .args(vec!["run", "-A", &script])
@@ -39,11 +37,12 @@ impl Filter for FilterDeno {
             .setup_env()?
             .run()?;
 
-        match output.status.success() {
-            true => Ok(()),
-            false => Err(RglError::FilterRunFailed {
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(RglError::FilterRunFailed {
                 filter_name: self.name.to_owned(),
-            }),
+            })
         }
     }
 }

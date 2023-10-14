@@ -69,10 +69,7 @@ impl Config {
         }
     }
     pub fn load() -> RglResult<Config> {
-        match read_json::<Config>("./config.json") {
-            Ok(config) => Ok(config),
-            Err(e) => Err(RglError::Config { cause: e.into() }),
-        }
+        read_json::<Config>("./config.json").map_err(|e| RglError::Config { cause: e.into() })
     }
     pub fn save(&self) -> RglResult<()> {
         write_json("./config.json", self)

@@ -25,17 +25,16 @@ impl FilterRemote {
             });
         }
 
-        match read_json::<FilterRemote>(filter_dir.join("filter.json")) {
-            Err(e) => Err(RglError::FilterConfig {
-                filter_name: name.to_owned(),
-                cause: e.into(),
-            }),
-            Ok(mut filter_config) => {
+        read_json::<FilterRemote>(filter_dir.join("filter.json"))
+            .map(|mut filter_config| {
                 filter_config.name = name.to_owned();
                 filter_config.filter_dir = filter_dir;
-                Ok(filter_config)
-            }
-        }
+                filter_config
+            })
+            .map_err(|e| RglError::FilterConfig {
+                filter_name: name.to_owned(),
+                cause: e.into(),
+            })
     }
 }
 

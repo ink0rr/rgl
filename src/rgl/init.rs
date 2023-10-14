@@ -1,6 +1,7 @@
 use super::{empty_dir, write_file, write_json, Config, Manifest, PackType, RglError, RglResult};
 use dialoguer::{theme::ColorfulTheme, Input};
 use log::info;
+use semver::Version;
 use serde_json::json;
 use std::env;
 use uuid::Uuid;
@@ -27,9 +28,9 @@ pub fn init() -> RglResult<()> {
 
     let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Minimum engine version")
-        .default("1.20.30".to_string())
+        .default("1.20.30".to_owned())
         .validate_with(|input: &String| -> Result<(), String> {
-            if input.parse::<semver::Version>().is_ok() {
+            if Version::parse(&input).is_ok() {
                 Ok(())
             } else {
                 Err("Invalid version".to_string())
