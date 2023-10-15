@@ -1,11 +1,11 @@
 use super::{FilterDeno, FilterNode, FilterRemote, RglError, RglResult};
+use dunce::canonicalize;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub trait Filter {
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
-    fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
-        let _ = filter_dir;
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()>;
+    fn install_dependencies(&self) -> RglResult<()> {
         Ok(())
     }
 }
@@ -20,8 +20,6 @@ pub enum FilterDefinition {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalFilterDefinition {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
     pub run_with: String,
     pub script: String,
 }
@@ -33,17 +31,28 @@ pub struct RemoteFilterDefinition {
 }
 
 impl FilterDefinition {
-    pub fn to_filter(&self, name: &str) -> RglResult<Box<dyn Filter>> {
+    pub fn to_filter(&self, name: &str, filter_dir: Option<PathBuf>) -> RglResult<Box<dyn Filter>> {
         let filter: Box<dyn Filter> = match self {
-            FilterDefinition::Local(def) => match def.run_with.as_str() {
-                "deno" => Box::new(FilterDeno::new(name, &def.script)),
-                "nodejs" => Box::new(FilterNode::new(name, &def.script)),
-                filter_type => {
-                    return Err(RglError::FilterTypeNotSupported {
-                        filter_type: filter_type.to_owned(),
-                    })
+            FilterDefinition::Local(def) => {
+                let filter_dir = filter_dir.unwrap_or_else(|| PathBuf::from("."));
+                let script =
+                    canonicalize(&def.script).map_err(|_| RglError::InvalidFilterDefinition {
+                        filter_name: name.to_owned(),
+                        cause: RglError::PathNotExists {
+                            path: def.script.to_owned(),
+                        }
+                        .into(),
+                    })?;
+                match def.run_with.as_str() {
+                    "deno" => Box::new(FilterDeno::new(filter_dir, script)),
+                    "nodejs" => Box::new(FilterNode::new(filter_dir, script)),
+                    filter_type => {
+                        return Err(RglError::FilterTypeNotSupported {
+                            filter_type: filter_type.to_owned(),
+                        })
+                    }
                 }
-            },
+            }
             FilterDefinition::Remote(def) => {
                 let filter_remote = FilterRemote::new(name)?;
                 if def.version != "HEAD"

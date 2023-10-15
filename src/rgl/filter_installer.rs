@@ -5,7 +5,7 @@ use super::{
 use semver::Version;
 use serde_json::Value;
 use simplelog::info;
-use std::path::Path;
+use std::path::PathBuf;
 
 pub struct FilterInstaller {
     pub name: String,
@@ -56,7 +56,7 @@ impl FilterInstaller {
     }
 
     pub fn install(&self, force: bool) -> RglResult<()> {
-        let filter_dir = Path::new(".regolith")
+        let filter_dir = PathBuf::from(".regolith")
             .join("cache")
             .join("filters")
             .join(&self.name);
@@ -94,8 +94,9 @@ impl FilterInstaller {
 
         let filter_config = FilterRemote::new(&self.name)?;
         for entry in filter_config.filters {
-            let filter = entry.to_filter(&self.name)?;
-            filter.install_dependencies(filter_dir.to_owned())?;
+            let filter = entry.to_filter(&self.name, Some(filter_dir.to_owned()))?;
+            info!("Installing dependencies for <b>{}</>...", self.name);
+            filter.install_dependencies()?;
         }
         Ok(())
     }
