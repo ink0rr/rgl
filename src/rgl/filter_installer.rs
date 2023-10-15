@@ -5,7 +5,7 @@ use super::{
 use semver::Version;
 use serde_json::Value;
 use simplelog::info;
-use std::path::Path;
+use std::path::PathBuf;
 
 pub struct FilterInstaller {
     pub name: String,
@@ -56,7 +56,7 @@ impl FilterInstaller {
     }
 
     pub fn install(&self, force: bool) -> RglResult<()> {
-        let filter_dir = Path::new(".regolith")
+        let filter_dir = PathBuf::from(".regolith")
             .join("cache")
             .join("filters")
             .join(&self.name);
@@ -94,8 +94,9 @@ impl FilterInstaller {
 
         let filter_config = FilterRemote::new(&self.name)?;
         for entry in filter_config.filters {
-            let filter = entry.to_filter(&self.name)?;
-            filter.install_dependencies(filter_dir.to_owned())?;
+            let filter = entry.to_filter(&self.name, Some(filter_dir.to_owned()))?;
+            info!("Installing dependencies for <b>{}</>...", self.name);
+            filter.install_dependencies()?;
         }
         Ok(())
     }
@@ -135,10 +136,10 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> RglResult<Stri
             .run_silent()?;
         let output = String::from_utf8(output.stdout).unwrap();
 
-        let sha = match output.split("\n").nth(1) {
-            Some(line) => line.split("\t").nth(0),
-            None => None,
-        };
+        let sha = output
+            .split("\n")
+            .nth(1)
+            .and_then(|line| line.split("\t").nth(0));
         if let Some(sha) = sha {
             return Ok(sha.to_owned());
         }
@@ -146,16 +147,15 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> RglResult<Stri
     Err(RglError::FilterVersionResolveFailed {
         name: name.to_owned(),
         url: name.to_owned(),
-        version: match version {
-            Some(version) => version.to_owned(),
-            None => "latest".to_owned(),
-        },
+        version: version.unwrap_or("latest".to_owned()),
     })
 }
 
 pub fn ref_to_version(git_ref: &str) -> String {
-    match Version::parse(git_ref.split("-").nth(1).unwrap_or("-")) {
-        Ok(version) => version.to_string(),
-        Err(_) => git_ref.to_owned(),
-    }
+    git_ref
+        .split("-")
+        .nth(1)
+        .and_then(|version| Version::parse(version).ok())
+        .map(|version| version.to_string())
+        .unwrap_or(git_ref.to_owned())
 }

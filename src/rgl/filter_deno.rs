@@ -1,49 +1,26 @@
-use super::{Filter, RglError, RglResult, Subprocess};
-use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use super::{Filter, RglResult, Subprocess};
+use std::path::PathBuf;
 
-#[derive(Serialize, Deserialize)]
 pub struct FilterDeno {
-    pub name: String,
-    pub script: String,
+    pub filter_dir: PathBuf,
+    pub script: PathBuf,
 }
 
 impl FilterDeno {
-    pub fn new(name: &str, script: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-            script: script.to_owned(),
-        }
+    pub fn new(filter_dir: PathBuf, script: PathBuf) -> Self {
+        Self { filter_dir, script }
     }
 }
 
 impl Filter for FilterDeno {
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let script = match Path::new(&self.script).canonicalize() {
-            Ok(script) => script.display().to_string(),
-            Err(_) => {
-                return Err(RglError::InvalidFilterDefinition {
-                    filter_name: self.name.to_owned(),
-                    cause: RglError::PathNotExists {
-                        path: self.script.to_owned(),
-                    }
-                    .into(),
-                })
-            }
-        };
-
-        let output = Subprocess::new("deno")
-            .args(vec!["run", "-A", &script])
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+        Subprocess::new("deno")
+            .args(vec!["run", "-A"])
+            .arg(&self.script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env()?
+            .setup_env(&self.filter_dir)?
             .run()?;
-
-        match output.status.success() {
-            true => Ok(()),
-            false => Err(RglError::FilterRunFailed {
-                filter_name: self.name.to_owned(),
-            }),
-        }
+        Ok(())
     }
 }

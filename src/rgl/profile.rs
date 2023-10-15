@@ -51,7 +51,12 @@ impl Profile {
                     }
 
                     info!("Running filter <b>{filter_name}</>");
-                    filter_def.to_filter(&filter_name)?.run(temp, &run_args)?;
+                    filter_def
+                        .to_filter(&filter_name, None)?
+                        .run(temp, &run_args)
+                        .map_err(|_| RglError::FilterRunFailed {
+                            filter_name: filter_name.to_owned(),
+                        })?;
                 }
                 FilterRunner::ProfileFilter { profile_name } => {
                     if profile_name == &context.root_profile {

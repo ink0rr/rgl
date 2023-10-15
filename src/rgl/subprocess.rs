@@ -1,13 +1,20 @@
 use super::{RglError, RglResult};
 use dunce::canonicalize;
-use std::{ffi::OsStr, path::Path, process};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+    process,
+};
 
 pub struct Subprocess {
     command: process::Command,
 }
 
 impl Subprocess {
-    pub fn new(command: &str) -> Self {
+    pub fn new<S>(command: S) -> Self
+    where
+        S: AsRef<OsStr>,
+    {
         Self {
             command: process::Command::new(command),
         }
@@ -38,9 +45,12 @@ impl Subprocess {
         self
     }
 
-    pub fn setup_env(&mut self) -> RglResult<&mut Self> {
-        let root_dir = canonicalize(Path::new(".")).map_err(|err| RglError::Wrap(err.into()))?;
-        self.command.env("ROOT_DIR", root_dir);
+    pub fn setup_env(&mut self, filter_dir: &PathBuf) -> RglResult<&mut Self> {
+        let root_dir = canonicalize(".").map_err(|err| RglError::Wrap(err.into()))?;
+        let filter_dir = canonicalize(filter_dir).map_err(|err| RglError::Wrap(err.into()))?;
+        self.command
+            .env("ROOT_DIR", root_dir)
+            .env("FILTER_DIR", filter_dir);
         Ok(self)
     }
 

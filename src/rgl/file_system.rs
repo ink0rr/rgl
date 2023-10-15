@@ -1,17 +1,15 @@
 use super::{RglError, RglResult};
+use dunce::canonicalize;
 use serde::de;
 use serde_json;
 use std::{fs, io, path::Path};
 
 pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
-    if let Err(e) = _copy_dir(&from, &to) {
-        return Err(RglError::CopyDir {
-            from: from.as_ref().display().to_string(),
-            to: to.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        });
-    }
-    Ok(())
+    _copy_dir(&from, &to).map_err(|e| RglError::CopyDir {
+        from: from.as_ref().display().to_string(),
+        to: to.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 fn _copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> io::Result<()> {
@@ -30,44 +28,33 @@ fn _copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> io::Result<()> {
 
 pub fn empty_dir(path: impl AsRef<Path>) -> RglResult<()> {
     rimraf(&path)?;
-    if let Err(e) = fs::create_dir_all(&path) {
-        return Err(RglError::EmptyDir {
-            path: path.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        });
-    }
-    Ok(())
+    fs::create_dir_all(&path).map_err(|e| RglError::EmptyDir {
+        path: path.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 pub fn move_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     rimraf(&to)?;
-    if let Err(e) = fs::rename(&from, &to) {
-        return Err(RglError::MoveDir {
-            from: from.as_ref().display().to_string(),
-            to: to.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        });
-    }
-    Ok(())
+    fs::rename(&from, &to).map_err(|e| RglError::MoveDir {
+        from: from.as_ref().display().to_string(),
+        to: to.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 pub fn read_json<T>(path: impl AsRef<Path>) -> RglResult<T>
 where
     T: de::DeserializeOwned,
 {
-    match fs::read_to_string(&path) {
-        Err(e) => Err(RglError::ReadFile {
-            path: path.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        }),
-        Ok(data) => match serde_json::from_str(&data) {
-            Err(error) => Err(RglError::ReadJson {
-                path: path.as_ref().display().to_string(),
-                cause: RglError::SerdeJson(error).into(),
-            }),
-            Ok(config) => Ok(config),
-        },
-    }
+    let data = fs::read_to_string(&path).map_err(|e| RglError::ReadFile {
+        path: path.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })?;
+    serde_json::from_str(&data).map_err(|e| RglError::ReadJson {
+        path: path.as_ref().display().to_string(),
+        cause: RglError::SerdeJson(e).into(),
+    })
 }
 
 pub fn rimraf(path: impl AsRef<Path>) -> RglResult<()> {
@@ -85,70 +72,40 @@ pub fn rimraf(path: impl AsRef<Path>) -> RglResult<()> {
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     use std::os::unix;
 
-    let from = match from.as_ref().canonicalize() {
-        Ok(path) => path,
-        Err(_) => {
-            return Err(RglError::PathNotExists {
-                path: from.as_ref().display().to_string(),
-            })
-        }
-    };
-
-    if let Err(e) = unix::fs::symlink(&from, &to) {
-        return Err(RglError::Symlink {
-            from: from.display().to_string(),
-            to: to.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        });
-    }
-    Ok(())
+    let from = canonicalize(&from).map_err(|e| RglError::Wrap(e.into()))?;
+    unix::fs::symlink(&from, &to).map_err(|e| RglError::Symlink {
+        from: from.display().to_string(),
+        to: to.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 #[cfg(target_os = "windows")]
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
     use std::os::windows;
 
-    let from = match from.as_ref().canonicalize() {
-        Ok(path) => path,
-        Err(_) => {
-            return Err(RglError::PathNotExists {
-                path: from.as_ref().display().to_string(),
-            })
-        }
-    };
-
-    if let Err(e) = windows::fs::symlink_dir(&from, &to) {
-        return Err(RglError::Symlink {
-            from: from.display().to_string(),
-            to: to.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        });
-    }
-    Ok(())
+    let from = canonicalize(&from).map_err(|e| RglError::Wrap(e.into()))?;
+    windows::fs::symlink_dir(&from, &to).map_err(|e| RglError::Symlink {
+        from: from.display().to_string(),
+        to: to.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> RglResult<()> {
-    match fs::write(&path, contents) {
-        Err(e) => Err(RglError::WriteFile {
-            path: path.as_ref().display().to_string(),
-            cause: RglError::Wrap(e.into()).into(),
-        }),
-        Ok(_) => Ok(()),
-    }
+    fs::write(&path, contents).map_err(|e| RglError::WriteFile {
+        path: path.as_ref().display().to_string(),
+        cause: RglError::Wrap(e.into()).into(),
+    })
 }
 
 pub fn write_json<T>(path: impl AsRef<Path>, data: &T) -> RglResult<()>
 where
     T: serde::Serialize,
 {
-    let data = match serde_json::to_string_pretty(data) {
-        Err(e) => {
-            return Err(RglError::WriteJson {
-                path: path.as_ref().display().to_string(),
-                cause: RglError::SerdeJson(e).into(),
-            })
-        }
-        Ok(data) => data + "\n",
-    };
-    write_file(&path, data)
+    let data = serde_json::to_string_pretty(data).map_err(|e| RglError::WriteJson {
+        path: path.as_ref().display().to_string(),
+        cause: RglError::SerdeJson(e).into(),
+    })?;
+    write_file(&path, data + "\n")
 }

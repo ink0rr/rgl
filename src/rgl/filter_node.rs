@@ -1,62 +1,37 @@
-use super::{Filter, RglError, RglResult, Subprocess};
-use serde::{Deserialize, Serialize};
-use simplelog::info;
-use std::path::{Path, PathBuf};
+use super::{Filter, RglResult, Subprocess};
+use std::path::PathBuf;
 
-#[derive(Serialize, Deserialize)]
 pub struct FilterNode {
-    pub name: String,
-    pub script: String,
+    pub filter_dir: PathBuf,
+    pub script: PathBuf,
 }
 
 impl FilterNode {
-    pub fn new(name: &str, script: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-            script: script.to_owned(),
-        }
+    pub fn new(filter_dir: PathBuf, script: PathBuf) -> Self {
+        Self { filter_dir, script }
     }
 }
 
 impl Filter for FilterNode {
-    fn install_dependencies(&self, filter_dir: PathBuf) -> RglResult<()> {
-        info!("Installing npm dependencies for <b>{}</>...", self.name);
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+        Subprocess::new("node")
+            .arg(&self.script)
+            .args(run_args)
+            .current_dir(temp)
+            .setup_env(&self.filter_dir)?
+            .run()?;
+        Ok(())
+    }
+
+    fn install_dependencies(&self) -> RglResult<()> {
         let npm = match cfg!(target_os = "windows") {
             true => "npm.cmd",
             false => "npm",
         };
         Subprocess::new(npm)
             .args(vec!["i", "--no-fund", "--no-audit"])
-            .current_dir(filter_dir)
+            .current_dir(&self.filter_dir)
             .run_silent()?;
         Ok(())
-    }
-    fn run(&mut self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let script = match Path::new(&self.script).canonicalize() {
-            Ok(script) => script.display().to_string(),
-            Err(_) => {
-                return Err(RglError::InvalidFilterDefinition {
-                    filter_name: self.name.to_owned(),
-                    cause: RglError::PathNotExists {
-                        path: self.script.to_owned(),
-                    }
-                    .into(),
-                })
-            }
-        };
-
-        let output = Subprocess::new("node")
-            .arg(&script)
-            .args(run_args)
-            .current_dir(temp)
-            .setup_env()?
-            .run()?;
-
-        match output.status.success() {
-            true => Ok(()),
-            false => Err(RglError::FilterRunFailed {
-                filter_name: self.name.to_owned(),
-            }),
-        }
     }
 }

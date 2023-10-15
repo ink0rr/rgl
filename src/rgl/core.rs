@@ -19,9 +19,8 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> RglResult<()> {
     info!("Running <b>{profile_name}</> profile");
     profile.run(&context, &temp)?;
 
-    if let Err(e) = export_project(&context.name, &temp, &profile.export.target) {
-        return Err(RglError::ExportFailed { cause: e.into() });
-    }
+    export_project(&context.name, &temp, &profile.export.target)
+        .map_err(|e| RglError::ExportFailed { cause: e.into() })?;
 
     info!("Successfully ran the <b>{profile_name}</> profile");
 
