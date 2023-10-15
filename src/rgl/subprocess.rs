@@ -7,7 +7,10 @@ pub struct Subprocess {
 }
 
 impl Subprocess {
-    pub fn new(command: &str) -> Self {
+    pub fn new<S>(command: S) -> Self
+    where
+        S: AsRef<OsStr>,
+    {
         Self {
             command: process::Command::new(command),
         }
