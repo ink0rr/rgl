@@ -1,4 +1,4 @@
-use super::{FilterDeno, FilterNode, FilterRemote, RglError, RglResult};
+use super::{FilterDeno, FilterNode, FilterPython, FilterRemote, RglError, RglResult};
 use dunce::canonicalize;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -46,6 +46,7 @@ impl FilterDefinition {
                 match def.run_with.as_str() {
                     "deno" => Box::new(FilterDeno::new(filter_dir, script)),
                     "nodejs" => Box::new(FilterNode::new(filter_dir, script)),
+                    "python" => Box::new(FilterPython::new(filter_dir, script)),
                     filter_type => {
                         return Err(RglError::FilterTypeNotSupported {
                             filter_type: filter_type.to_owned(),
