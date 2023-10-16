@@ -1,4 +1,5 @@
-use super::{empty_dir, write_file, write_json, Config, Manifest, PackType, RglError, RglResult};
+use super::{empty_dir, write_file, write_json, Config, Manifest, PackType};
+use anyhow::{bail, Result};
 use dialoguer::{theme::ColorfulTheme, Input};
 use log::info;
 use semver::Version;
@@ -6,25 +7,21 @@ use serde_json::json;
 use std::env;
 use uuid::Uuid;
 
-pub fn init() -> RglResult<()> {
-    let cwd = match env::current_dir() {
-        Ok(cwd) => cwd,
-        Err(e) => return Err(RglError::Wrap(e.into()).into()),
-    };
+pub fn init() -> Result<()> {
+    let cwd = env::current_dir()?;
 
     if cwd
         .read_dir()
         .map(|mut i| i.next().is_some())
         .unwrap_or(true)
     {
-        return Err(RglError::CurrentDirNotEmpty);
+        bail!("Current directory is not empty")
     }
 
     let name = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Project name")
         .default(cwd.file_name().unwrap().to_string_lossy().to_string())
-        .interact_text()
-        .unwrap();
+        .interact_text()?;
 
     let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Minimum engine version")
@@ -36,8 +33,7 @@ pub fn init() -> RglResult<()> {
                 Err("Invalid version".to_string())
             }
         })
-        .interact_text()
-        .unwrap();
+        .interact_text()?;
 
     let bp = "./packs/BP";
     let rp = "./packs/RP";

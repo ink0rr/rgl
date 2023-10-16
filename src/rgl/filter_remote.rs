@@ -1,4 +1,5 @@
-use super::{read_json, Filter, FilterDefinition, RglError, RglResult};
+use super::{read_json, Filter, FilterDefinition};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -13,34 +14,26 @@ pub struct FilterRemote {
 }
 
 impl FilterRemote {
-    pub fn new(name: &str) -> RglResult<Self> {
+    pub fn new(name: &str) -> Result<Self> {
         let filter_dir = PathBuf::from(".regolith")
             .join("cache")
             .join("filters")
             .join(name);
         if !filter_dir.is_dir() {
-            return Err(RglError::FilterNotInstalled {
-                filter_name: name.to_owned(),
-            });
+            bail!("Filter <b>{name}</> not installed, run \"rgl install\" to install it")
         }
 
         let mut filter_config =
-            read_json::<FilterRemote>(filter_dir.join("filter.json")).map_err(|e| {
-                RglError::FilterConfig {
-                    filter_name: name.to_owned(),
-                    cause: e.into(),
-                }
-            })?;
+            read_json::<FilterRemote>(filter_dir.join("filter.json")).context("FilterConfig")?;
         for entry in filter_config.filters.iter_mut() {
             match entry {
                 FilterDefinition::Local(def) => {
                     def.script = filter_dir.join(&def.script).display().to_string();
                 }
-                FilterDefinition::Remote(_) => {
-                    return Err(RglError::NestedRemoteFilter {
-                        filter_name: name.to_owned(),
-                    })
-                }
+                FilterDefinition::Remote(_) => bail!(
+                    "Found nested remote filter definition in filter <b>{name}</>\n\
+                     <yellow> >></> This feature is not supported"
+                ),
             }
         }
         filter_config.name = name.to_owned();
@@ -50,7 +43,7 @@ impl FilterRemote {
 }
 
 impl Filter for FilterRemote {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
         for entry in self.filters.iter() {
             match entry {
                 FilterDefinition::Local(_) => {
@@ -58,11 +51,7 @@ impl Filter for FilterRemote {
                         .to_filter(&self.name, Some(self.filter_dir.to_owned()))?
                         .run(temp, run_args)?;
                 }
-                FilterDefinition::Remote(_) => {
-                    return Err(RglError::NestedRemoteFilter {
-                        filter_name: self.name.to_owned(),
-                    })
-                }
+                _ => unreachable!(),
             }
         }
         Ok(())

@@ -1,4 +1,4 @@
-use super::{RglError, RglResult};
+use anyhow::{Context, Result};
 use notify::{Error, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
 use simplelog::error;
@@ -19,14 +19,14 @@ impl FileWatcher {
         Self { rx, debouncer }
     }
 
-    pub fn watch(&mut self, path: &str) -> RglResult<()> {
+    pub fn watch(&mut self, path: &str) -> Result<()> {
         self.debouncer
             .watcher()
             .watch(Path::new(path), RecursiveMode::Recursive)
-            .map_err(|e| RglError::WatchDir {
-                path: path.to_owned(),
-                cause: RglError::Wrap(e.into()).into(),
-            })
+            .context(format!(
+                "Failed to watch directory\n\
+                 <yellow> >></> Path: {path}"
+            ))
     }
 
     pub fn wait_changes(&self) {

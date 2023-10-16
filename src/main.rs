@@ -1,10 +1,9 @@
-extern crate log;
-extern crate simplelog;
-
 mod rgl;
 
+use anyhow::{Context, Result};
 use clap::{crate_version, Arg, ArgAction, Command};
 use log::LevelFilter;
+use paris::log;
 use simplelog::{error, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
 fn main() {
@@ -20,6 +19,14 @@ fn main() {
     )
     .unwrap();
 
+    if let Err(e) = run_command() {
+        error!("{}", e);
+        e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
+        std::process::exit(1);
+    }
+}
+
+fn run_command() -> Result<()> {
     let matches = Command::new("rgl")
         .bin_name("rgl")
         .about("Not Regolith")
@@ -52,10 +59,7 @@ fn main() {
 
     match matches.subcommand() {
         Some(("init", _)) => {
-            if let Err(e) = rgl::init() {
-                error!("Error initializing project\n{e}");
-                std::process::exit(1);
-            }
+            rgl::init().context("Error initializing project")?;
         }
         Some(("install", matches)) => {
             let filters: Option<Vec<&String>> = match matches.get_many::<String>("filters") {
@@ -65,16 +69,10 @@ fn main() {
             let force = matches.get_flag("force");
             match filters {
                 Some(filters) => {
-                    if let Err(e) = rgl::install_add(filters, force) {
-                        error!("Error installing filter\n{e}");
-                        std::process::exit(1);
-                    }
+                    rgl::install_add(filters, force).context("Error installing filter")?;
                 }
                 None => {
-                    if let Err(e) = rgl::install_filters(force) {
-                        error!("Error installing filters\n{e}");
-                        std::process::exit(1);
-                    }
+                    rgl::install_filters(force).context("Error installing filters")?;
                 }
             };
         }
@@ -83,21 +81,18 @@ fn main() {
                 Some(profile) => profile,
                 None => "default",
             };
-            if let Err(e) = rgl::run_or_watch(profile, false) {
-                error!("Error running <b>{profile}</> profile\n{e}");
-                std::process::exit(1);
-            }
+            rgl::run_or_watch(profile, false)
+                .context(format!("Error running <b>{profile}</> profile"))?;
         }
         Some(("watch", matches)) => {
             let profile = match matches.get_one::<String>("profile") {
                 Some(profile) => profile,
                 None => "default",
             };
-            if let Err(e) = rgl::run_or_watch(profile, true) {
-                error!("Error running <b>{profile}</> profile\n{e}");
-                std::process::exit(1);
-            }
+            rgl::run_or_watch(profile, true)
+                .context(format!("Error running <b>{profile}</> profile"))?;
         }
         _ => unreachable!(),
     }
+    Ok(())
 }

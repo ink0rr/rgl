@@ -1,4 +1,5 @@
-use super::{Config, FileWatcher, FilterDefinition, Profile, RglError, RglResult};
+use super::{Config, FileWatcher, FilterDefinition, Profile};
+use anyhow::{bail, Result};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
 
@@ -25,25 +26,21 @@ impl RunContext {
         }
     }
 
-    pub fn get_profile(&self, profile_name: &str) -> RglResult<&Profile> {
+    pub fn get_profile(&self, profile_name: &str) -> Result<&Profile> {
         match self.profiles.get(profile_name) {
             Some(profile) => Ok(profile),
-            None => Err(RglError::ProfileNotFound {
-                profile_name: profile_name.to_owned(),
-            }),
+            None => bail!("Profile <b>{profile_name}</> not found"),
         }
     }
 
-    pub fn get_filter_def(&self, filter_name: &str) -> RglResult<&FilterDefinition> {
+    pub fn get_filter_def(&self, filter_name: &str) -> Result<&FilterDefinition> {
         match self.filter_definitions.get(filter_name) {
             Some(filter_def) => Ok(filter_def),
-            None => Err(RglError::FilterNotDefined {
-                filter_name: filter_name.to_owned(),
-            }),
+            None => bail!("Filter <b>{filter_name}</> not defined in filter_definitions"),
         }
     }
 
-    pub fn watch_project_files(&self) -> RglResult<()> {
+    pub fn watch_project_files(&self) -> Result<()> {
         let mut file_watcher = FileWatcher::new();
 
         file_watcher.watch(&self.data_path)?;

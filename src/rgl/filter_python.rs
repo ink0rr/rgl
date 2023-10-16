@@ -1,4 +1,5 @@
-use super::{Filter, RglResult, Subprocess};
+use super::{Filter, Subprocess};
+use anyhow::Result;
 use std::path::PathBuf;
 use which::which;
 
@@ -14,7 +15,7 @@ impl FilterPython {
 }
 
 impl Filter for FilterPython {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
         let venv_dir = self.filter_dir.join(".venv");
         if venv_dir.exists() {
             let py = match cfg!(target_os = "windows") {
@@ -37,7 +38,7 @@ impl Filter for FilterPython {
         Ok(())
     }
 
-    fn install_dependencies(&self) -> RglResult<()> {
+    fn install_dependencies(&self) -> Result<()> {
         let requirements = self.filter_dir.join("requirements.txt");
         if requirements.exists() {
             let py = get_python();

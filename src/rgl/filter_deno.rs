@@ -1,4 +1,5 @@
-use super::{Filter, RglResult, Subprocess};
+use super::{Filter, Subprocess};
+use anyhow::Result;
 use std::path::PathBuf;
 
 pub struct FilterDeno {
@@ -13,7 +14,7 @@ impl FilterDeno {
 }
 
 impl Filter for FilterDeno {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
         Subprocess::new("deno")
             .args(vec!["run", "-A"])
             .arg(&self.script)

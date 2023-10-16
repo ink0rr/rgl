@@ -1,10 +1,8 @@
-use super::{
-    copy_dir, empty_dir, export_project, find_temp_dir, symlink, Config, RglError, RglResult,
-    RunContext,
-};
+use super::{copy_dir, empty_dir, export_project, find_temp_dir, symlink, Config, RunContext};
+use anyhow::{Context, Result};
 use simplelog::{info, warn};
 
-pub fn run_or_watch(profile_name: &str, watch: bool) -> RglResult<()> {
+pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
     let config = Config::load()?;
 
     let context = RunContext::new(config, profile_name);
@@ -20,7 +18,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> RglResult<()> {
     profile.run(&context, &temp)?;
 
     export_project(&context.name, &temp, &profile.export.target)
-        .map_err(|e| RglError::ExportFailed { cause: e.into() })?;
+        .context("Failed to export project")?;
 
     info!("Successfully ran the <b>{profile_name}</> profile");
 
