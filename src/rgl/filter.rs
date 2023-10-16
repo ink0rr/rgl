@@ -1,4 +1,4 @@
-use super::{FilterDeno, FilterNode, FilterPython, FilterRemote};
+use super::{FilterDeno, FilterGo, FilterNode, FilterPython, FilterRemote};
 use anyhow::{bail, Context, Result};
 use dunce::canonicalize;
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,7 @@ impl FilterDefinition {
                 let script = canonicalize(&def.script).context("InvalidFilterDefinition")?;
                 match def.run_with.as_str() {
                     "deno" => Box::new(FilterDeno::new(filter_dir, script)),
+                    "go" => Box::new(FilterGo::new(filter_dir, script)),
                     "nodejs" => Box::new(FilterNode::new(filter_dir, script)),
                     "python" => Box::new(FilterPython::new(filter_dir, script)),
                     filter_type => bail!("Filter type <b>{filter_type}</> not supported"),
