@@ -16,7 +16,7 @@ impl FilterGo {
 
 impl Filter for FilterGo {
     fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
-        let temp = canonicalize(temp).unwrap();
+        let temp = canonicalize(temp)?;
         let output = match cfg!(target_os = "windows") {
             true => temp.join(".gofilter.exe"),
             false => temp.join(".gofilter"),

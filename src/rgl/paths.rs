@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[cfg(target_os = "linux")]
 pub fn find_mojang_dir() -> Result<PathBuf> {
@@ -38,6 +38,6 @@ pub fn find_mojang_dir() -> Result<PathBuf> {
 pub fn find_temp_dir(target: &str) -> Result<PathBuf> {
     match target {
         "development" => Ok(find_mojang_dir()?.join(".regolith")),
-        _ => Ok(Path::new(".").join(".regolith").join("tmp")),
+        _ => Ok(PathBuf::from(".").join(".regolith").join("tmp")),
     }
 }

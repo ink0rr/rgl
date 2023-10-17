@@ -35,9 +35,14 @@ impl FilterDefinition {
     fn to_filter_impl(&self, name: &str, filter_dir: Option<PathBuf>) -> Result<Box<dyn Filter>> {
         let filter: Box<dyn Filter> = match self {
             FilterDefinition::Local(def) => {
-                let filter_dir = filter_dir.unwrap_or_else(|| PathBuf::from("."));
                 let script = canonicalize(&def.script)
                     .context(format!("Failed to resolve path {}", def.script))?;
+                let filter_dir = filter_dir.unwrap_or_else(|| {
+                    script
+                        .parent()
+                        .map(|path| path.to_path_buf())
+                        .unwrap_or_else(|| PathBuf::from("."))
+                });
 
                 match def.run_with.as_str() {
                     "deno" => Box::new(FilterDeno::new(filter_dir, script)),
