@@ -1,7 +1,7 @@
+use crate::error;
 use anyhow::{Context, Result};
 use notify::{Error, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
-use simplelog::error;
 use std::{path::Path, sync::mpsc::Receiver, time::Duration};
 
 pub struct FileWatcher {

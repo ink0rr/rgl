@@ -1,6 +1,6 @@
 use super::{empty_dir, find_mojang_dir, move_dir};
+use crate::info;
 use anyhow::{bail, Result};
-use simplelog::info;
 use std::path::{Path, PathBuf};
 
 fn get_export_paths(name: &str, target: &str) -> Result<(PathBuf, PathBuf)> {

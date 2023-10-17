@@ -2,11 +2,10 @@ use super::{
     copy_dir, empty_dir, get_filter_cache_dir, read_json, resolve_url, rimraf, write_json,
     FilterRemote, Subprocess,
 };
+use crate::{info, warn};
 use anyhow::{bail, Result};
-use log::warn;
 use semver::Version;
 use serde_json::Value;
-use simplelog::info;
 use std::path::PathBuf;
 
 pub struct FilterInstaller {

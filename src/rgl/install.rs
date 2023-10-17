@@ -1,7 +1,7 @@
 use super::{ref_to_version, Config, FilterDefinition, FilterInstaller, RemoteFilterDefinition};
+use crate::info;
 use anyhow::Result;
 use semver::Version;
-use simplelog::info;
 
 pub fn install_filters(force: bool) -> Result<()> {
     let config = Config::load()?;

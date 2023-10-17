@@ -1,7 +1,7 @@
 use super::{empty_dir, write_file, write_json, Config, Manifest, PackType};
+use crate::info;
 use anyhow::{bail, Result};
 use dialoguer::{theme::ColorfulTheme, Input};
-use log::info;
 use semver::Version;
 use serde_json::json;
 use std::env;

@@ -1,6 +1,6 @@
 use super::{copy_dir, empty_dir, export_project, find_temp_dir, symlink, Config, RunContext};
+use crate::{info, warn};
 use anyhow::{Context, Result};
-use simplelog::{info, warn};
 
 pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
     let config = Config::load()?;

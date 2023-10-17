@@ -1,8 +1,8 @@
 use super::RunContext;
+use crate::info;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use simplelog::info;
 use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]

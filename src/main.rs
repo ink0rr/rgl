@@ -2,23 +2,9 @@ mod rgl;
 
 use anyhow::{Context, Result};
 use clap::{crate_version, Arg, ArgAction, Command};
-use log::LevelFilter;
 use paris::log;
-use simplelog::{error, ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
 fn main() {
-    let config = ConfigBuilder::new()
-        .set_time_level(LevelFilter::Debug)
-        .build();
-
-    TermLogger::init(
-        LevelFilter::Info,
-        config,
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .unwrap();
-
     if let Err(e) = run_command() {
         error!("{}", e);
         e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
