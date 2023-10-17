@@ -32,11 +32,13 @@ pub struct RemoteFilterDefinition {
 }
 
 impl FilterDefinition {
-    pub fn to_filter(&self, name: &str, filter_dir: Option<PathBuf>) -> Result<Box<dyn Filter>> {
+    fn to_filter_impl(&self, name: &str, filter_dir: Option<PathBuf>) -> Result<Box<dyn Filter>> {
         let filter: Box<dyn Filter> = match self {
             FilterDefinition::Local(def) => {
                 let filter_dir = filter_dir.unwrap_or_else(|| PathBuf::from("."));
-                let script = canonicalize(&def.script).context("InvalidFilterDefinition")?;
+                let script = canonicalize(&def.script)
+                    .context(format!("Failed to resolve path {}", def.script))?;
+
                 match def.run_with.as_str() {
                     "deno" => Box::new(FilterDeno::new(filter_dir, script)),
                     "go" => Box::new(FilterGo::new(filter_dir, script)),
@@ -65,5 +67,10 @@ impl FilterDefinition {
             }
         };
         Ok(filter)
+    }
+
+    pub fn to_filter(&self, name: &str, filter_dir: Option<PathBuf>) -> Result<Box<dyn Filter>> {
+        self.to_filter_impl(name, filter_dir)
+            .context(format!("Invalid filter definition for <b>{name}</>"))
     }
 }

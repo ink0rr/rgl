@@ -23,8 +23,8 @@ impl FilterRemote {
             bail!("Filter <b>{name}</> not installed, run \"rgl install\" to install it")
         }
 
-        let mut filter_config =
-            read_json::<FilterRemote>(filter_dir.join("filter.json")).context("FilterConfig")?;
+        let mut filter_config = read_json::<FilterRemote>(filter_dir.join("filter.json"))
+            .context(format!("Failed to load config for filter <b>{name}</>"))?;
         for entry in filter_config.filters.iter_mut() {
             match entry {
                 FilterDefinition::Local(def) => {
