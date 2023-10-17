@@ -1,4 +1,5 @@
-use super::{empty_dir, get_resolver_cache_dir, read_json, RglError, RglResult, Subprocess};
+use super::{empty_dir, get_resolver_cache_dir, read_json, Subprocess};
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ struct ResolverData {
     url: String,
 }
 
-fn get_resolver() -> RglResult<Resolver> {
+fn get_resolver() -> Result<Resolver> {
     // TODO: Get resolvers from user config
     let resolver_url = "https://github.com/Bedrock-OSS/regolith-filter-resolver";
     let cache = get_resolver_cache_dir(resolver_url)?;
@@ -32,12 +33,10 @@ fn get_resolver() -> RglResult<Resolver> {
     read_json::<Resolver>(cache.join("resolver.json"))
 }
 
-pub fn resolve_url(name: &str) -> RglResult<String> {
+pub fn resolve_url(name: &str) -> Result<String> {
     let resolver = get_resolver()?;
     match resolver.filters.get(name) {
         Some(data) => Ok(data.url.to_owned()),
-        None => Err(RglError::FilterResolveFailed {
-            filter_name: name.to_owned(),
-        }),
+        None => bail!("Failed to resolve filter <b>{name}</>"),
     }
 }
