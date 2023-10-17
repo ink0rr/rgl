@@ -119,12 +119,10 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
             .trim()
             .split("\n")
             .filter_map(|line| {
-                if let Some(version) = line.split(&format!("refs/tags/{name}-")).last() {
-                    if let Ok(version) = Version::parse(version) {
-                        return Some(format!("{name}-{version}"));
-                    }
-                }
-                None
+                line.split(&format!("refs/tags/{name}-"))
+                    .last()
+                    .and_then(|version| Version::parse(version).ok())
+                    .map(|version| format!("{name}-{version}"))
             })
             .last();
         if let Some(tag) = tag {

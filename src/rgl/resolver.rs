@@ -1,5 +1,5 @@
 use super::{empty_dir, get_resolver_cache_dir, read_json, Subprocess};
-use anyhow::{bail, Result};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -34,9 +34,10 @@ fn get_resolver() -> Result<Resolver> {
 }
 
 pub fn resolve_url(name: &str) -> Result<String> {
-    let resolver = get_resolver()?;
-    match resolver.filters.get(name) {
-        Some(data) => Ok(data.url.to_owned()),
-        None => bail!("Failed to resolve filter <b>{name}</>"),
-    }
+    get_resolver()
+        .context("Failed getting filter resolver")?
+        .filters
+        .get(name)
+        .map(|data| data.url.to_owned())
+        .context(format!("Failed to resolve filter <b>{name}</>"))
 }

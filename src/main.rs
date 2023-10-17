@@ -48,10 +48,9 @@ fn run_command() -> Result<()> {
             rgl::init().context("Error initializing project")?;
         }
         Some(("install", matches)) => {
-            let filters: Option<Vec<&String>> = match matches.get_many::<String>("filters") {
-                Some(filters) => Some(filters.collect::<Vec<&String>>()),
-                None => None,
-            };
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect());
             let force = matches.get_flag("force");
             match filters {
                 Some(filters) => {

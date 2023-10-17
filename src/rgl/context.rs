@@ -1,5 +1,5 @@
 use super::{Config, FileWatcher, FilterDefinition, Profile};
-use anyhow::{bail, Result};
+use anyhow::{Context, Result};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
 
@@ -27,17 +27,15 @@ impl RunContext {
     }
 
     pub fn get_profile(&self, profile_name: &str) -> Result<&Profile> {
-        match self.profiles.get(profile_name) {
-            Some(profile) => Ok(profile),
-            None => bail!("Profile <b>{profile_name}</> not found"),
-        }
+        self.profiles
+            .get(profile_name)
+            .context(format!("Profile <b>{profile_name}</> not found"))
     }
 
     pub fn get_filter_def(&self, filter_name: &str) -> Result<&FilterDefinition> {
-        match self.filter_definitions.get(filter_name) {
-            Some(filter_def) => Ok(filter_def),
-            None => bail!("Filter <b>{filter_name}</> not defined in filter_definitions"),
-        }
+        self.filter_definitions.get(filter_name).context(format!(
+            "Filter <b>{filter_name}</> not defined in filter_definitions"
+        ))
     }
 
     pub fn watch_project_files(&self) -> Result<()> {

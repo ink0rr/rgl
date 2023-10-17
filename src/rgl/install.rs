@@ -8,10 +8,9 @@ pub fn install_filters(force: bool) -> Result<()> {
     for (name, def) in config.regolith.filter_definitions {
         if let FilterDefinition::Remote(def) = def {
             info!("Installing filter <b>{}</>...", name);
-            let git_ref = match Version::parse(&def.version) {
-                Ok(version) => format!("{name}-{version}"),
-                Err(_) => def.version,
-            };
+            let git_ref = Version::parse(&def.version)
+                .map(|version| format!("{name}-{version}"))
+                .unwrap_or(def.version);
             let filter = FilterInstaller::new(name, def.url, git_ref)?;
             filter.install(force)?;
         }
