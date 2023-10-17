@@ -91,7 +91,7 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> RglResult<()> {
+pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     use std::os::unix;
 
     let from = canonicalize(&from)?;
