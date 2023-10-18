@@ -1,7 +1,8 @@
-use super::{RglError, RglResult, RunContext};
+use super::RunContext;
+use crate::info;
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use simplelog::info;
 use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
@@ -33,7 +34,7 @@ pub enum FilterRunner {
 }
 
 impl Profile {
-    pub fn run(&self, context: &RunContext, temp: &PathBuf) -> RglResult<()> {
+    pub fn run(&self, context: &RunContext, temp: &PathBuf) -> Result<()> {
         for entry in self.filters.iter() {
             match entry {
                 FilterRunner::Filter {
@@ -54,15 +55,11 @@ impl Profile {
                     filter_def
                         .to_filter(&filter_name, None)?
                         .run(temp, &run_args)
-                        .map_err(|_| RglError::FilterRunFailed {
-                            filter_name: filter_name.to_owned(),
-                        })?;
+                        .context(format!("Failed running filter <b>{filter_name}</>"))?;
                 }
                 FilterRunner::ProfileFilter { profile_name } => {
                     if profile_name == &context.root_profile {
-                        return Err(RglError::CircularProfileReference {
-                            profile_name: context.root_profile.to_owned(),
-                        });
+                        bail!("Found circular profile reference in <b>{profile_name}</>");
                     }
                     let profile = context.get_profile(profile_name)?;
 

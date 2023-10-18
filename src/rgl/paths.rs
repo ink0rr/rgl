@@ -1,10 +1,10 @@
-use super::get_env;
-use super::RglResult;
-use std::path::{Path, PathBuf};
+use anyhow::Result;
+use std::env;
+use std::path::PathBuf;
 
 #[cfg(target_os = "linux")]
-pub fn find_mojang_dir() -> RglResult<PathBuf> {
-    let home = get_env("HOME")?;
+pub fn find_mojang_dir() -> Result<PathBuf> {
+    let home = env::var("HOME")?;
     Ok(PathBuf::from(home)
         .join(".local")
         .join("share")
@@ -14,8 +14,8 @@ pub fn find_mojang_dir() -> RglResult<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn find_mojang_dir() -> RglResult<PathBuf> {
-    let home = get_env("HOME")?;
+pub fn find_mojang_dir() -> Result<PathBuf> {
+    let home = env::var("HOME")?;
     Ok(PathBuf::from(home)
         .join("Library")
         .join("Application Support")
@@ -25,8 +25,8 @@ pub fn find_mojang_dir() -> RglResult<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn find_mojang_dir() -> RglResult<PathBuf> {
-    let localappdata = get_env("LocalAppData")?;
+pub fn find_mojang_dir() -> Result<PathBuf> {
+    let localappdata = env::var("LocalAppData")?;
     Ok(PathBuf::from(localappdata)
         .join("Packages")
         .join("Microsoft.MinecraftUWP_8wekyb3d8bbwe")
@@ -35,9 +35,9 @@ pub fn find_mojang_dir() -> RglResult<PathBuf> {
         .join("com.mojang"))
 }
 
-pub fn find_temp_dir(target: &str) -> RglResult<PathBuf> {
+pub fn find_temp_dir(target: &str) -> Result<PathBuf> {
     match target {
         "development" => Ok(find_mojang_dir()?.join(".regolith")),
-        _ => Ok(Path::new(".").join(".regolith").join("tmp")),
+        _ => Ok(PathBuf::from(".").join(".regolith").join("tmp")),
     }
 }

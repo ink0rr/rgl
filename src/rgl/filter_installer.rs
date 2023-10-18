@@ -1,10 +1,11 @@
 use super::{
     copy_dir, empty_dir, get_filter_cache_dir, read_json, resolve_url, rimraf, write_json,
-    FilterRemote, RglError, RglResult, Subprocess,
+    FilterRemote, Subprocess,
 };
+use crate::{info, warn};
+use anyhow::{bail, Result};
 use semver::Version;
 use serde_json::Value;
-use simplelog::info;
 use std::path::PathBuf;
 
 pub struct FilterInstaller {
@@ -14,11 +15,11 @@ pub struct FilterInstaller {
 }
 
 impl FilterInstaller {
-    pub fn new(name: String, url: String, git_ref: String) -> RglResult<Self> {
+    pub fn new(name: String, url: String, git_ref: String) -> Result<Self> {
         Ok(Self { name, url, git_ref })
     }
 
-    pub fn from_arg(arg: &str) -> RglResult<Self> {
+    pub fn from_arg(arg: &str) -> Result<Self> {
         let name: String;
         let mut url: String;
         let version: Option<String>;
@@ -26,9 +27,7 @@ impl FilterInstaller {
         if arg.contains("==") {
             let parts: Vec<_> = arg.split("==").collect();
             if parts.len() != 2 {
-                return Err(RglError::InvalidInstallArg {
-                    arg: arg.to_owned(),
-                });
+                bail!("Invalid install argument <b>{arg}</>");
             }
             url = parts[0].to_owned();
             version = Some(parts[1].to_owned());
@@ -55,16 +54,18 @@ impl FilterInstaller {
         Ok(Self { name, url, git_ref })
     }
 
-    pub fn install(&self, force: bool) -> RglResult<()> {
+    pub fn install(&self, force: bool) -> Result<bool> {
         let filter_dir = PathBuf::from(".regolith")
             .join("cache")
             .join("filters")
             .join(&self.name);
 
         if filter_dir.exists() && !force {
-            return Err(RglError::FilterAlreadyInstalled {
-                filter_name: self.name.to_owned(),
-            });
+            warn!(
+                "Filter {} already installed, use --force to overwrite",
+                self.name
+            );
+            return Ok(false);
         } else {
             rimraf(&filter_dir)?;
         }
@@ -98,11 +99,11 @@ impl FilterInstaller {
             info!("Installing dependencies for <b>{}</>...", self.name);
             filter.install_dependencies()?;
         }
-        Ok(())
+        Ok(true)
     }
 }
 
-fn get_git_ref(name: &str, url: &str, version: Option<String>) -> RglResult<String> {
+fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String> {
     if let Some(version) = &version {
         if let Ok(version) = Version::parse(&version) {
             return Ok(format!("{name}-{version}"));
@@ -118,12 +119,10 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> RglResult<Stri
             .trim()
             .split("\n")
             .filter_map(|line| {
-                if let Some(version) = line.split(&format!("refs/tags/{name}-")).last() {
-                    if let Ok(version) = Version::parse(version) {
-                        return Some(format!("{name}-{version}"));
-                    }
-                }
-                None
+                line.split(&format!("refs/tags/{name}-"))
+                    .last()
+                    .and_then(|version| Version::parse(version).ok())
+                    .map(|version| format!("{name}-{version}"))
             })
             .last();
         if let Some(tag) = tag {
@@ -144,11 +143,13 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> RglResult<Stri
             return Ok(sha.to_owned());
         }
     }
-    Err(RglError::FilterVersionResolveFailed {
-        name: name.to_owned(),
-        url: name.to_owned(),
-        version: version.unwrap_or("latest".to_owned()),
-    })
+    bail!(
+        "Failed to resolve filter version\n\
+         <yellow> >></> Filter: {name}\n\
+         <yellow> >></> URL: {url}\n\
+         <yellow> >></> Version: {}",
+        version.unwrap_or("latest".to_owned())
+    )
 }
 
 pub fn ref_to_version(git_ref: &str) -> String {

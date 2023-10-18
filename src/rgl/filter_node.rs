@@ -1,4 +1,5 @@
-use super::{Filter, RglResult, Subprocess};
+use super::{Filter, Subprocess};
+use anyhow::Result;
 use std::path::PathBuf;
 
 pub struct FilterNode {
@@ -13,7 +14,7 @@ impl FilterNode {
 }
 
 impl Filter for FilterNode {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
         Subprocess::new("node")
             .arg(&self.script)
             .args(run_args)
@@ -23,7 +24,7 @@ impl Filter for FilterNode {
         Ok(())
     }
 
-    fn install_dependencies(&self) -> RglResult<()> {
+    fn install_dependencies(&self) -> Result<()> {
         let npm = match cfg!(target_os = "windows") {
             true => "npm.cmd",
             false => "npm",

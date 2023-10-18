@@ -1,8 +1,9 @@
-use super::{empty_dir, find_mojang_dir, move_dir, RglError, RglResult};
-use simplelog::info;
+use super::{empty_dir, find_mojang_dir, move_dir};
+use crate::info;
+use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 
-fn get_export_paths(name: &str, target: &str) -> RglResult<(PathBuf, PathBuf)> {
+fn get_export_paths(name: &str, target: &str) -> Result<(PathBuf, PathBuf)> {
     match target {
         "development" => {
             let mojang_dir = find_mojang_dir()?;
@@ -20,13 +21,11 @@ fn get_export_paths(name: &str, target: &str) -> RglResult<(PathBuf, PathBuf)> {
             let rp = build.join("RP");
             Ok((bp, rp))
         }
-        _ => Err(RglError::InvalidExportTarget {
-            target: target.to_owned(),
-        }),
+        _ => bail!("Export target <b>{target}</> is not valid"),
     }
 }
 
-pub fn export_project(name: &str, temp: &PathBuf, target: &str) -> RglResult<()> {
+pub fn export_project(name: &str, temp: &PathBuf, target: &str) -> Result<()> {
     let (bp, rp) = get_export_paths(name, target)?;
 
     if target == "local" {

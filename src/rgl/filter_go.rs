@@ -1,6 +1,6 @@
+use super::{Filter, Subprocess};
+use anyhow::Result;
 use dunce::canonicalize;
-
-use super::{Filter, RglResult, Subprocess};
 use std::path::PathBuf;
 
 pub struct FilterGo {
@@ -15,8 +15,8 @@ impl FilterGo {
 }
 
 impl Filter for FilterGo {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> RglResult<()> {
-        let temp = canonicalize(temp).unwrap();
+    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+        let temp = canonicalize(temp)?;
         let output = match cfg!(target_os = "windows") {
             true => temp.join(".gofilter.exe"),
             false => temp.join(".gofilter"),
@@ -37,7 +37,7 @@ impl Filter for FilterGo {
         Ok(())
     }
 
-    fn install_dependencies(&self) -> RglResult<()> {
+    fn install_dependencies(&self) -> Result<()> {
         Subprocess::new("go")
             .args(vec!["mod", "download"])
             .current_dir(&self.filter_dir)

@@ -1,6 +1,5 @@
-use super::{
-    read_json, write_json, Export, FilterDefinition, FilterRunner, Profile, RglError, RglResult,
-};
+use super::{read_json, write_json, Export, FilterDefinition, FilterRunner, Profile};
+use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -68,10 +67,12 @@ impl Config {
             },
         }
     }
-    pub fn load() -> RglResult<Config> {
-        read_json::<Config>("./config.json").map_err(|e| RglError::Config { cause: e.into() })
+
+    pub fn load() -> Result<Config> {
+        read_json::<Config>("./config.json")
     }
-    pub fn save(&self) -> RglResult<()> {
+
+    pub fn save(&self) -> Result<()> {
         write_json("./config.json", self)
     }
 }
