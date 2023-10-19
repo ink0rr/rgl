@@ -1,7 +1,7 @@
 use super::{read_json, Filter, FilterDefinition};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct FilterRemote {
@@ -43,7 +43,7 @@ impl FilterRemote {
 }
 
 impl Filter for FilterRemote {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
         for entry in self.filters.iter() {
             match entry {
                 FilterDefinition::Local(_) => {

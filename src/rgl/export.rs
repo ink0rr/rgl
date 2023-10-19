@@ -42,6 +42,6 @@ pub fn export_project(name: &str, temp: &PathBuf, target: &str) -> Result<()> {
 
     move_dir(temp.join("BP"), bp)?;
     move_dir(temp.join("RP"), rp)?;
-    empty_dir(&temp)?;
+    empty_dir(temp)?;
     Ok(())
 }

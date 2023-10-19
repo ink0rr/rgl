@@ -2,10 +2,10 @@ use super::{FilterDeno, FilterGo, FilterNode, FilterPython, FilterRemote};
 use anyhow::{bail, Context, Result};
 use dunce::canonicalize;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub trait Filter {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()>;
+    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()>;
     fn install_dependencies(&self) -> Result<()> {
         Ok(())
     }

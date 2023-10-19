@@ -27,7 +27,7 @@ pub fn init() -> Result<()> {
         .with_prompt("Minimum engine version")
         .default("1.20.30".to_owned())
         .validate_with(|input: &String| -> Result<(), String> {
-            if Version::parse(&input).is_ok() {
+            if Version::parse(input).is_ok() {
                 Ok(())
             } else {
                 Err("Invalid version".to_string())

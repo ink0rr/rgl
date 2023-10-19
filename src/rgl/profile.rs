@@ -53,7 +53,7 @@ impl Profile {
 
                     info!("Running filter <b>{filter_name}</>");
                     filter_def
-                        .to_filter(&filter_name, None)?
+                        .to_filter(filter_name, None)?
                         .run(temp, &run_args)
                         .context(format!("Failed running filter <b>{filter_name}</>"))?;
                 }
@@ -64,7 +64,7 @@ impl Profile {
                     let profile = context.get_profile(profile_name)?;
 
                     info!("Running <b>{profile_name}</> nested profile");
-                    profile.run(&context, temp)?;
+                    profile.run(context, temp)?;
                 }
             }
         }

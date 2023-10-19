@@ -36,8 +36,8 @@ impl FilterInstaller {
             version = None;
         }
 
-        if url.contains("/") {
-            let mut split: Vec<_> = url.split("/").collect();
+        if url.contains('/') {
+            let mut split: Vec<_> = url.split('/').collect();
             name = split.pop().unwrap().to_owned();
             url = split.join("/");
             if url.starts_with("https://") {
@@ -105,7 +105,7 @@ impl FilterInstaller {
 
 fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String> {
     if let Some(version) = &version {
-        if let Ok(version) = Version::parse(&version) {
+        if let Ok(version) = Version::parse(version) {
             return Ok(format!("{name}-{version}"));
         }
     }
@@ -117,7 +117,7 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
 
         let tag = output
             .trim()
-            .split("\n")
+            .split('\n')
             .filter_map(|line| {
                 line.split(&format!("refs/tags/{name}-"))
                     .last()
@@ -136,9 +136,9 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
         let output = String::from_utf8(output.stdout).unwrap();
 
         let sha = output
-            .split("\n")
+            .split('\n')
             .nth(1)
-            .and_then(|line| line.split("\t").nth(0));
+            .and_then(|line| line.split('\t').next());
         if let Some(sha) = sha {
             return Ok(sha.to_owned());
         }
@@ -154,7 +154,7 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
 
 pub fn ref_to_version(git_ref: &str) -> String {
     git_ref
-        .split("-")
+        .split('-')
         .nth(1)
         .and_then(|version| Version::parse(version).ok())
         .map(|version| version.to_string())

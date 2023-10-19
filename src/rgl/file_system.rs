@@ -1,7 +1,5 @@
 use anyhow::{Context, Error, Result};
 use dunce::canonicalize;
-use serde::de;
-use serde_json;
 use std::{fs, io, path::Path};
 
 fn copy_dir_impl(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
@@ -58,9 +56,9 @@ pub fn move_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     ))
 }
 
-pub fn read_json_impl<T>(path: impl AsRef<Path>) -> Result<T>
+fn read_json_impl<T>(path: impl AsRef<Path>) -> Result<T>
 where
-    T: de::DeserializeOwned,
+    T: serde::de::DeserializeOwned,
 {
     let data = fs::read_to_string(&path)?;
     let json = serde_json::from_str(&data)?;
@@ -69,7 +67,7 @@ where
 
 pub fn read_json<T>(path: impl AsRef<Path>) -> Result<T>
 where
-    T: de::DeserializeOwned,
+    T: serde::de::DeserializeOwned,
 {
     read_json_impl(&path).context(format!(
         "Failed to read JSON file {}",
