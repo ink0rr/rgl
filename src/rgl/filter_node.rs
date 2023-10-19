@@ -1,6 +1,6 @@
 use super::{Filter, Subprocess};
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct FilterNode {
     pub filter_dir: PathBuf,
@@ -14,7 +14,7 @@ impl FilterNode {
 }
 
 impl Filter for FilterNode {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
         Subprocess::new("node")
             .arg(&self.script)
             .args(run_args)

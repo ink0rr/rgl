@@ -1,6 +1,6 @@
 use super::{empty_dir, write_file, write_json, Config, Manifest, PackType};
 use crate::info;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Input};
 use semver::Version;
 use serde_json::json;
@@ -12,8 +12,14 @@ pub fn init() -> Result<()> {
 
     if cwd
         .read_dir()
-        .map(|mut i| i.next().is_some())
-        .unwrap_or(true)
+        .context("Failed to read current directory")?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let file_name = entry.file_name().into_string().ok()?;
+            (!file_name.starts_with('.')).then_some(())
+        })
+        .count()
+        > 0
     {
         bail!("Current directory is not empty")
     }
@@ -27,7 +33,7 @@ pub fn init() -> Result<()> {
         .with_prompt("Minimum engine version")
         .default("1.20.30".to_owned())
         .validate_with(|input: &String| -> Result<(), String> {
-            if Version::parse(&input).is_ok() {
+            if Version::parse(input).is_ok() {
                 Ok(())
             } else {
                 Err("Invalid version".to_string())

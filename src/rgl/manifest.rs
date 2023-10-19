@@ -53,7 +53,7 @@ impl Manifest {
                 uuid: header_uuid.to_owned(),
                 version: version.to_owned(),
                 min_engine_version: min_engine_version
-                    .split(".")
+                    .split('.')
                     .map(|s| s.parse::<u8>().unwrap())
                     .collect::<Vec<u8>>(),
             },

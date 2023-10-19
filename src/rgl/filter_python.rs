@@ -1,6 +1,6 @@
 use super::{Filter, Subprocess};
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use which::which;
 
 pub struct FilterPython {
@@ -15,7 +15,7 @@ impl FilterPython {
 }
 
 impl Filter for FilterPython {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
         let venv_dir = self.filter_dir.join(".venv");
         if venv_dir.exists() {
             let py = match cfg!(target_os = "windows") {

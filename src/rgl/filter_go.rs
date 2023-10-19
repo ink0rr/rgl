@@ -1,7 +1,7 @@
 use super::{Filter, Subprocess};
 use anyhow::Result;
 use dunce::canonicalize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct FilterGo {
     pub filter_dir: PathBuf,
@@ -15,7 +15,7 @@ impl FilterGo {
 }
 
 impl Filter for FilterGo {
-    fn run(&self, temp: &PathBuf, run_args: &Vec<String>) -> Result<()> {
+    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
         let temp = canonicalize(temp)?;
         let output = match cfg!(target_os = "windows") {
             true => temp.join(".gofilter.exe"),
