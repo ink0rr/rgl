@@ -40,14 +40,8 @@ pub fn empty_dir(path: impl AsRef<Path>) -> Result<()> {
     ))
 }
 
-fn move_dir_impl(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    rimraf(&to)?;
-    fs::rename(&from, &to)?;
-    Ok(())
-}
-
 pub fn move_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    move_dir_impl(&from, &to).context(format!(
+    fs::rename(&from, &to).context(format!(
         "Failed to move directory\n\
          <yellow> >></> From: {}\n\
          <yellow> >></> To: {}",

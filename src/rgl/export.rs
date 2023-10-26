@@ -1,4 +1,4 @@
-use super::{empty_dir, find_mojang_dir, move_dir};
+use super::{empty_dir, find_mojang_dir, move_dir, rimraf};
 use crate::info;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
@@ -40,6 +40,8 @@ pub fn export_project(name: &str, temp: &PathBuf, target: &str) -> Result<()> {
         rp.display()
     );
 
+    rimraf(&bp)?;
+    rimraf(&rp)?;
     move_dir(temp.join("BP"), bp)?;
     move_dir(temp.join("RP"), rp)?;
     empty_dir(temp)?;
