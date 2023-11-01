@@ -86,16 +86,12 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     use std::os::unix;
 
-    || -> Result<()> {
-        let from = canonicalize(&from)?;
-        unix::fs::symlink(from, &to)?;
-        Ok(())
-    }()
-    .context(format!(
+    let from = canonicalize(&from)?;
+    unix::fs::symlink(&from, &to).context(format!(
         "Failed to create symlink\n\
          <yellow> >></> From: {}\n\
          <yellow> >></> To: {}",
-        from.as_ref().display(),
+        from.display(),
         to.as_ref().display()
     ))
 }
@@ -104,16 +100,12 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     use std::os::windows;
 
-    || -> Result<()> {
-        let from = canonicalize(&from)?;
-        windows::fs::symlink_dir(from, &to)?;
-        Ok(())
-    }()
-    .context(format!(
+    let from = canonicalize(&from)?;
+    windows::fs::symlink_dir(&from, &to).context(format!(
         "Failed to create symlink\n\
          <yellow> >></> From: {}\n\
          <yellow> >></> To: {}",
-        from.as_ref().display(),
+        from.display(),
         to.as_ref().display()
     ))
 }
