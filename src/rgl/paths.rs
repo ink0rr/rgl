@@ -34,10 +34,3 @@ pub fn find_mojang_dir() -> Result<PathBuf> {
         .join("games")
         .join("com.mojang"))
 }
-
-pub fn find_temp_dir(target: &str) -> Result<PathBuf> {
-    match target {
-        "development" => Ok(find_mojang_dir()?.join(".regolith")),
-        _ => Ok(PathBuf::from(".").join(".regolith").join("tmp")),
-    }
-}
