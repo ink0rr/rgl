@@ -15,7 +15,10 @@ else
 	"Darwin x86_64") target="x86_64-apple-darwin" ;;
 	"Darwin arm64") target="aarch64-apple-darwin" ;;
 	"Linux x86_64") target="x86_64-unknown-linux-gnu" ;;
-	*) echo "Unsupported OS + CPU combination: $(uname -sm)"; exit 1 ;;
+	*)
+		echo "Unsupported OS + CPU combination: $(uname -sm)"
+		exit 1
+		;;
 	esac
 fi
 
@@ -34,16 +37,12 @@ rm "$exe.zip"
 
 echo
 echo "rgl was installed successfully to $exe"
-if command -v rgl >/dev/null; then
-	echo "Run 'rgl --help' to get started"
-else
+if ! command -v rgl >/dev/null; then
 	case $SHELL in
 	/bin/zsh) shell_profile=".zshrc" ;;
 	*) shell_profile=".bashrc" ;;
 	esac
-	echo "Manually add the directory to your \$HOME/$shell_profile (or similar)"
-	echo "  export PATH=\"\$HOME/.rgl/bin:\$PATH\""
-	echo
-	echo "Run 'rgl --help' to get started"
+	echo export PATH=\"\$HOME/.rgl/bin:\$PATH\" >>$HOME/$shell_profile
+	echo "You may need to restart the shell for the changes to take effect."
 fi
-echo
+echo "Run 'rgl --help' to get started"
