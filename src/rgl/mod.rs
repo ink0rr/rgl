@@ -1,4 +1,3 @@
-mod cache;
 mod config;
 mod context;
 mod core;
@@ -15,12 +14,12 @@ mod init;
 mod install;
 mod logger;
 mod manifest;
+mod minecraft;
 mod paths;
 mod profile;
 mod resolver;
 mod subprocess;
 
-pub use self::cache::*;
 pub use self::config::*;
 pub use self::context::*;
 pub use self::core::*;
@@ -37,6 +36,7 @@ pub use self::init::*;
 pub use self::install::*;
 pub use self::logger::*;
 pub use self::manifest::*;
+pub use self::minecraft::*;
 pub use self::paths::*;
 pub use self::profile::*;
 pub use self::resolver::*;
