@@ -1,4 +1,4 @@
-use super::{copy_dir, empty_dir, rimraf, symlink, Config, RunContext};
+use super::{copy_dir, empty_dir, move_dir, rimraf, symlink, Config, RunContext};
 use crate::{info, warn};
 use anyhow::{Context, Result};
 use std::{fs, io};
@@ -31,16 +31,16 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
 
     info!(
         "Moving files to target location: \n\
-            \tBP: {} \n\
-            \tRP: {}",
+        \tBP: {} \n\
+        \tRP: {}",
         bp.display(),
         rp.display()
     );
     let export: Result<()> = {
         rimraf(&bp)?;
         rimraf(&rp)?;
-        fs::rename(temp_bp, bp)?;
-        fs::rename(temp_rp, rp)?;
+        move_dir(temp_bp, bp)?;
+        move_dir(temp_rp, rp)?;
         Ok(())
     };
     export.context("Failed to export project")?;
