@@ -1,5 +1,5 @@
 use super::{find_mojang_dir, RunContext};
-use crate::info;
+use crate::{info, measure_time};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -51,11 +51,13 @@ impl Profile {
                         run_args.extend(args.iter().map(|x| x.to_owned()));
                     }
 
-                    info!("Running filter <b>{filter_name}</>");
-                    filter_def
-                        .to_filter(filter_name, None)?
-                        .run(temp, &run_args)
-                        .context(format!("Failed running filter <b>{filter_name}</>"))?;
+                    measure_time!(filter_name, {
+                        info!("Running filter <b>{filter_name}</>");
+                        filter_def
+                            .to_filter(filter_name, None)?
+                            .run(temp, &run_args)
+                            .context(format!("Failed running filter <b>{filter_name}</>"))?;
+                    });
                 }
                 FilterRunner::ProfileFilter { profile_name } => {
                     if profile_name == &context.root_profile {
