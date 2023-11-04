@@ -8,10 +8,10 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
 
     let context = RunContext::new(config, profile_name);
     let profile = context.get_profile(profile_name)?;
-    let temp = context.get_temp_dir(profile)?;
+    let temp = profile.get_temp_dir()?;
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
-    let (bp, rp) = context.get_export_paths(profile)?;
+    let (bp, rp) = profile.get_export_paths(&context.name)?;
 
     empty_dir(&temp)?;
     copy_dir(&context.behavior_pack, &temp_bp)?;

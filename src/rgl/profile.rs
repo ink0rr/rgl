@@ -1,9 +1,9 @@
-use super::RunContext;
+use super::{find_mojang_dir, RunContext};
 use crate::info;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
@@ -69,5 +69,39 @@ impl Profile {
             }
         }
         Ok(())
+    }
+
+    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf)> {
+        let target = self.export.target.as_str();
+        match target {
+            "development" => {
+                let mojang_dir = find_mojang_dir()?;
+                let bp = mojang_dir
+                    .join("development_behavior_packs")
+                    .join(format!("{}_bp", name));
+                let rp = mojang_dir
+                    .join("development_resource_packs")
+                    .join(format!("{}_rp", name));
+                Ok((bp, rp))
+            }
+            "local" => {
+                let build = PathBuf::from("build");
+                if !build.exists() {
+                    fs::create_dir(&build)?;
+                }
+                let bp = build.join("BP");
+                let rp = build.join("RP");
+                Ok((bp, rp))
+            }
+            _ => bail!("Export target <b>{target}</> is not valid"),
+        }
+    }
+
+    pub fn get_temp_dir(&self) -> Result<PathBuf> {
+        let target = self.export.target.as_str();
+        match target {
+            "development" => Ok(find_mojang_dir()?.join(".regolith")),
+            _ => Ok(PathBuf::from(".regolith").join("tmp")),
+        }
     }
 }
