@@ -6,11 +6,12 @@ fn copy_dir_impl(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     fs::create_dir_all(&to)?;
     for entry in fs::read_dir(from)? {
         let entry = entry?;
-        let filetype = entry.file_type()?;
-        if filetype.is_dir() {
-            copy_dir_impl(entry.path(), to.as_ref().join(entry.file_name()))?;
+        let path = entry.path();
+        let to = to.as_ref().join(entry.file_name());
+        if path.is_dir() {
+            copy_dir_impl(path, to)?;
         } else {
-            fs::copy(entry.path(), to.as_ref().join(entry.file_name()))?;
+            fs::copy(path, to)?;
         }
     }
     Ok(())
