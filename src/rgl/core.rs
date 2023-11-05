@@ -1,9 +1,10 @@
-use super::{copy_dir, empty_dir, move_dir, rimraf, symlink, Config, RunContext};
-use crate::{info, measure_time, warn};
+use super::{copy_dir, copy_dir_cached, empty_dir, move_dir, rimraf, symlink, Config, RunContext};
+use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
-use std::{fs, io};
+use std::{fs, io, time};
 
-pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
+pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()> {
+    let start_time = time::Instant::now();
     let config = Config::load()?;
 
     let context = RunContext::new(config, profile_name);
@@ -13,10 +14,17 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
     let temp_rp = temp.join("RP");
     let (bp, rp) = profile.get_export_paths(&context.name)?;
 
-    measure_time!("Setup", {
+    measure_time!("Setup temp dir", {
         empty_dir(&temp)?;
-        copy_dir(&context.behavior_pack, &temp_bp)?;
-        copy_dir(&context.resource_pack, &temp_rp)?;
+        if cached {
+            copy_dir_cached(&context.behavior_pack, &temp_bp, &bp)?;
+            copy_dir_cached(&context.resource_pack, &temp_rp, &rp)?;
+        } else {
+            rimraf(&bp)?;
+            rimraf(&rp)?;
+            copy_dir(&context.behavior_pack, &temp_bp)?;
+            copy_dir(&context.resource_pack, &temp_rp)?;
+        }
         if let Err(e) = symlink(&context.data_path, temp.join("data")) {
             match e.downcast_ref::<io::Error>().map(|e| e.kind()) {
                 Some(io::ErrorKind::NotFound) => {
@@ -42,22 +50,20 @@ pub fn run_or_watch(profile_name: &str, watch: bool) -> Result<()> {
             rp.display()
         );
         let export: Result<()> = {
-            rimraf(&bp)?;
-            rimraf(&rp)?;
             move_dir(temp_bp, bp)?;
-            move_dir(temp_rp, rp)?;
-            Ok(())
+            move_dir(temp_rp, rp)
         };
         export.context("Failed to export project")?;
     });
 
     info!("Successfully ran the <b>{profile_name}</> profile");
+    debug!("Total time: {}ms", start_time.elapsed().as_millis());
     if watch {
         info!("Watching for changes...");
         info!("Press Ctrl+C to stop watching");
         context.watch_project_files()?;
         warn!("Changes detected, restarting...");
-        return run_or_watch(profile_name, watch);
+        return run_or_watch(profile_name, watch, cached);
     }
     Ok(())
 }

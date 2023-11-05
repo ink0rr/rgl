@@ -22,7 +22,7 @@ fn run_command() -> Result<()> {
         .arg(
             Arg::new("debug")
                 .long("debug")
-                .alias("Print debug messages")
+                .help("Print debug messages")
                 .global(true)
                 .action(ArgAction::SetTrue),
         )
@@ -35,7 +35,7 @@ fn run_command() -> Result<()> {
         .subcommand(
             Command::new("install")
                 .alias("i")
-                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file.")
+                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
                 .arg(
                     Arg::new("force")
@@ -47,12 +47,26 @@ fn run_command() -> Result<()> {
         .subcommand(
             Command::new("run")
                 .about("Runs Regolith with specified profile")
-                .arg(Arg::new("profile").action(ArgAction::Set)),
+                .arg(Arg::new("profile").action(ArgAction::Set))
+                .arg(
+                    Arg::new("cached")
+                        .short('c')
+                        .long("cached")
+                        .help("Use previous run output as cache")
+                        .action(ArgAction::SetTrue),
+                ),
         )
         .subcommand(
             Command::new("watch")
                 .about("Watches project files and automatically runs Regolith when they change")
-                .arg(Arg::new("profile").action(ArgAction::Set)),
+                .arg(Arg::new("profile").action(ArgAction::Set))
+                .arg(
+                    Arg::new("cached")
+                        .short('c')
+                        .long("cached")
+                        .help("Use previous run output as cache")
+                        .action(ArgAction::SetTrue),
+                ),
         )
         .get_matches();
 
@@ -84,17 +98,17 @@ fn run_command() -> Result<()> {
                 Some(profile) => profile,
                 None => "default",
             };
-            measure_time!("Run", {
-                rgl::run_or_watch(profile, false)
-                    .context(format!("Error running <b>{profile}</> profile"))?;
-            });
+            let cached = matches.get_flag("cached");
+            rgl::run_or_watch(profile, false, cached)
+                .context(format!("Error running <b>{profile}</> profile"))?;
         }
         Some(("watch", matches)) => {
             let profile = match matches.get_one::<String>("profile") {
                 Some(profile) => profile,
                 None => "default",
             };
-            rgl::run_or_watch(profile, true)
+            let cached = matches.get_flag("cached");
+            rgl::run_or_watch(profile, true, cached)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
         _ => unreachable!(),

@@ -1,3 +1,4 @@
+mod cache;
 mod config;
 mod context;
 mod core;
@@ -19,6 +20,7 @@ mod profile;
 mod resolver;
 mod subprocess;
 
+pub use self::cache::*;
 pub use self::config::*;
 pub use self::context::*;
 pub use self::core::*;
