@@ -22,7 +22,7 @@ fn run_command() -> Result<()> {
         .arg(
             Arg::new("debug")
                 .long("debug")
-                .alias("Print debug messages")
+                .help("Print debug messages")
                 .global(true)
                 .action(ArgAction::SetTrue),
         )
@@ -35,7 +35,7 @@ fn run_command() -> Result<()> {
         .subcommand(
             Command::new("install")
                 .alias("i")
-                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file.")
+                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
                 .arg(
                     Arg::new("force")
