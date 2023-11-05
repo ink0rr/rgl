@@ -1,29 +1,35 @@
 use anyhow::{Context, Error, Result};
 use dunce::canonicalize;
+use rayon::prelude::*;
 use std::{fs, io, path::Path};
 
-fn copy_dir_impl(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
+fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(&to)?;
-    for entry in fs::read_dir(from)? {
-        let entry = entry?;
-        let path = entry.path();
-        let to = to.as_ref().join(entry.file_name());
-        if path.is_dir() {
-            copy_dir_impl(path, to)?;
-        } else {
-            fs::copy(path, to)?;
-        }
-    }
-    Ok(())
+    fs::read_dir(from)?
+        .par_bridge()
+        .map(|entry| -> Result<()> {
+            let entry = entry?;
+            let path = entry.path();
+            let to = to.join(entry.file_name());
+            if path.is_dir() {
+                copy_dir_impl(&path, &to)?;
+            } else {
+                fs::copy(path, to)?;
+            }
+            Ok(())
+        })
+        .collect()
 }
 
 pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    copy_dir_impl(&from, &to).context(format!(
+    let from = from.as_ref();
+    let to = to.as_ref();
+    copy_dir_impl(from, to).context(format!(
         "Failed to copy directory\n\
          <yellow> >></> From: {}\n\
          <yellow> >></> To: {}",
-        from.as_ref().display(),
-        to.as_ref().display(),
+        from.display(),
+        to.display(),
     ))
 }
 
