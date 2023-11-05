@@ -1,5 +1,5 @@
 use super::{copy_dir, move_dir};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::{
     fs,
@@ -17,7 +17,13 @@ pub fn copy_dir_cached(
     let cache = cache.as_ref();
     if cache.is_dir() {
         move_dir(cache, to)?;
-        copy_cached(from, to)?;
+        copy_cached(from, to).context(format!(
+            "Failed to copy directory\n\
+             <yellow> >></> From: {}\n\
+             <yellow> >></> To: {}",
+            from.display(),
+            to.display(),
+        ))?;
         cleanup(from, to)
     } else {
         copy_dir(from, to)
@@ -62,11 +68,15 @@ fn cleanup(from: &Path, to: &Path) -> Result<()> {
             let to = entry.path();
             let is_dir = to.is_dir();
             if !from.exists() {
-                match is_dir {
-                    true => fs::remove_dir_all(&to)?,
-                    false => fs::remove_file(&to)?,
+                let remove: std::io::Result<()> = match is_dir {
+                    true => fs::remove_dir_all(&to),
+                    false => fs::remove_file(&to),
                 };
-                return Ok(());
+                return remove.context(format!(
+                    "Failed to remove file/directory\n\
+                     <yellow> >></> Path: {}",
+                    to.display(),
+                ));
             }
             if is_dir {
                 cleanup(&from, &to)?;
