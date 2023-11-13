@@ -1,12 +1,12 @@
 use super::{
-    copy_dir, empty_dir, get_filter_cache_dir, read_json, resolve_url, rimraf, write_json,
-    FilterRemote, Subprocess,
+    copy_dir, empty_dir, get_filter_cache_dir, move_dir, read_json, resolve_url, rimraf,
+    write_json, FilterRemote, Subprocess,
 };
 use crate::{info, warn};
 use anyhow::{bail, Result};
 use semver::Version;
 use serde_json::Value;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct FilterInstaller {
     pub name: String,
@@ -54,7 +54,7 @@ impl FilterInstaller {
         Ok(Self { name, url, git_ref })
     }
 
-    pub fn install(&self, force: bool) -> Result<bool> {
+    pub fn install(&self, data_path: &Path, force: bool) -> Result<bool> {
         let filter_dir = PathBuf::from(".regolith")
             .join("cache")
             .join("filters")
@@ -92,6 +92,13 @@ impl FilterInstaller {
             .run_silent()?;
 
         copy_dir(cache_dir.join(&self.name), &filter_dir)?;
+
+        let filter_data = filter_dir.join("data");
+        let target_path = data_path.join(&self.name);
+        if filter_data.is_dir() && !target_path.exists() {
+            info!("Moving filter data to <b>{}</>", target_path.display());
+            move_dir(&filter_data, target_path)?;
+        }
 
         let filter_config_path = filter_dir.join("filter.json");
         let mut filter_config = read_json::<Value>(&filter_config_path)?;
