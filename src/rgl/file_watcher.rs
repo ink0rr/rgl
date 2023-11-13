@@ -1,4 +1,3 @@
-use crate::error;
 use anyhow::{Context, Result};
 use notify::{Error, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
@@ -10,13 +9,11 @@ pub struct FileWatcher {
 }
 
 impl FileWatcher {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let (tx, rx) = std::sync::mpsc::channel();
-        let debouncer = new_debouncer(Duration::from_millis(100), None, tx).unwrap_or_else(|err| {
-            error!("Failed to create file watcher: {}", err);
-            std::process::exit(1);
-        });
-        Self { rx, debouncer }
+        let debouncer = new_debouncer(Duration::from_millis(100), None, tx)
+            .context("Failed to create file watcher")?;
+        Ok(Self { rx, debouncer })
     }
 
     pub fn watch(&mut self, path: &str) -> Result<()> {

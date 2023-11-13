@@ -39,7 +39,7 @@ impl RunContext {
     }
 
     pub fn watch_project_files(&self) -> Result<()> {
-        let mut file_watcher = FileWatcher::new();
+        let mut file_watcher = FileWatcher::new()?;
 
         file_watcher.watch(&self.data_path)?;
         file_watcher.watch(&self.behavior_pack)?;
