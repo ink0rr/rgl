@@ -73,7 +73,12 @@ impl FilterInstaller {
         let https_url = format!("https://{}", self.url);
         let cache_dir = get_filter_cache_dir(&https_url)?;
 
-        if !cache_dir.exists() {
+        if cache_dir.exists() {
+            Subprocess::new("git")
+                .args(vec!["fetch", "--all"])
+                .current_dir(&cache_dir)
+                .run_silent()?;
+        } else {
             empty_dir(&cache_dir)?;
             Subprocess::new("git")
                 .args(vec!["clone", &https_url, "."])
