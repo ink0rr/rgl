@@ -1,10 +1,10 @@
-[[bin]]
-name = "rgl"
-
 [package]
 name = "rgl"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
+
+[[bin]]
+name = "rgl"
 
 [dependencies]
 anyhow = "1.0.75"
