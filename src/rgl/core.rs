@@ -44,16 +44,16 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     measure_time!("Export project", {
         info!(
             "Moving files to target location: \n\
-            \tBP: {} \n\
-            \tRP: {}",
+             \tBP: {} \n\
+             \tRP: {}",
             bp.display(),
             rp.display()
         );
-        let export: Result<()> = {
+        let export = || -> Result<()> {
             move_dir(temp_bp, bp)?;
             move_dir(temp_rp, rp)
         };
-        export.context("Failed to export project")?;
+        export().context("Failed to export project")?;
     });
 
     info!("Successfully ran the <b>{profile_name}</> profile");

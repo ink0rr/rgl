@@ -39,17 +39,18 @@ fn copy_cached(from: &Path, to: &Path) -> Result<()> {
             let entry = entry?;
             let from = entry.path();
             let to = to.join(entry.file_name());
-            if diff(&from, &to)? {
+            let from_is_dir = from.is_dir();
+            let to_is_dir = to.is_dir();
+            if !from_is_dir && !to_is_dir && diff(&from, &to)? {
                 return Ok(());
             }
-            let to_dir = to.is_dir();
-            if from.is_dir() {
-                if !to_dir {
+            if from_is_dir {
+                if !to_is_dir {
                     fs::remove_file(&to)?;
                 }
                 return copy_cached(&from, &to);
             }
-            if to_dir {
+            if to_is_dir {
                 fs::remove_dir_all(&to)?;
             }
             fs::copy(&from, &to)?;
@@ -87,7 +88,7 @@ fn cleanup(from: &Path, to: &Path) -> Result<()> {
 }
 
 /// Compare two file contents. Return true if they are identical.
-fn diff(a: impl AsRef<Path>, b: impl AsRef<Path>) -> Result<bool> {
+fn diff(a: &Path, b: &Path) -> Result<bool> {
     let a = fs::File::open(a);
     let b = fs::File::open(b);
     if a.is_err() || b.is_err() {

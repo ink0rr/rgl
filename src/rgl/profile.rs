@@ -1,9 +1,10 @@
 use super::{find_mojang_dir, RunContext};
 use crate::{info, measure_time};
 use anyhow::{bail, Context, Result};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
@@ -25,7 +26,7 @@ pub enum FilterRunner {
         #[serde(skip_serializing_if = "Option::is_none")]
         arguments: Option<Vec<String>>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        settings: Option<HashMap<String, Value>>,
+        settings: Option<IndexMap<String, Value>>,
     },
     ProfileFilter {
         #[serde(rename = "profile")]

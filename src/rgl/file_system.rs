@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{fs, io, path::Path};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
-    fs::create_dir_all(&to)?;
+    fs::create_dir_all(to)?;
     fs::read_dir(from)?
         .par_bridge()
         .map(|entry| -> Result<()> {
