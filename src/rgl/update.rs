@@ -126,8 +126,6 @@ pub fn update(force: bool) -> Result<()> {
         info!("Already up to date");
         return Ok(());
     }
-    update_timestamp()?;
-
     info!("Found latest version: {latest_version}");
     let url = format!(
         "{}/download/v{}/rgl-{}.zip",
@@ -139,8 +137,12 @@ pub fn update(force: bool) -> Result<()> {
     let temp = tempdir()?;
     let current_exe_path = std::env::current_exe()?;
     let output_exe_path = extract_pkg(bytes, temp.path())?;
-    replace_exe(&output_exe_path, &current_exe_path)?;
+    let permissions = current_exe_path.metadata()?.permissions();
+
+    replace_exe(&output_exe_path, &current_exe_path)
+        .context("Failed to replace current executable with the new one")?;
+    fs::set_permissions(current_exe_path, permissions)?;
 
     info!("Update successful");
-    Ok(())
+    update_timestamp()
 }
