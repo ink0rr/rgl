@@ -64,7 +64,6 @@ fn cli() -> Command {
                 .arg(Arg::new("profile").action(ArgAction::Set))
                 .arg(
                     Arg::new("cached")
-                        .short('c')
                         .long("cached")
                         .help("Use previous run output as cache")
                         .action(ArgAction::SetTrue),
@@ -75,10 +74,9 @@ fn cli() -> Command {
                 .about("Watch for file changes and restart automatically")
                 .arg(Arg::new("profile").action(ArgAction::Set))
                 .arg(
-                    Arg::new("cached")
-                        .short('c')
-                        .long("cached")
-                        .help("Use previous run output as cache")
+                    Arg::new("no-cache")
+                        .long("no-cache")
+                        .help("Do not use previous run output as cache")
                         .action(ArgAction::SetTrue),
                 ),
         )
@@ -130,8 +128,8 @@ fn run_command(matches: ArgMatches) -> Result<()> {
                 Some(profile) => profile,
                 None => "default",
             };
-            let cached = matches.get_flag("cached");
-            rgl::run_or_watch(profile, true, cached)
+            let no_cache = matches.get_flag("no-cache");
+            rgl::run_or_watch(profile, true, !no_cache)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
         _ => unreachable!(),
