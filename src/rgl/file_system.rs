@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use dunce::canonicalize;
 use rayon::prelude::*;
 use std::{fs, path::Path};
@@ -34,7 +34,7 @@ pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
 }
 
 fn empty_dir_impl(path: impl AsRef<Path>) -> Result<()> {
-    rimraf(&path)?;
+    rimraf(&path).map_err(|e| anyhow!("{}", e.root_cause()))?;
     fs::create_dir_all(&path)?;
     Ok(())
 }
