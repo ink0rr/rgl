@@ -38,7 +38,7 @@ fn cli() -> Command {
         .subcommand(
             Command::new("install")
                 .alias("i")
-                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file")
+                .about("Downloads and installs Regolith filters")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
                 .arg(
                     Arg::new("force")
@@ -72,7 +72,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("watch")
-                .about("Watches project files and automatically runs Regolith when they change")
+                .about("Watch for file changes and restart automatically")
                 .arg(Arg::new("profile").action(ArgAction::Set))
                 .arg(
                     Arg::new("cached")
