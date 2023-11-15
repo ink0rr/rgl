@@ -19,6 +19,7 @@ mod paths;
 mod profile;
 mod resolver;
 mod subprocess;
+mod update;
 
 pub use self::cache::*;
 pub use self::config::*;
@@ -41,3 +42,4 @@ pub use self::paths::*;
 pub use self::profile::*;
 pub use self::resolver::*;
 pub use self::subprocess::*;
+pub use self::update::*;
