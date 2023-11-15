@@ -96,7 +96,7 @@ pub fn check_for_update() -> Result<Option<String>> {
     let now = SystemTime::now();
     let elapsed_hour = now.duration_since(last_update_check)?.as_secs() / 60 / 60;
 
-    debug!("Last update check: {elapsed_hour} hours ago");
+    debug!("Last update check: {elapsed_hour} hour(s) ago");
     if elapsed_hour > UPDATE_CHECK_INTERVAL {
         debug!("Fetching latest version info");
         let version = get_latest_version()?;
