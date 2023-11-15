@@ -2,19 +2,22 @@ mod logger;
 mod rgl;
 
 use anyhow::{Context, Result};
-use clap::{crate_version, Arg, ArgAction, Command};
+use clap::{crate_version, Arg, ArgAction, ArgMatches, Command};
 use paris::log;
+use std::{env, thread};
 
 fn main() {
-    if let Err(e) = run_command() {
+    let matches = cli().get_matches();
+    logger::init(matches.get_flag("debug"));
+    if let Err(e) = run_command(matches) {
         error!("{}", e);
         e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
         std::process::exit(1);
     }
 }
 
-fn run_command() -> Result<()> {
-    let matches = Command::new("rgl")
+fn cli() -> Command {
+    Command::new("rgl")
         .bin_name("rgl")
         .about("Not Regolith")
         .author("ink0rr")
@@ -35,8 +38,19 @@ fn run_command() -> Result<()> {
         .subcommand(
             Command::new("install")
                 .alias("i")
-                .about("Downloads and installs Regolith filters from the internet, and adds them to the \"filterDefinitions\" list of the project's \"config.json\" file")
+                .about("Downloads and installs Regolith filters")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
+            Command::new("update")
+                .aliases(["up", "upgrade"])
+                .about("Checks for update and installs it if available")
                 .arg(
                     Arg::new("force")
                         .short('f')
@@ -50,7 +64,6 @@ fn run_command() -> Result<()> {
                 .arg(Arg::new("profile").action(ArgAction::Set))
                 .arg(
                     Arg::new("cached")
-                        .short('c')
                         .long("cached")
                         .help("Use previous run output as cache")
                         .action(ArgAction::SetTrue),
@@ -58,19 +71,23 @@ fn run_command() -> Result<()> {
         )
         .subcommand(
             Command::new("watch")
-                .about("Watches project files and automatically runs Regolith when they change")
+                .about("Watch for file changes and restart automatically")
                 .arg(Arg::new("profile").action(ArgAction::Set))
                 .arg(
-                    Arg::new("cached")
-                        .short('c')
-                        .long("cached")
-                        .help("Use previous run output as cache")
+                    Arg::new("no-cache")
+                        .long("no-cache")
+                        .help("Do not use previous run output as cache")
                         .action(ArgAction::SetTrue),
                 ),
         )
-        .get_matches();
+}
 
-    logger::init(matches.get_flag("debug"));
+fn run_command(matches: ArgMatches) -> Result<()> {
+    let handle = match matches.subcommand_name() {
+        // Trigger update check when running these commands
+        Some("init" | "install" | "run") => Some(thread::spawn(rgl::check_for_update)),
+        _ => None,
+    };
     match matches.subcommand() {
         Some(("init", _)) => {
             rgl::init().context("Error initializing project")?;
@@ -93,6 +110,10 @@ fn run_command() -> Result<()> {
                 }
             };
         }
+        Some(("update", matches)) => {
+            let force = matches.get_flag("force");
+            rgl::update(force).context("Error updating rgl")?;
+        }
         Some(("run", matches)) => {
             let profile = match matches.get_one::<String>("profile") {
                 Some(profile) => profile,
@@ -107,11 +128,24 @@ fn run_command() -> Result<()> {
                 Some(profile) => profile,
                 None => "default",
             };
-            let cached = matches.get_flag("cached");
-            rgl::run_or_watch(profile, true, cached)
+            let no_cache = matches.get_flag("no-cache");
+            rgl::run_or_watch(profile, true, !no_cache)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
         _ => unreachable!(),
+    }
+    if let Some(handle) = handle {
+        match handle.join().unwrap() {
+            Ok(version) => {
+                if let Some(version) = version {
+                    rgl::prompt_update(version)?
+                }
+            }
+            Err(e) => {
+                warn!("Update check failed");
+                e.chain().for_each(|e| log!("<yellow>[?]</> {e}"));
+            }
+        }
     }
     Ok(())
 }

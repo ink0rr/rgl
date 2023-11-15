@@ -1,4 +1,4 @@
-use super::{copy_dir, move_dir};
+use super::{copy_dir, move_dir, rimraf};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::{
@@ -39,21 +39,18 @@ fn copy_cached(from: &Path, to: &Path) -> Result<()> {
             let entry = entry?;
             let from = entry.path();
             let to = to.join(entry.file_name());
-            let from_is_dir = from.is_dir();
-            let to_is_dir = to.is_dir();
-            if !from_is_dir && !to_is_dir && diff(&from, &to)? {
-                return Ok(());
-            }
-            if from_is_dir {
-                if !to_is_dir {
+            if from.is_dir() {
+                if to.is_file() {
                     fs::remove_file(&to)?;
                 }
                 return copy_cached(&from, &to);
             }
-            if to_is_dir {
-                fs::remove_dir_all(&to)?;
+            if to.is_dir() {
+                rimraf(&to)?;
             }
-            fs::copy(&from, &to)?;
+            if !diff(&from, &to)? {
+                fs::copy(from, to)?;
+            }
             Ok(())
         })
         .collect()
@@ -69,15 +66,14 @@ fn cleanup(from: &Path, to: &Path) -> Result<()> {
             let to = entry.path();
             let is_dir = to.is_dir();
             if !from.exists() {
-                let remove: std::io::Result<()> = match is_dir {
-                    true => fs::remove_dir_all(&to),
-                    false => fs::remove_file(&to),
+                return match is_dir {
+                    true => rimraf(&to),
+                    false => fs::remove_file(&to).context(format!(
+                        "Failed to remove file\n\
+                         <yellow> >></> Path: {}",
+                        to.display(),
+                    )),
                 };
-                return remove.context(format!(
-                    "Failed to remove file/directory\n\
-                     <yellow> >></> Path: {}",
-                    to.display(),
-                ));
             }
             if is_dir {
                 cleanup(&from, &to)?;
