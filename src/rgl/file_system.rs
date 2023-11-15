@@ -1,7 +1,7 @@
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Result};
 use dunce::canonicalize;
 use rayon::prelude::*;
-use std::{fs, io, path::Path};
+use std::{fs, path::Path};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
@@ -76,15 +76,32 @@ where
     ))
 }
 
+fn rimraf_impl(path: &Path) -> Result<()> {
+    let _ = fs::read_dir(path)?
+        .par_bridge()
+        .map(|entry| -> Result<()> {
+            let entry = entry?;
+            let path = entry.path();
+            if entry.metadata()?.is_dir() {
+                rimraf_impl(&path)?;
+            } else {
+                fs::remove_file(path)?;
+            }
+            Ok(())
+        })
+        .collect::<Result<_>>()?;
+    fs::remove_dir(path)?;
+    Ok(())
+}
+
 pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
-    if let Err(e) = fs::remove_dir_all(&path) {
-        if e.kind() != io::ErrorKind::NotFound {
-            let e = Error::new(e);
-            return Err(e.context(format!(
-                "Failed to remove directory {}",
-                path.as_ref().display()
-            )));
-        }
+    let path = path.as_ref();
+    if path.is_dir() {
+        rimraf_impl(path).context(format!(
+            "Failed to remove directory\n\
+             <yellow> >></> Path: {}",
+            path.display()
+        ))?;
     }
     Ok(())
 }
