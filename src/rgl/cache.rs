@@ -39,21 +39,18 @@ fn copy_cached(from: &Path, to: &Path) -> Result<()> {
             let entry = entry?;
             let from = entry.path();
             let to = to.join(entry.file_name());
-            let from_is_dir = from.is_dir();
-            let to_is_dir = to.is_dir();
-            if !from_is_dir && !to_is_dir && diff(&from, &to)? {
-                return Ok(());
-            }
-            if from_is_dir {
-                if !to_is_dir {
+            if from.is_dir() {
+                if to.is_file() {
                     fs::remove_file(&to)?;
                 }
                 return copy_cached(&from, &to);
             }
-            if to_is_dir {
+            if to.is_dir() {
                 rimraf(&to)?;
             }
-            fs::copy(&from, &to)?;
+            if !diff(&from, &to)? {
+                fs::copy(from, to)?;
+            }
             Ok(())
         })
         .collect()
