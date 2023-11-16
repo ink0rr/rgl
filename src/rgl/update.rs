@@ -78,7 +78,7 @@ fn extract_pkg(bytes: Vec<u8>, path: &Path) -> Result<PathBuf> {
 }
 
 // Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
-fn replace_exe(from: &Path, to: &Path) -> Result<(), std::io::Error> {
+fn replace_exe(from: &Path, to: &Path) -> Result<(), io::Error> {
     if cfg!(windows) {
         // On windows you cannot replace the currently running executable.
         // so first we rename it to rgl.old.exe
@@ -138,7 +138,7 @@ pub fn update(force: bool) -> Result<()> {
 
     info!("Updating rgl to {latest_version}");
     let temp = tempdir()?;
-    let current_exe_path = std::env::current_exe()?;
+    let current_exe_path = env::current_exe()?;
     let output_exe_path = extract_pkg(bytes, temp.path())?;
     let permissions = current_exe_path.metadata()?.permissions();
 

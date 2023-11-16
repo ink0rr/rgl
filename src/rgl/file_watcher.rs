@@ -1,16 +1,16 @@
 use anyhow::{Context, Result};
 use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
-use std::{path::Path, sync::mpsc::Receiver, time::Duration};
+use std::{path::Path, sync::mpsc, time::Duration};
 
 pub struct FileWatcher {
-    rx: Receiver<notify::Result<Vec<DebouncedEvent>>>,
+    rx: mpsc::Receiver<notify::Result<Vec<DebouncedEvent>>>,
     debouncer: Debouncer<RecommendedWatcher>,
 }
 
 impl FileWatcher {
     pub fn new() -> Result<Self> {
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = mpsc::channel();
         let debouncer = new_debouncer(Duration::from_millis(100), tx)
             .context("Failed to create file watcher")?;
         Ok(Self { rx, debouncer })
