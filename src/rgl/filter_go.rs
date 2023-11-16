@@ -1,17 +1,19 @@
 use super::{Filter, FilterArgs, Subprocess};
 use anyhow::Result;
-use dunce::canonicalize;
-use std::path::Path;
+use std::{env, path::Path};
 
 pub struct FilterGo(pub FilterArgs);
 
 impl Filter for FilterGo {
     fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
-        let temp = canonicalize(temp)?;
-        let output = match cfg!(windows) {
-            true => temp.join(".gofilter.exe"),
-            false => temp.join(".gofilter"),
-        };
+        let mut output = env::current_dir()?
+            .join(".regolith")
+            .join("cache")
+            .join("go")
+            .join(&self.0.name);
+        if cfg!(windows) {
+            output.set_extension("exe");
+        }
 
         Subprocess::new("go")
             .args(vec!["build", "-o"])
