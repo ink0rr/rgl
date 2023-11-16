@@ -1,36 +1,27 @@
-use super::{Filter, Subprocess};
+use super::{Filter, FilterArgs, Subprocess};
 use anyhow::Result;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use which::which;
 
-pub struct FilterPython {
-    pub filter_dir: PathBuf,
-    pub script: PathBuf,
-}
-
-impl FilterPython {
-    pub fn new(filter_dir: PathBuf, script: PathBuf) -> Self {
-        Self { filter_dir, script }
-    }
-}
+pub struct FilterPython(pub FilterArgs);
 
 impl Filter for FilterPython {
     fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
-        let venv_dir = self.filter_dir.join(".venv");
+        let venv_dir = self.0.filter_dir.join(".venv");
         if venv_dir.exists() {
-            let py = match cfg!(target_os = "windows") {
+            let py = match cfg!(windows) {
                 true => venv_dir.join("Scripts").join("python.exe"),
                 false => venv_dir.join("bin").join("python"),
             };
             Subprocess::new(py)
-                .arg(&self.script)
+                .arg(&self.0.script)
                 .args(run_args)
                 .current_dir(temp)
                 .run()?;
         } else {
             let py = get_python();
             Subprocess::new(py)
-                .arg(&self.script)
+                .arg(&self.0.script)
                 .args(run_args)
                 .current_dir(temp)
                 .run()?;
@@ -39,22 +30,22 @@ impl Filter for FilterPython {
     }
 
     fn install_dependencies(&self) -> Result<()> {
-        let requirements = self.filter_dir.join("requirements.txt");
+        let requirements = self.0.filter_dir.join("requirements.txt");
         if requirements.exists() {
             let py = get_python();
             Subprocess::new(py)
                 .args(vec!["-m", "venv", ".venv"])
-                .current_dir(&self.filter_dir)
+                .current_dir(&self.0.filter_dir)
                 .run_silent()?;
 
-            let venv_dir = self.filter_dir.join(".venv");
-            let pip = match cfg!(target_os = "windows") {
+            let venv_dir = self.0.filter_dir.join(".venv");
+            let pip = match cfg!(windows) {
                 true => venv_dir.join("Scripts").join("pip.exe"),
                 false => venv_dir.join("bin").join("pip"),
             };
             Subprocess::new(pip)
                 .args(vec!["install", "-r", "requirements.txt"])
-                .current_dir(&self.filter_dir)
+                .current_dir(&self.0.filter_dir)
                 .run_silent()?;
         }
         Ok(())

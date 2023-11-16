@@ -1,10 +1,6 @@
 use anyhow::{Context, Result};
 use dunce::canonicalize;
-use std::{
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    process,
-};
+use std::{ffi::OsStr, path::Path, process};
 
 pub struct Subprocess {
     command: process::Command,
@@ -37,15 +33,12 @@ impl Subprocess {
         self
     }
 
-    pub fn current_dir<P>(&mut self, dir: P) -> &mut Self
-    where
-        P: AsRef<Path>,
-    {
+    pub fn current_dir(&mut self, dir: impl AsRef<Path>) -> &mut Self {
         self.command.current_dir(dir);
         self
     }
 
-    pub fn setup_env(&mut self, filter_dir: &PathBuf) -> Result<&mut Self> {
+    pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> Result<&mut Self> {
         let root_dir = canonicalize(".")?;
         let filter_dir = canonicalize(filter_dir)?;
         self.command

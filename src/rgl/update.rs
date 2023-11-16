@@ -37,9 +37,10 @@ fn update_timestamp() -> Result<()> {
 }
 
 fn get_latest_version() -> Result<String> {
-    let version = reqwest::blocking::get(CARGO_URL)
+    let version = ureq::get(CARGO_URL)
+        .call()
         .context("Failed to fetch Cargo.toml")?
-        .text()
+        .into_string()
         .context("Failed to parse Cargo.toml")?
         .lines()
         .find(|line| line.starts_with("version = \""))
@@ -54,10 +55,12 @@ fn download_pkg(url: &str) -> Result<Vec<u8>> {
     let mut logger = paris::Logger::new();
     logger.loading(format!("Downloading {url}"));
 
-    let res = reqwest::blocking::get(url)?;
+    let mut reader = ureq::get(url).call()?.into_reader();
+    let mut bytes = Vec::new();
+    reader.read_to_end(&mut bytes)?;
 
     logger.log(format!("<green>[SUCCESS]</> Downloaded {url}"));
-    Ok(res.bytes()?.into())
+    Ok(bytes)
 }
 
 fn extract_pkg(bytes: Vec<u8>, path: &Path) -> Result<PathBuf> {
@@ -75,7 +78,7 @@ fn extract_pkg(bytes: Vec<u8>, path: &Path) -> Result<PathBuf> {
 }
 
 // Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
-fn replace_exe(from: &Path, to: &Path) -> Result<(), std::io::Error> {
+fn replace_exe(from: &Path, to: &Path) -> Result<(), io::Error> {
     if cfg!(windows) {
         // On windows you cannot replace the currently running executable.
         // so first we rename it to rgl.old.exe
@@ -135,7 +138,7 @@ pub fn update(force: bool) -> Result<()> {
 
     info!("Updating rgl to {latest_version}");
     let temp = tempdir()?;
-    let current_exe_path = std::env::current_exe()?;
+    let current_exe_path = env::current_exe()?;
     let output_exe_path = extract_pkg(bytes, temp.path())?;
     let permissions = current_exe_path.metadata()?.permissions();
 
