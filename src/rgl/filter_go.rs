@@ -1,23 +1,14 @@
-use super::{Filter, Subprocess};
+use super::{Filter, FilterArgs, Subprocess};
 use anyhow::Result;
 use dunce::canonicalize;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-pub struct FilterGo {
-    pub filter_dir: PathBuf,
-    pub script: PathBuf,
-}
-
-impl FilterGo {
-    pub fn new(filter_dir: PathBuf, script: PathBuf) -> Self {
-        Self { filter_dir, script }
-    }
-}
+pub struct FilterGo(pub FilterArgs);
 
 impl Filter for FilterGo {
     fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
         let temp = canonicalize(temp)?;
-        let output = match cfg!(target_os = "windows") {
+        let output = match cfg!(windows) {
             true => temp.join(".gofilter.exe"),
             false => temp.join(".gofilter"),
         };
@@ -25,14 +16,14 @@ impl Filter for FilterGo {
         Subprocess::new("go")
             .args(vec!["build", "-o"])
             .arg(&output)
-            .arg(&self.script)
-            .current_dir(&self.filter_dir)
+            .arg(&self.0.script)
+            .current_dir(&self.0.filter_dir)
             .run()?;
 
         Subprocess::new(output)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&self.filter_dir)?
+            .setup_env(&self.0.filter_dir)?
             .run()?;
         Ok(())
     }
@@ -40,7 +31,7 @@ impl Filter for FilterGo {
     fn install_dependencies(&self) -> Result<()> {
         Subprocess::new("go")
             .args(vec!["mod", "download"])
-            .current_dir(&self.filter_dir)
+            .current_dir(&self.0.filter_dir)
             .run()?;
         Ok(())
     }
