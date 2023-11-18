@@ -7,31 +7,35 @@ use serde_json::json;
 use std::env;
 use uuid::Uuid;
 
-pub fn init() -> Result<()> {
+pub fn init(force: bool) -> Result<()> {
     let cwd = env::current_dir()?;
-
-    if cwd
+    let cwd_entries = cwd
         .read_dir()
         .context("Failed to read current directory")?
         .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let file_name = entry.file_name().into_string().ok()?;
-            (!file_name.starts_with('.')).then_some(())
+            let file_name = entry.ok()?.file_name();
+            let is_hidden = file_name.to_str()?.starts_with('.');
+            (!is_hidden).then_some(())
         })
-        .count()
-        > 0
-    {
+        .count();
+
+    if !force && cwd_entries > 0 {
         bail!("Current directory is not empty")
     }
 
+    let dirname = cwd
+        .file_name()
+        .and_then(|s| s.to_str())
+        .context("Failed to get current directory name")?;
+
     let name = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Project name")
-        .default(cwd.file_name().unwrap().to_string_lossy().to_string())
+        .default(dirname.to_owned())
         .interact_text()?;
 
     let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Minimum engine version")
-        .default("1.20.30".to_owned())
+        .default("1.20.40".to_owned())
         .validate_with(|input: &String| -> Result<(), String> {
             if Version::parse(input).is_ok() {
                 Ok(())

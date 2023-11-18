@@ -33,7 +33,13 @@ fn cli() -> Command {
         .subcommand_required(true)
         .subcommand(
             Command::new("init")
-                .about("Initializes a new Regolith project in the current directory"),
+                .about("Initializes a new Regolith project in the current directory")
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
         )
         .subcommand(
             Command::new("install")
@@ -89,8 +95,9 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         _ => None,
     };
     match matches.subcommand() {
-        Some(("init", _)) => {
-            rgl::init().context("Error initializing project")?;
+        Some(("init", matches)) => {
+            let force = matches.get_flag("force");
+            rgl::init(force).context("Error initializing project")?;
         }
         Some(("install", matches)) => {
             let filters = matches
