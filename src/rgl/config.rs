@@ -1,7 +1,8 @@
-use super::{read_json, write_json, Export, FilterDefinition, FilterRunner, Profile};
+use super::{read_json, write_json, Export, FilterRunner, Profile};
 use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize)]
@@ -25,7 +26,7 @@ pub struct Packs {
 #[serde(rename_all = "camelCase")]
 pub struct Regolith {
     pub data_path: String,
-    pub filter_definitions: BTreeMap<String, FilterDefinition>,
+    pub filter_definitions: BTreeMap<String, Value>,
     pub profiles: IndexMap<String, Profile>,
 }
 
@@ -62,7 +63,7 @@ impl Config {
             },
             regolith: Regolith {
                 data_path: "./data".to_owned(),
-                filter_definitions: BTreeMap::<String, FilterDefinition>::new(),
+                filter_definitions: BTreeMap::<String, Value>::new(),
                 profiles,
             },
         }

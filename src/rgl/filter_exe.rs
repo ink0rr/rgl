@@ -4,16 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterDeno {
-    pub script: String,
+pub struct FilterExe {
+    pub exe: String,
 }
 
-impl Filter for FilterDeno {
+impl Filter for FilterExe {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.dir.join(&self.script);
-        Subprocess::new("deno")
-            .args(vec!["run", "-A"])
-            .arg(script)
+        let exe = context.dir.join(&self.exe);
+        Subprocess::new(exe)
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.dir)?

@@ -1,5 +1,5 @@
 use super::{Config, FileWatcher, FilterDefinition, Profile};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
 
@@ -14,16 +14,27 @@ pub struct RunContext {
 }
 
 impl RunContext {
-    pub fn new(config: Config, profile: &str) -> Self {
-        Self {
+    pub fn new(config: Config, profile: &str) -> Result<Self> {
+        let mut filter_definitions = BTreeMap::<String, FilterDefinition>::new();
+        for (name, value) in config.regolith.filter_definitions {
+            let filter = FilterDefinition::from_value(value).map_err(|e| {
+                anyhow!(
+                    "Invalid filter definition for <b>{name}</>\n\
+                     <yellow> >></> {e}"
+                )
+            })?;
+            filter_definitions.insert(name, filter);
+        }
+        let context = Self {
             name: config.name,
             behavior_pack: config.packs.behavior_pack,
             resource_pack: config.packs.resource_pack,
             data_path: config.regolith.data_path,
-            filter_definitions: config.regolith.filter_definitions,
+            filter_definitions,
             profiles: config.regolith.profiles,
             root_profile: profile.to_string(),
-        }
+        };
+        Ok(context)
     }
 
     pub fn get_profile(&self, profile_name: &str) -> Result<&Profile> {
@@ -32,9 +43,9 @@ impl RunContext {
             .context(format!("Profile <b>{profile_name}</> not found"))
     }
 
-    pub fn get_filter_def(&self, filter_name: &str) -> Result<&FilterDefinition> {
+    pub fn get_filter(&self, filter_name: &str) -> Result<&FilterDefinition> {
         self.filter_definitions.get(filter_name).context(format!(
-            "Filter <b>{filter_name}</> not defined in filter_definitions"
+            "Filter <b>{filter_name}</> is not defined in filter_definitions"
         ))
     }
 
