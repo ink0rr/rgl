@@ -19,7 +19,7 @@ fn main() {
 fn cli() -> Command {
     Command::new("rgl")
         .bin_name("rgl")
-        .about("Not Regolith")
+        .about("Fast and minimal implementation of Regolith.")
         .author("ink0rr")
         .version(crate_version!())
         .arg(
