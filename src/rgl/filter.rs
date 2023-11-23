@@ -1,4 +1,4 @@
-use super::{FilterDeno, FilterGo, FilterNode, FilterPython, RemoteFilter};
+use super::{FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython, RemoteFilter};
 use anyhow::{anyhow, Result};
 use dunce::canonicalize;
 use enum_dispatch::enum_dispatch;
@@ -42,6 +42,7 @@ impl FilterDefinition {
 #[enum_dispatch]
 pub enum LocalFilter {
     Deno(FilterDeno),
+    Exe(FilterExe),
     Go(FilterGo),
     Nodejs(FilterNode),
     Python(FilterPython),
