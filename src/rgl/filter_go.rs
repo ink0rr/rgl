@@ -1,42 +1,47 @@
-use super::{Filter, FilterArgs, Subprocess};
+use super::{Filter, FilterContext, Subprocess};
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{env, path::Path};
 use walkdir::{DirEntry, WalkDir};
 
-pub struct FilterGo(pub FilterArgs);
+#[derive(Serialize, Deserialize)]
+pub struct FilterGo {
+    pub script: String,
+}
 
 impl Filter for FilterGo {
-    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+        let script = context.dir.join(&self.script);
         let mut output = env::current_dir()?
             .join(".regolith")
             .join("cache")
             .join("go")
-            .join(&self.0.name);
+            .join(&context.name);
         if cfg!(windows) {
             output.set_extension("exe");
         }
 
-        if should_rebuild(&self.0.filter_dir, &output)? {
+        if should_rebuild(&context.dir, &output)? {
             Subprocess::new("go")
                 .args(vec!["build", "-o"])
                 .arg(&output)
-                .arg(&self.0.script)
-                .current_dir(&self.0.filter_dir)
+                .arg(script)
+                .current_dir(&context.dir)
                 .run()?;
         }
 
         Subprocess::new(output)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&self.0.filter_dir)?
+            .setup_env(&context.dir)?
             .run()?;
         Ok(())
     }
 
-    fn install_dependencies(&self) -> Result<()> {
+    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         Subprocess::new("go")
             .args(vec!["mod", "download"])
-            .current_dir(&self.0.filter_dir)
+            .current_dir(&context.dir)
             .run()?;
         Ok(())
     }

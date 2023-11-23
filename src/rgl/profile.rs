@@ -1,4 +1,4 @@
-use super::{find_mojang_dir, RunContext};
+use super::{find_mojang_dir, Filter, FilterContext, RunContext};
 use crate::{info, measure_time};
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
@@ -43,10 +43,10 @@ impl Profile {
                     arguments,
                     settings,
                 } => {
-                    let filter_def = context.get_filter_def(filter_name)?;
+                    let filter = context.get_filter(filter_name)?;
                     let mut run_args: Vec<String> = vec![];
                     if let Some(settings) = settings {
-                        run_args = vec![serde_json::to_string(settings).unwrap()]
+                        run_args = vec![serde_json::to_string(settings)?]
                     }
                     if let Some(args) = arguments {
                         run_args.extend(args.iter().map(|x| x.to_owned()));
@@ -54,9 +54,9 @@ impl Profile {
 
                     measure_time!(filter_name, {
                         info!("Running filter <b>{filter_name}</>");
-                        filter_def
-                            .to_filter(filter_name, None)?
-                            .run(temp, &run_args)
+                        let context = FilterContext::new(filter_name, filter.is_remote())?;
+                        filter
+                            .run(&context, temp, &run_args)
                             .context(format!("Failed running filter <b>{filter_name}</>"))?;
                     });
                 }

@@ -1,59 +1,65 @@
-use super::{read_json, Filter, FilterDefinition};
+use super::{read_json, ref_to_version, write_json, Filter, FilterContext, FilterDefinition};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterRemote {
-    #[serde(skip_serializing, skip_deserializing)]
-    name: String,
-    #[serde(skip_serializing, skip_deserializing)]
-    filter_dir: PathBuf,
+pub struct RemoteFilter {
+    pub url: String,
+    pub version: String,
+}
+
+impl RemoteFilter {
+    pub fn cache_dir(name: &str) -> PathBuf {
+        PathBuf::from(".regolith")
+            .join("cache")
+            .join("filters")
+            .join(name)
+    }
+}
+
+impl Filter for RemoteFilter {
+    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+        let config = RemoteFilterConfig::load(&context.name)?;
+        let is_latest = matches!(self.version.as_str(), "HEAD" | "latest");
+        if !is_latest && self.version != config.version {
+            bail!(
+                "Filter version mismatch\n\
+                 <yellow> >></> Installed version: {}\n\
+                 <yellow> >></> Required version: {}",
+                config.version,
+                self.version
+            );
+        }
+        for filter in config.filters {
+            filter.run(context, temp, run_args)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RemoteFilterConfig {
     pub filters: Vec<FilterDefinition>,
     pub version: String,
 }
 
-impl FilterRemote {
-    pub fn new(name: &str) -> Result<Self> {
-        let filter_dir = PathBuf::from(".regolith")
-            .join("cache")
-            .join("filters")
-            .join(name);
-        if !filter_dir.is_dir() {
-            bail!("Filter <b>{name}</> not installed, run \"rgl install\" to install it")
-        }
+impl RemoteFilterConfig {
+    pub fn new(name: &str, git_ref: &str) -> Result<Self> {
+        let config_path = RemoteFilter::cache_dir(name).join("filter.json");
+        let mut config = read_json::<Value>(&config_path)?;
+        config["version"] = json!(ref_to_version(git_ref));
+        write_json(config_path, &config)?;
 
-        let mut filter_config = read_json::<FilterRemote>(filter_dir.join("filter.json"))
-            .context(format!("Failed to load config for filter <b>{name}</>"))?;
-        for entry in filter_config.filters.iter_mut() {
-            match entry {
-                FilterDefinition::Local(def) => {
-                    def.script = filter_dir.join(&def.script).display().to_string();
-                }
-                FilterDefinition::Remote(_) => bail!(
-                    "Found nested remote filter definition in filter <b>{name}</>\n\
-                     <yellow> >></> This feature is not supported"
-                ),
-            }
-        }
-        filter_config.name = name.to_owned();
-        filter_config.filter_dir = filter_dir;
-        Ok(filter_config)
+        let config = serde_json::from_value(config)?;
+        Ok(config)
     }
-}
 
-impl Filter for FilterRemote {
-    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
-        for entry in self.filters.iter() {
-            match entry {
-                FilterDefinition::Local(_) => {
-                    entry
-                        .to_filter(&self.name, Some(self.filter_dir.to_owned()))?
-                        .run(temp, run_args)?;
-                }
-                _ => unreachable!(),
-            }
-        }
-        Ok(())
+    pub fn load(name: &str) -> Result<Self> {
+        let filter_dir = RemoteFilter::cache_dir(name);
+        let config = read_json::<RemoteFilterConfig>(filter_dir.join("filter.json"))
+            .context(format!("Failed to load config for filter <b>{name}</>"))?;
+        Ok(config)
     }
 }

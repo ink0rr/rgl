@@ -1,17 +1,22 @@
-use super::{Filter, FilterArgs, Subprocess};
+use super::{Filter, FilterContext, Subprocess};
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-pub struct FilterDeno(pub FilterArgs);
+#[derive(Serialize, Deserialize)]
+pub struct FilterDeno {
+    pub script: String,
+}
 
 impl Filter for FilterDeno {
-    fn run(&self, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+        let script = context.dir.join(&self.script);
         Subprocess::new("deno")
             .args(vec!["run", "-A"])
-            .arg(&self.0.script)
+            .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&self.0.filter_dir)?
+            .setup_env(&context.dir)?
             .run()?;
         Ok(())
     }

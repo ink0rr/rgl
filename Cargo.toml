@@ -11,6 +11,7 @@ anyhow = "1.0.75"
 clap = { version = "4.4.8", features = ["cargo"] }
 dialoguer = "0.11.0"
 dunce = "1.0.4"
+enum_dispatch = "0.3.12"
 indexmap = { version = "2.1.0", features = ["serde"] }
 md5 = "0.7.0"
 notify = "6.1.1"

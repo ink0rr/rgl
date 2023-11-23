@@ -7,7 +7,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let start_time = time::Instant::now();
     let config = Config::load()?;
 
-    let context = RunContext::new(config, profile_name);
+    let context = RunContext::new(config, profile_name)?;
     let profile = context.get_profile(profile_name)?;
     let temp = profile.get_temp_dir()?;
     let temp_bp = temp.join("BP");

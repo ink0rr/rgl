@@ -1,12 +1,11 @@
 use super::{
-    copy_dir, empty_dir, get_filter_cache_dir, move_dir, read_json, resolve_url, rimraf,
-    write_json, FilterRemote, Subprocess,
+    copy_dir, empty_dir, get_filter_cache_dir, move_dir, resolve_url, rimraf, Filter,
+    FilterContext, RemoteFilter, RemoteFilterConfig, Subprocess,
 };
 use crate::{info, warn};
 use anyhow::{bail, Result};
 use semver::Version;
-use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub struct FilterInstaller {
     pub name: String,
@@ -55,16 +54,10 @@ impl FilterInstaller {
     }
 
     pub fn install(&self, data_path: &Path, force: bool) -> Result<bool> {
-        let filter_dir = PathBuf::from(".regolith")
-            .join("cache")
-            .join("filters")
-            .join(&self.name);
-
+        let name = &self.name;
+        let filter_dir = RemoteFilter::cache_dir(name);
         if filter_dir.exists() && !force {
-            warn!(
-                "Filter {} already installed, use --force to overwrite",
-                self.name
-            );
+            warn!("Filter {name} already installed, use --force to overwrite");
             return Ok(false);
         } else {
             rimraf(&filter_dir)?;
@@ -91,25 +84,20 @@ impl FilterInstaller {
             .current_dir(&cache_dir)
             .run_silent()?;
 
-        copy_dir(cache_dir.join(&self.name), &filter_dir)?;
+        copy_dir(cache_dir.join(name), &filter_dir)?;
 
         let filter_data = filter_dir.join("data");
-        let target_path = data_path.join(&self.name);
+        let target_path = data_path.join(name);
         if filter_data.is_dir() && !target_path.exists() {
             info!("Moving filter data to <b>{}</>", target_path.display());
-            move_dir(&filter_data, target_path)?;
+            move_dir(filter_data, target_path)?;
         }
 
-        let filter_config_path = filter_dir.join("filter.json");
-        let mut filter_config = read_json::<Value>(&filter_config_path)?;
-        filter_config["version"] = ref_to_version(&self.git_ref).into();
-        write_json(&filter_config_path, &filter_config)?;
-
-        let filter_config = FilterRemote::new(&self.name)?;
-        for entry in filter_config.filters {
-            let filter = entry.to_filter(&self.name, Some(filter_dir.to_owned()))?;
-            info!("Installing dependencies for <b>{}</>...", self.name);
-            filter.install_dependencies()?;
+        let config = RemoteFilterConfig::new(name, &self.git_ref)?;
+        let context = FilterContext::new(name, true)?;
+        for filter in config.filters {
+            info!("Installing dependencies for <b>{name}</>...");
+            filter.install_dependencies(&context)?;
         }
         Ok(true)
     }
@@ -125,7 +113,7 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
         let output = Subprocess::new("git")
             .args(["ls-remote", "--tags", &format!("https://{url}")])
             .run_silent()?;
-        let output = String::from_utf8(output.stdout).unwrap();
+        let output = String::from_utf8(output.stdout)?;
 
         let tag = output
             .trim()
@@ -145,7 +133,7 @@ fn get_git_ref(name: &str, url: &str, version: Option<String>) -> Result<String>
         let output = Subprocess::new("git")
             .args(["ls-remote", "--symref", &format!("https://{url}"), "HEAD"])
             .run_silent()?;
-        let output = String::from_utf8(output.stdout).unwrap();
+        let output = String::from_utf8(output.stdout)?;
 
         let sha = output
             .split('\n')
