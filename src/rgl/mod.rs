@@ -1,4 +1,5 @@
 mod cache;
+mod clean;
 mod config;
 mod context;
 mod core;
@@ -23,6 +24,7 @@ mod subprocess;
 mod update;
 
 pub use self::cache::*;
+pub use self::clean::*;
 pub use self::config::*;
 pub use self::context::*;
 pub use self::core::*;

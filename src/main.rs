@@ -31,6 +31,7 @@ fn cli() -> Command {
         )
         .arg_required_else_help(true)
         .subcommand_required(true)
+        .subcommand(Command::new("clean").about("Cleans Regolith cache and build files"))
         .subcommand(
             Command::new("init")
                 .about("Initializes a new Regolith project in the current directory")
@@ -95,6 +96,9 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         _ => None,
     };
     match matches.subcommand() {
+        Some(("clean", _)) => {
+            rgl::clean().context("Error cleaning files")?;
+        }
         Some(("init", matches)) => {
             let force = matches.get_flag("force");
             rgl::init(force).context("Error initializing project")?;
