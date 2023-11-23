@@ -50,6 +50,7 @@ pub enum LocalFilter {
 pub struct FilterContext {
     pub name: String,
     pub dir: PathBuf,
+    pub is_remote: bool,
 }
 
 impl FilterContext {
@@ -62,7 +63,18 @@ impl FilterContext {
                 })?,
                 false => env::current_dir()?,
             },
+            is_remote,
         })
+    }
+
+    pub fn filter_dir(&self, path: &str) -> Result<PathBuf> {
+        if self.is_remote {
+            Ok(self.dir.to_owned())
+        } else {
+            let mut dir = PathBuf::from(path);
+            dir.pop();
+            Ok(dir)
+        }
     }
 }
 

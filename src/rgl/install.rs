@@ -1,24 +1,31 @@
-use super::{ref_to_version, Config, FilterInstaller, RemoteFilter};
+use super::{
+    ref_to_version, Config, Filter, FilterContext, FilterDefinition, FilterInstaller, RemoteFilter,
+};
 use crate::info;
 use anyhow::Result;
 use semver::Version;
-use serde_json::Value;
 use std::path::Path;
 
 pub fn install_filters(force: bool) -> Result<()> {
     let config = Config::load()?;
     let data_path = Path::new(&config.regolith.data_path);
     for (name, def) in config.regolith.filter_definitions {
-        let url = def["url"].to_owned();
-        let version = def["version"].to_owned();
-        if let (Value::String(url), Value::String(version)) = (url, version) {
-            info!("Installing filter <b>{}</>...", name);
-            let git_ref = Version::parse(&version)
-                .map(|version| format!("{name}-{version}"))
-                .unwrap_or(version);
-            let filter = FilterInstaller::new(name, url, git_ref)?;
-            filter.install(data_path, force)?;
-        }
+        let filter = FilterDefinition::from_value(def)?;
+        match filter {
+            FilterDefinition::Local(filter) => {
+                info!("Installing dependencies for <b>{name}</>...");
+                let context = FilterContext::new(&name, false)?;
+                filter.install_dependencies(&context)?;
+            }
+            FilterDefinition::Remote(filter) => {
+                info!("Installing filter <b>{name}</>...");
+                let git_ref = Version::parse(&filter.version)
+                    .map(|version| format!("{name}-{version}"))
+                    .unwrap_or(filter.version);
+                let filter = FilterInstaller::new(&name, filter.url, git_ref)?;
+                filter.install(data_path, force)?;
+            }
+        };
     }
     info!("Successfully installed all filters");
     Ok(())

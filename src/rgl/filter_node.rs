@@ -24,9 +24,10 @@ impl Filter for FilterNode {
             true => "npm.cmd",
             false => "npm",
         };
+        let filter_dir = context.filter_dir(&self.script)?;
         Subprocess::new(npm)
             .args(vec!["i", "--no-fund", "--no-audit"])
-            .current_dir(&context.dir)
+            .current_dir(filter_dir)
             .run_silent()?;
         Ok(())
     }
