@@ -10,8 +10,9 @@ pub struct FilterNode {
 
 impl Filter for FilterNode {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+        let script = context.dir.join(&self.script);
         Subprocess::new("node")
-            .arg(&self.script)
+            .arg(script)
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.dir)?
