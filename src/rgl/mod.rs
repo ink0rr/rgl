@@ -20,6 +20,7 @@ mod minecraft;
 mod paths;
 mod profile;
 mod resolver;
+mod session;
 mod subprocess;
 mod update;
 
@@ -45,5 +46,6 @@ pub use self::minecraft::*;
 pub use self::paths::*;
 pub use self::profile::*;
 pub use self::resolver::*;
+pub use self::session::*;
 pub use self::subprocess::*;
 pub use self::update::*;

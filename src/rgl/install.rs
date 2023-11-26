@@ -1,5 +1,6 @@
 use super::{
     ref_to_version, Config, Filter, FilterContext, FilterDefinition, FilterInstaller, RemoteFilter,
+    Session,
 };
 use crate::info;
 use anyhow::Result;
@@ -8,6 +9,7 @@ use std::path::Path;
 
 pub fn install_filters(force: bool) -> Result<()> {
     let config = Config::load()?;
+    let mut session = Session::lock()?;
     let data_path = Path::new(&config.regolith.data_path);
     for (name, def) in config.regolith.filter_definitions {
         let filter = FilterDefinition::from_value(def)?;
@@ -28,11 +30,12 @@ pub fn install_filters(force: bool) -> Result<()> {
         };
     }
     info!("Successfully installed all filters");
-    Ok(())
+    session.unlock()
 }
 
 pub fn install_add(filters: Vec<&String>, force: bool) -> Result<()> {
     let mut config = Config::load()?;
+    let mut session = Session::lock()?;
     let data_path = Path::new(&config.regolith.data_path);
     for arg in filters {
         info!("Installing filter <b>{}</>...", arg);
@@ -49,5 +52,6 @@ pub fn install_add(filters: Vec<&String>, force: bool) -> Result<()> {
             );
         }
     }
-    config.save()
+    config.save()?;
+    session.unlock()
 }
