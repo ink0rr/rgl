@@ -9,10 +9,9 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
 
     let context = RunContext::new(config, profile_name)?;
     let profile = context.get_profile(profile_name)?;
-    let temp = profile.get_temp_dir()?;
+    let (bp, rp, temp) = profile.get_export_paths(&context.name)?;
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
-    let (bp, rp) = profile.get_export_paths(&context.name)?;
 
     measure_time!("Setup temp dir", {
         empty_dir(&temp)?;

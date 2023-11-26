@@ -74,9 +74,10 @@ impl Profile {
         Ok(())
     }
 
-    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf)> {
+    /// Returns bp, rp, and temp paths respectively.
+    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf, PathBuf)> {
         let target = self.export.target.as_str();
-        match target {
+        let (bp, rp) = match target {
             "development" => {
                 let mojang_dir = find_mojang_dir()?;
                 let bp = mojang_dir
@@ -85,7 +86,7 @@ impl Profile {
                 let rp = mojang_dir
                     .join("development_resource_packs")
                     .join(format!("{}_rp", name));
-                Ok((bp, rp))
+                (bp, rp)
             }
             "local" => {
                 let build = PathBuf::from("build");
@@ -94,17 +95,14 @@ impl Profile {
                 }
                 let bp = build.join("BP");
                 let rp = build.join("RP");
-                Ok((bp, rp))
+                (bp, rp)
             }
             _ => bail!("Export target <b>{target}</> is not valid"),
-        }
-    }
-
-    pub fn get_temp_dir(&self) -> Result<PathBuf> {
-        let target = self.export.target.as_str();
-        match target {
-            "development" => Ok(find_mojang_dir()?.join(".regolith")),
-            _ => Ok(PathBuf::from(".regolith").join("tmp")),
-        }
+        };
+        let temp = match target {
+            "development" => find_mojang_dir()?.join(".rgl").join(name),
+            _ => PathBuf::from(".regolith").join("tmp"),
+        };
+        Ok((bp, rp, temp))
     }
 }
