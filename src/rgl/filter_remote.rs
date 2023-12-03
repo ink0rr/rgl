@@ -1,4 +1,5 @@
-use super::{read_json, ref_to_version, write_json, Filter, FilterContext, FilterDefinition};
+use super::{ref_to_version, Filter, FilterContext, FilterDefinition};
+use crate::fs::{read_json, write_json};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

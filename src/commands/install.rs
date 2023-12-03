@@ -1,8 +1,8 @@
-use super::{
+use crate::info;
+use crate::rgl::{
     ref_to_version, Config, Filter, FilterContext, FilterDefinition, FilterInstaller, RemoteFilter,
     Session,
 };
-use crate::info;
 use anyhow::Result;
 use semver::Version;
 use std::path::Path;

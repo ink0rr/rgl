@@ -1,4 +1,5 @@
-use super::{Filter, FilterContext, Subprocess};
+use super::{Filter, FilterContext};
+use crate::subprocess::Subprocess;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;

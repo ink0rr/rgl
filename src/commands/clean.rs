@@ -1,5 +1,6 @@
-use super::{rimraf, Config, Session};
+use crate::fs::rimraf;
 use crate::info;
+use crate::rgl::{Config, Session};
 use anyhow::{Context, Result};
 
 pub fn clean() -> Result<()> {

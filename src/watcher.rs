@@ -3,12 +3,12 @@ use notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
 use std::{path::Path, sync::mpsc, time::Duration};
 
-pub struct FileWatcher {
+pub struct Watcher {
     rx: mpsc::Receiver<notify::Result<Vec<DebouncedEvent>>>,
     debouncer: Debouncer<RecommendedWatcher>,
 }
 
-impl FileWatcher {
+impl Watcher {
     pub fn new() -> Result<Self> {
         let (tx, rx) = mpsc::channel();
         let debouncer = new_debouncer(Duration::from_millis(100), tx)

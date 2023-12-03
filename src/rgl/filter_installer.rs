@@ -1,7 +1,8 @@
 use super::{
-    copy_dir, empty_dir, get_filter_cache_dir, move_dir, resolve_url, rimraf, Filter,
-    FilterContext, RemoteFilter, RemoteFilterConfig, Subprocess,
+    get_filter_cache_dir, resolve_url, Filter, FilterContext, RemoteFilter, RemoteFilterConfig,
 };
+use crate::fs::{copy_dir, empty_dir, move_dir, rimraf};
+use crate::subprocess::Subprocess;
 use crate::{info, warn};
 use anyhow::{bail, Result};
 use semver::Version;
