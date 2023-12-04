@@ -59,6 +59,11 @@ fn cli() -> Command {
                 ),
         )
         .subcommand(
+            Command::new("list")
+                .alias("ls")
+                .about("List installed filters"),
+        )
+        .subcommand(
             Command::new("update")
                 .aliases(["up", "upgrade"])
                 .about("Checks for update and installs it if available")
@@ -124,6 +129,9 @@ fn run_command(matches: ArgMatches) -> Result<()> {
                     });
                 }
             };
+        }
+        Some(("list", _)) => {
+            commands::list().context("Error listing installed filters")?;
         }
         Some(("update", matches)) => {
             let force = matches.get_flag("force");
