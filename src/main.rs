@@ -1,5 +1,9 @@
+mod commands;
+mod fs;
 mod logger;
 mod rgl;
+mod subprocess;
+mod watcher;
 
 use anyhow::{Context, Result};
 use clap::{crate_version, Arg, ArgAction, ArgMatches, Command};
@@ -44,7 +48,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("install")
-                .alias("i")
+                .aliases(vec!["add", "i"])
                 .about("Downloads and installs Regolith filters")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
                 .arg(
@@ -52,6 +56,22 @@ fn cli() -> Command {
                         .short('f')
                         .long("force")
                         .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
+            Command::new("list")
+                .alias("ls")
+                .about("List installed filters"),
+        )
+        .subcommand(
+            Command::new("uninstall")
+                .aliases(vec!["remove", "rm"])
+                .about("Removes installed filters")
+                .arg(
+                    Arg::new("filters")
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
                 ),
         )
         .subcommand(
@@ -97,11 +117,11 @@ fn run_command(matches: ArgMatches) -> Result<()> {
     };
     match matches.subcommand() {
         Some(("clean", _)) => {
-            rgl::clean().context("Error cleaning files")?;
+            commands::clean().context("Error cleaning files")?;
         }
         Some(("init", matches)) => {
             let force = matches.get_flag("force");
-            rgl::init(force).context("Error initializing project")?;
+            commands::init(force).context("Error initializing project")?;
         }
         Some(("install", matches)) => {
             let filters = matches
@@ -111,19 +131,29 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             match filters {
                 Some(filters) => {
                     measure_time!("Install filter(s)", {
-                        rgl::install_add(filters, force).context("Error installing filter")?;
+                        commands::add_filters(filters, force).context("Error adding filter")?;
                     });
                 }
                 None => {
                     measure_time!("Install all filters", {
-                        rgl::install_filters(force).context("Error installing filters")?;
+                        commands::install_filters(force).context("Error installing filters")?;
                     });
                 }
             };
         }
+        Some(("list", _)) => {
+            commands::list().context("Error listing installed filters")?;
+        }
+        Some(("uninstall", matches)) => {
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect())
+                .unwrap();
+            commands::remove_filters(filters).context("Error removing filter")?;
+        }
         Some(("update", matches)) => {
             let force = matches.get_flag("force");
-            rgl::update(force).context("Error updating rgl")?;
+            commands::update(force).context("Error updating rgl")?;
         }
         Some(("run", matches)) => {
             let profile = match matches.get_one::<String>("profile") {
@@ -131,7 +161,7 @@ fn run_command(matches: ArgMatches) -> Result<()> {
                 None => "default",
             };
             let cached = matches.get_flag("cached");
-            rgl::run_or_watch(profile, false, cached)
+            commands::run_or_watch(profile, false, cached)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
         Some(("watch", matches)) => {
@@ -140,7 +170,7 @@ fn run_command(matches: ArgMatches) -> Result<()> {
                 None => "default",
             };
             let no_cache = matches.get_flag("no-cache");
-            rgl::run_or_watch(profile, true, !no_cache)
+            commands::run_or_watch(profile, true, !no_cache)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
         _ => unreachable!(),

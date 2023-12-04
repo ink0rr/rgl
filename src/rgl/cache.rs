@@ -1,4 +1,4 @@
-use super::{copy_dir, move_dir, rimraf};
+use crate::fs::{copy_dir, move_dir, rimraf};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::{

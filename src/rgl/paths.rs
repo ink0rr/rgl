@@ -20,20 +20,22 @@ fn get_user_cache_dir() -> Result<PathBuf> {
     Ok(PathBuf::from(localappdata))
 }
 
-pub fn get_regolith_cache_dir() -> Result<PathBuf> {
-    Ok(get_user_cache_dir()?.join("regolith"))
+pub fn get_cache_dir() -> Result<PathBuf> {
+    Ok(get_user_cache_dir()?.join("rgl"))
 }
 
 pub fn get_filter_cache_dir(https_url: &str) -> Result<PathBuf> {
     let digest = md5::compute(https_url.as_bytes());
-    Ok(get_regolith_cache_dir()?
+    Ok(get_user_cache_dir()?
+        .join("regolith")
         .join("filter-cache")
         .join(format!("{digest:?}")))
 }
 
 pub fn get_resolver_cache_dir(https_url: &str) -> Result<PathBuf> {
     let digest = md5::compute(https_url.as_bytes());
-    Ok(get_regolith_cache_dir()?
+    Ok(get_user_cache_dir()?
+        .join("regolith")
         .join("resolver-cache")
         .join(format!("{digest:?}")))
 }

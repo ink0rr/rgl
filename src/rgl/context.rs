@@ -1,4 +1,5 @@
-use super::{Config, FileWatcher, FilterDefinition, Profile};
+use super::{Config, FilterDefinition, Profile};
+use crate::watcher::Watcher;
 use anyhow::{anyhow, Context, Result};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
@@ -50,13 +51,13 @@ impl RunContext {
     }
 
     pub fn watch_project_files(&self) -> Result<()> {
-        let mut file_watcher = FileWatcher::new()?;
+        let mut watcher = Watcher::new()?;
 
-        file_watcher.watch(&self.data_path)?;
-        file_watcher.watch(&self.behavior_pack)?;
-        file_watcher.watch(&self.resource_pack)?;
+        watcher.watch(&self.data_path)?;
+        watcher.watch(&self.behavior_pack)?;
+        watcher.watch(&self.resource_pack)?;
 
-        file_watcher.wait_changes();
+        watcher.wait_changes();
 
         Ok(())
     }

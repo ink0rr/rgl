@@ -1,4 +1,5 @@
-use super::{copy_dir, copy_dir_cached, empty_dir, move_dir, rimraf, symlink, Config, RunContext};
+use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, symlink};
+use crate::rgl::{copy_dir_cached, Config, RunContext, Session};
 use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::{fs, io, time};
@@ -7,12 +8,12 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let start_time = time::Instant::now();
     let config = Config::load()?;
 
+    let mut session = Session::lock()?;
     let context = RunContext::new(config, profile_name)?;
     let profile = context.get_profile(profile_name)?;
-    let temp = profile.get_temp_dir()?;
+    let (bp, rp, temp) = profile.get_export_paths(&context.name)?;
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
-    let (bp, rp) = profile.get_export_paths(&context.name)?;
 
     measure_time!("Setup temp dir", {
         empty_dir(&temp)?;
@@ -63,7 +64,8 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
         info!("Press Ctrl+C to stop watching");
         context.watch_project_files()?;
         warn!("Changes detected, restarting...");
+        session.unlock()?;
         return run_or_watch(profile_name, watch, cached);
     }
-    Ok(())
+    session.unlock()
 }

@@ -1,4 +1,5 @@
-use super::{read_json, write_json, Export, FilterRunner, Profile};
+use super::{Export, FilterRunner, Profile};
+use crate::fs::{read_json, write_json};
 use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

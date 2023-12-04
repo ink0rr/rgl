@@ -1,4 +1,6 @@
-use super::{empty_dir, get_resolver_cache_dir, read_json, Subprocess};
+use super::get_resolver_cache_dir;
+use crate::fs::{empty_dir, read_json};
+use crate::subprocess::Subprocess;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

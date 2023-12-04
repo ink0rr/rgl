@@ -1,5 +1,6 @@
-use super::{empty_dir, write_file, write_json, Config, Manifest, PackType};
+use crate::fs::{empty_dir, write_file, write_json};
 use crate::info;
+use crate::rgl::{Config, Manifest, PackType};
 use anyhow::{bail, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Input};
 use semver::Version;
