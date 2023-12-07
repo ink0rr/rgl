@@ -3,13 +3,24 @@
 
 $ErrorActionPreference = 'Stop'
 
+if ($v) {
+  $Version = "v${v}"
+}
+if ($Args.Length -eq 1) {
+  $Version = $Args.Get(0)
+}
+
 $BinDir = "${Home}\.rgl\bin"
 
 $RglZip = "$BinDir\rgl.zip"
 $RglExe = "$BinDir\rgl.exe"
 
 $Target = 'x86_64-pc-windows-msvc'
-$DownloadUrl = "https://github.com/ink0rr/rgl/releases/latest/download/rgl-${Target}.zip"
+$DownloadUrl = if (!$Version) {
+  "https://github.com/ink0rr/rgl/releases/latest/download/rgl-${Target}.zip"
+} else {
+  "https://github.com/ink0rr/rgl/releases/download/${Version}/rgl-${Target}.zip"
+}
 
 if (!(Test-Path $BinDir)) {
   New-Item $BinDir -ItemType Directory | Out-Null

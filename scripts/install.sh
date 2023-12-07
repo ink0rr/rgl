@@ -22,7 +22,12 @@ else
 	esac
 fi
 
-rgl_uri="https://github.com/ink0rr/rgl/releases/latest/download/rgl-${target}.zip"
+if [ $# -eq 0 ]; then
+	rgl_uri="https://github.com/ink0rr/rgl/releases/latest/download/rgl-${target}.zip"
+else
+	rgl_uri="https://github.com/ink0rr/rgl/releases/download/${1}/rgl-${target}.zip"
+fi
+
 bin_dir="$HOME/.rgl/bin"
 exe="$bin_dir/rgl"
 
