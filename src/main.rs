@@ -51,7 +51,9 @@ fn cli() -> Command {
                         .action(ArgAction::SetTrue),
                 ),
         )
-        .subcommand(Command::new("clean").about("Cleans Regolith cache and build files"))
+        .subcommand(
+            Command::new("clean").about("Clean the current project's cache and build files"),
+        )
         .subcommand(
             Command::new("get")
                 .about("Get all filters defined in current project")
@@ -64,7 +66,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("init")
-                .about("Initializes a new Regolith project in the current directory")
+                .about("Initialize a new project in the current directory")
                 .arg(
                     Arg::new("force")
                         .short('f')
