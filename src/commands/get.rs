@@ -4,7 +4,7 @@ use anyhow::Result;
 use semver::Version;
 use std::path::Path;
 
-pub fn install_filters(force: bool) -> Result<()> {
+pub fn get_filters(force: bool) -> Result<()> {
     let config = Config::load()?;
     let mut session = Session::lock()?;
     let data_path = Path::new(&config.regolith.data_path);

@@ -35,10 +35,38 @@ fn cli() -> Command {
         )
         .arg_required_else_help(true)
         .subcommand_required(true)
-        .subcommand(Command::new("clean").about("Cleans Regolith cache and build files"))
+        .subcommand(
+            Command::new("add")
+                .about("Add filter(s) to current project")
+                .arg(
+                    Arg::new("filters")
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
+            Command::new("clean").about("Clean the current project's cache and build files"),
+        )
+        .subcommand(
+            Command::new("get")
+                .about("Get all filters defined in current project")
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
         .subcommand(
             Command::new("init")
-                .about("Initializes a new Regolith project in the current directory")
+                .about("Initialize a new project in the current directory")
                 .arg(
                     Arg::new("force")
                         .short('f')
@@ -48,8 +76,8 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("install")
-                .aliases(vec!["add", "i"])
-                .about("Downloads and installs Regolith filters")
+                .hide(true)
+                .alias("i")
                 .arg(Arg::new("filters").num_args(0..).action(ArgAction::Set))
                 .arg(
                     Arg::new("force")
@@ -64,15 +92,12 @@ fn cli() -> Command {
                 .about("List installed filters"),
         )
         .subcommand(
-            Command::new("uninstall")
-                .aliases(vec!["remove", "rm"])
-                .about("Removes installed filters")
-                .arg(
-                    Arg::new("filters")
-                        .num_args(1..)
-                        .action(ArgAction::Set)
-                        .required(true),
-                ),
+            Command::new("uninstall").hide(true).arg(
+                Arg::new("filters")
+                    .num_args(1..)
+                    .action(ArgAction::Set)
+                    .required(true),
+            ),
         )
         .subcommand(
             Command::new("update")
@@ -83,6 +108,17 @@ fn cli() -> Command {
                         .short('f')
                         .long("force")
                         .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
+            Command::new("remove")
+                .alias("rm")
+                .about("Remove filter(s) from current project")
+                .arg(
+                    Arg::new("filters")
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
                 ),
         )
         .subcommand(
@@ -116,14 +152,27 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         _ => None,
     };
     match matches.subcommand() {
+        Some(("add", matches)) => {
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect())
+                .unwrap();
+            let force = matches.get_flag("force");
+            commands::add_filters(filters, force).context("Error adding filter(s)")?;
+        }
         Some(("clean", _)) => {
             commands::clean().context("Error cleaning files")?;
+        }
+        Some(("get", matches)) => {
+            let force = matches.get_flag("force");
+            commands::get_filters(force).context("Error getting filters")?;
         }
         Some(("init", matches)) => {
             let force = matches.get_flag("force");
             commands::init(force).context("Error initializing project")?;
         }
         Some(("install", matches)) => {
+            warn!("`rgl install` is deprecated. Use `rgl add` and `rgl get` instead");
             let filters = matches
                 .get_many::<String>("filters")
                 .map(|filters| filters.collect());
@@ -136,7 +185,7 @@ fn run_command(matches: ArgMatches) -> Result<()> {
                 }
                 None => {
                     measure_time!("Install all filters", {
-                        commands::install_filters(force).context("Error installing filters")?;
+                        commands::get_filters(force).context("Error installing filters")?;
                     });
                 }
             };
@@ -145,6 +194,7 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::list().context("Error listing installed filters")?;
         }
         Some(("uninstall", matches)) => {
+            warn!("`rgl uninstall` is deprecated. Use `rgl remove` instead");
             let filters = matches
                 .get_many::<String>("filters")
                 .map(|filters| filters.collect())
@@ -154,6 +204,13 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         Some(("update", matches)) => {
             let force = matches.get_flag("force");
             commands::update(force).context("Error updating rgl")?;
+        }
+        Some(("remove", matches)) => {
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect())
+                .unwrap();
+            commands::remove_filters(filters).context("Error removing filter(s)")?;
         }
         Some(("run", matches)) => {
             let profile = match matches.get_one::<String>("profile") {

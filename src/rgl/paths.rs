@@ -26,16 +26,14 @@ pub fn get_cache_dir() -> Result<PathBuf> {
 
 pub fn get_filter_cache_dir(https_url: &str) -> Result<PathBuf> {
     let digest = md5::compute(https_url.as_bytes());
-    Ok(get_user_cache_dir()?
-        .join("regolith")
+    Ok(get_cache_dir()?
         .join("filter-cache")
         .join(format!("{digest:?}")))
 }
 
 pub fn get_resolver_cache_dir(https_url: &str) -> Result<PathBuf> {
     let digest = md5::compute(https_url.as_bytes());
-    Ok(get_user_cache_dir()?
-        .join("regolith")
+    Ok(get_cache_dir()?
         .join("resolver-cache")
         .join(format!("{digest:?}")))
 }

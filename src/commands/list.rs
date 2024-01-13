@@ -32,8 +32,8 @@ fn print(label: &str, filters: &Vec<(String, String)>) {
     if filters.is_empty() {
         return;
     }
-    log!("<green>{label}");
+    log!("<green>{label}</>");
     for (name, info) in filters {
-        log!("  {name} <bright-black>{info}");
+        log!("  {name} <cyan>{info}</>");
     }
 }

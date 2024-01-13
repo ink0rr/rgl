@@ -3,7 +3,11 @@ use crate::rgl::get_cache_dir;
 use anyhow::{Context, Result};
 use clap::crate_version;
 use paris::log;
-use std::{env, fs, path::PathBuf, time::SystemTime};
+use std::{
+    env, fs,
+    path::PathBuf,
+    time::{Duration, SystemTime},
+};
 
 const CARGO_URL: &str = "https://raw.githubusercontent.com/ink0rr/rgl/master/Cargo.toml";
 
@@ -25,6 +29,7 @@ fn update_timestamp() -> Result<()> {
 
 pub fn fetch_latest_version() -> Result<String> {
     let version = ureq::get(CARGO_URL)
+        .timeout(Duration::from_secs(10))
         .call()
         .context("Failed to fetch Cargo.toml")?
         .into_string()
