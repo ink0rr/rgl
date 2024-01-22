@@ -64,8 +64,8 @@ pub fn check_for_update() -> Result<Option<String>> {
 pub fn prompt_update(latest_version: String) -> Result<()> {
     let current_version = crate_version!();
     if current_version != latest_version {
-        log!("<green>A new version of rgl is available: <cyan>{current_version}</> → <cyan>{latest_version}");
-        log!("<bright-black><i>Run `rgl update` to install it");
+        log!("<green>A new version of rgl is available: <cyan>{current_version}</> → <cyan>{latest_version}</>");
+        log!("<bright-black><i>Run `rgl update` to install it</>");
     }
     update_timestamp()
 }
