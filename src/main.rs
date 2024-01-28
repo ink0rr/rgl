@@ -147,9 +147,9 @@ fn cli() -> Command {
 
 fn run_command(matches: ArgMatches) -> Result<()> {
     let handle = match matches.subcommand_name() {
-        // Trigger update check when running these commands
-        Some("init" | "install" | "run") => Some(thread::spawn(rgl::check_for_update)),
-        _ => None,
+        // Don't trigger update check when running these commands
+        Some("update" | "watch") => None,
+        _ => Some(thread::spawn(rgl::check_for_update)),
     };
     match matches.subcommand() {
         Some(("add", matches)) => {
