@@ -31,7 +31,7 @@ impl FilterInstaller {
         if arg.contains("==") {
             let parts: Vec<_> = arg.split("==").collect();
             if parts.len() != 2 {
-                bail!("Invalid install argument <b>{arg}</>");
+                bail!("Invalid argument <b>{arg}</>");
             }
             url = parts[0].to_owned();
             version = Some(parts[1].to_owned());
@@ -62,7 +62,7 @@ impl FilterInstaller {
         let name = &self.name;
         let filter_dir = RemoteFilter::cache_dir(name);
         if filter_dir.exists() && !force {
-            warn!("Filter {name} already installed, use --force to overwrite");
+            warn!("Filter {name} already added, use --force to overwrite");
             return Ok(false);
         } else {
             rimraf(&filter_dir)?;
