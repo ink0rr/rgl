@@ -17,7 +17,7 @@ pub fn get_filters(force: bool) -> Result<()> {
                 filter.install_dependencies(&context)?;
             }
             FilterDefinition::Remote(filter) => {
-                info!("Installing filter <b>{name}</>...");
+                info!("Getting filter <b>{name}</>...");
                 let git_ref = Version::parse(&filter.version)
                     .map(|version| format!("{name}-{version}"))
                     .unwrap_or(filter.version);
@@ -26,6 +26,6 @@ pub fn get_filters(force: bool) -> Result<()> {
             }
         };
     }
-    info!("Successfully installed all filters");
+    info!("Success getting filters!");
     session.unlock()
 }

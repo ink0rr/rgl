@@ -8,10 +8,10 @@ pub fn add_filters(filters: Vec<&String>, force: bool) -> Result<()> {
     let mut session = Session::lock()?;
     let data_path = Path::new(&config.regolith.data_path);
     for arg in filters {
-        info!("Installing filter <b>{}</>...", arg);
+        info!("Adding filter <b>{}</>...", arg);
         let filter = FilterInstaller::from_arg(arg)?;
         if filter.install(data_path, force)? {
-            info!("Filter <b>{}</> successfully installed", filter.name);
+            info!("Filter <b>{}</> successfully added", filter.name);
             let version = ref_to_version(&filter.git_ref);
             config.regolith.filter_definitions.insert(
                 filter.name,

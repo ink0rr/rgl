@@ -89,7 +89,7 @@ fn cli() -> Command {
         .subcommand(
             Command::new("list")
                 .alias("ls")
-                .about("List installed filters"),
+                .about("List project's filters"),
         )
         .subcommand(
             Command::new("uninstall").hide(true).arg(
@@ -147,9 +147,9 @@ fn cli() -> Command {
 
 fn run_command(matches: ArgMatches) -> Result<()> {
     let handle = match matches.subcommand_name() {
-        // Trigger update check when running these commands
-        Some("init" | "install" | "run") => Some(thread::spawn(rgl::check_for_update)),
-        _ => None,
+        // Don't trigger update check when running these commands
+        Some("update" | "watch") => None,
+        _ => Some(thread::spawn(rgl::check_for_update)),
     };
     match matches.subcommand() {
         Some(("add", matches)) => {
@@ -172,20 +172,21 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::init(force).context("Error initializing project")?;
         }
         Some(("install", matches)) => {
-            warn!("`rgl install` is deprecated. Use `rgl add` and `rgl get` instead");
             let filters = matches
                 .get_many::<String>("filters")
                 .map(|filters| filters.collect());
             let force = matches.get_flag("force");
             match filters {
                 Some(filters) => {
+                    warn!("`rgl install <filters>` is deprecated. Use `rgl add <filters>` instead");
                     measure_time!("Install filter(s)", {
                         commands::add_filters(filters, force).context("Error adding filter")?;
                     });
                 }
                 None => {
+                    warn!("`rgl install` is deprecated. Use `rgl get` instead");
                     measure_time!("Install all filters", {
-                        commands::get_filters(force).context("Error installing filters")?;
+                        commands::get_filters(force).context("Error getting filters")?;
                     });
                 }
             };

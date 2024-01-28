@@ -60,7 +60,7 @@ impl FilterContext {
             name: name.to_owned(),
             dir: match is_remote {
                 true => canonicalize(RemoteFilter::cache_dir(name)).map_err(|_| {
-                    anyhow!("Filter <b>{name}</> not installed, run \"rgl install\" to install it")
+                    anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
                 })?,
                 false => env::current_dir()?,
             },

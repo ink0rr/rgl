@@ -1,11 +1,11 @@
 use crate::fs::rimraf;
 use crate::info;
 use crate::rgl::{Config, Session};
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 pub fn clean() -> Result<()> {
-    // Make sure it's a regolith project
-    let _ = Config::load().context("Not a Regolith project")?;
+    // Make sure it's a valid project
+    let _ = Config::load()?;
     let mut session = Session::lock()?;
     info!("Cleaning .regolith folder...");
     rimraf(".regolith")?;
