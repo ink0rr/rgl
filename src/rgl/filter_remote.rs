@@ -1,4 +1,4 @@
-use super::{ref_to_version, Filter, FilterContext, FilterDefinition};
+use super::{ref_to_version, Filter, FilterContext, LocalFilter};
 use crate::fs::{read_json, write_json};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,7 @@ impl Filter for RemoteFilter {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
-    pub filters: Vec<FilterDefinition>,
+    pub filters: Vec<LocalFilter>,
     pub version: String,
 }
 
