@@ -50,7 +50,7 @@ pub enum LocalFilter {
 
 pub struct FilterContext {
     pub name: String,
-    pub dir: PathBuf,
+    pub filter_dir: PathBuf,
     pub is_remote: bool,
 }
 
@@ -58,7 +58,7 @@ impl FilterContext {
     pub fn new(name: &str, is_remote: bool) -> Result<Self> {
         Ok(Self {
             name: name.to_owned(),
-            dir: match is_remote {
+            filter_dir: match is_remote {
                 true => canonicalize(RemoteFilter::cache_dir(name)).map_err(|_| {
                     anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
                 })?,
@@ -70,7 +70,7 @@ impl FilterContext {
 
     pub fn filter_dir(&self, path: &str) -> Result<PathBuf> {
         if self.is_remote {
-            Ok(self.dir.to_owned())
+            Ok(self.filter_dir.to_owned())
         } else {
             let mut dir = PathBuf::from(path);
             dir.pop();

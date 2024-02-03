@@ -12,7 +12,7 @@ pub struct FilterGo {
 
 impl Filter for FilterGo {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.dir.join(&self.script);
+        let script = context.filter_dir.join(&self.script);
         let mut output = env::current_dir()?
             .join(".regolith")
             .join("cache")
@@ -22,19 +22,19 @@ impl Filter for FilterGo {
             output.set_extension("exe");
         }
 
-        if should_rebuild(&context.dir, &output)? {
+        if should_rebuild(&context.filter_dir, &output)? {
             Subprocess::new("go")
                 .args(vec!["build", "-o"])
                 .arg(&output)
                 .arg(script)
-                .current_dir(&context.dir)
+                .current_dir(&context.filter_dir)
                 .run()?;
         }
 
         Subprocess::new(output)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.dir)?
+            .setup_env(&context.filter_dir)?
             .run()?;
         Ok(())
     }
@@ -42,7 +42,7 @@ impl Filter for FilterGo {
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         Subprocess::new("go")
             .args(vec!["mod", "download"])
-            .current_dir(&context.dir)
+            .current_dir(&context.filter_dir)
             .run()?;
         Ok(())
     }
