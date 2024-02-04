@@ -21,7 +21,7 @@ pub fn get_filters(force: bool) -> Result<()> {
                 let git_ref = Version::parse(&filter.version)
                     .map(|version| format!("{name}-{version}"))
                     .unwrap_or(filter.version);
-                let filter = FilterInstaller::new(&name, filter.url, git_ref)?;
+                let filter = FilterInstaller::new(&name, filter.url, git_ref);
                 filter.install(data_path, force)?;
             }
         };

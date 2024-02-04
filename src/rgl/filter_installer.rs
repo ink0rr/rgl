@@ -15,12 +15,12 @@ pub struct FilterInstaller {
 }
 
 impl FilterInstaller {
-    pub fn new(name: &str, url: String, git_ref: String) -> Result<Self> {
-        Ok(Self {
+    pub fn new(name: &str, url: String, git_ref: String) -> Self {
+        Self {
             name: name.to_owned(),
             url,
             git_ref,
-        })
+        }
     }
 
     pub fn from_arg(arg: &str) -> Result<Self> {
