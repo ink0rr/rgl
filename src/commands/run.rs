@@ -1,8 +1,8 @@
-use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, symlink};
+use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, try_symlink};
 use crate::rgl::{copy_dir_cached, Config, RunContext, Session};
 use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
-use std::{fs, io, time};
+use std::time;
 
 pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()> {
     let start_time = time::Instant::now();
@@ -26,15 +26,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
             copy_dir(&context.behavior_pack, &temp_bp)?;
             copy_dir(&context.resource_pack, &temp_rp)?;
         }
-        if let Err(e) = symlink(&context.data_path, temp.join("data")) {
-            match e.downcast_ref::<io::Error>().map(|e| e.kind()) {
-                Some(io::ErrorKind::NotFound) => {
-                    warn!("Data folder does not exists, creating...");
-                    fs::create_dir_all(&context.data_path)?;
-                }
-                _ => return Err(e),
-            }
-        }
+        try_symlink(&context.data_path, temp.join("data"))?;
     });
 
     measure_time!(profile_name, {
