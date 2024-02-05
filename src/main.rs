@@ -75,6 +75,23 @@ fn cli() -> Command {
                 ),
         )
         .subcommand(
+            Command::new("install")
+                .alias("i")
+                .about("Install tool(s)")
+                .arg(
+                    Arg::new("tools")
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
             Command::new("list")
                 .alias("ls")
                 .about("List project's filters"),
@@ -111,6 +128,11 @@ fn cli() -> Command {
                         .help("Use previous run output as cache")
                         .action(ArgAction::SetTrue),
                 ),
+        )
+        .subcommand(
+            Command::new("tool")
+                .about("Runs a tool in the current project")
+                .arg(Arg::new("tool_name").action(ArgAction::Set).required(true)),
         )
         .subcommand(
             Command::new("watch")
@@ -151,6 +173,14 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             let force = matches.get_flag("force");
             commands::init(force).context("Error initializing project")?;
         }
+        Some(("install", matches)) => {
+            let tools = matches
+                .get_many::<String>("tools")
+                .map(|tools| tools.collect())
+                .unwrap();
+            let force = matches.get_flag("force");
+            commands::install_tools(tools, force).context("Error installing tool")?;
+        }
         Some(("list", _)) => {
             commands::list().context("Error listing installed filters")?;
         }
@@ -173,6 +203,12 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             let cached = matches.get_flag("cached");
             commands::run_or_watch(profile, false, cached)
                 .context(format!("Error running <b>{profile}</> profile"))?;
+        }
+        Some(("tool", matches)) => {
+            let tool_name = matches.get_one::<String>("tool_name").unwrap();
+            let args = env::args().skip(3).collect();
+            commands::tool(tool_name, args)
+                .context(format!("Error running tool <b>{tool_name}</>"))?;
         }
         Some(("watch", matches)) => {
             let profile = match matches.get_one::<String>("profile") {

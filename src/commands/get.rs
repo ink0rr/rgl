@@ -1,5 +1,7 @@
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, FilterDefinition, FilterInstaller, Session};
+use crate::rgl::{
+    Config, Filter, FilterContext, FilterDefinition, FilterInstaller, FilterType, Session,
+};
 use anyhow::Result;
 use semver::Version;
 use std::path::Path;
@@ -13,7 +15,7 @@ pub fn get_filters(force: bool) -> Result<()> {
         match filter {
             FilterDefinition::Local(filter) => {
                 info!("Installing dependencies for <b>{name}</>...");
-                let context = FilterContext::new(&name, false)?;
+                let context = FilterContext::new(FilterType::Local, &name)?;
                 filter.install_dependencies(&context)?;
             }
             FilterDefinition::Remote(filter) => {
@@ -22,7 +24,7 @@ pub fn get_filters(force: bool) -> Result<()> {
                     .map(|version| format!("{name}-{version}"))
                     .unwrap_or(filter.version);
                 let filter = FilterInstaller::new(&name, filter.url, git_ref);
-                filter.install(data_path, force)?;
+                filter.install(FilterType::Remote, Some(data_path), force)?;
             }
         };
     }

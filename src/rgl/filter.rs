@@ -1,4 +1,6 @@
-use super::{FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython, RemoteFilter};
+use super::{
+    get_cache_dir, FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython, RemoteFilter,
+};
 use anyhow::{anyhow, Result};
 use dunce::canonicalize;
 use enum_dispatch::enum_dispatch;
@@ -32,8 +34,11 @@ impl FilterDefinition {
         Ok(filter)
     }
 
-    pub fn is_remote(&self) -> bool {
-        matches!(self, FilterDefinition::Remote(_))
+    pub fn get_type(&self) -> FilterType {
+        match self {
+            FilterDefinition::Local(_) => FilterType::Local,
+            FilterDefinition::Remote(_) => FilterType::Remote,
+        }
     }
 }
 
@@ -48,33 +53,59 @@ pub enum LocalFilter {
     Python(FilterPython),
 }
 
+pub enum FilterType {
+    Local,
+    Remote,
+    Tool,
+}
+
+impl FilterType {
+    pub fn cache_dir(&self, name: &str) -> Result<PathBuf> {
+        let dir = match self {
+            FilterType::Local => env::current_dir()?,
+            FilterType::Remote => PathBuf::from(".regolith")
+                .join("cache")
+                .join("filters")
+                .join(name),
+            FilterType::Tool => get_cache_dir()?.join("tools").join(name),
+        };
+        Ok(dir)
+    }
+}
+
 pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
-    pub is_remote: bool,
+    filter_type: FilterType,
 }
 
 impl FilterContext {
-    pub fn new(name: &str, is_remote: bool) -> Result<Self> {
+    pub fn new(filter_type: FilterType, name: &str) -> Result<Self> {
         Ok(Self {
             name: name.to_owned(),
-            filter_dir: match is_remote {
-                true => canonicalize(RemoteFilter::cache_dir(name)).map_err(|_| {
-                    anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
-                })?,
-                false => env::current_dir()?,
-            },
-            is_remote,
+            filter_dir: canonicalize(filter_type.cache_dir(name)?).map_err(
+                |_| match filter_type {
+                    FilterType::Local => unreachable!(),
+                    FilterType::Remote => {
+                        anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
+                    }
+                    FilterType::Tool => anyhow!(
+                        "Tool <b>{name}</> is not installed, run `rgl install {name}` to install it"
+                    ),
+                },
+            )?,
+            filter_type,
         })
     }
 
     pub fn filter_dir(&self, path: &str) -> Result<PathBuf> {
-        if self.is_remote {
-            Ok(self.filter_dir.to_owned())
-        } else {
-            let mut dir = PathBuf::from(path);
-            dir.pop();
-            Ok(dir)
+        match self.filter_type {
+            FilterType::Local => {
+                let mut dir = PathBuf::from(path);
+                dir.pop();
+                Ok(dir)
+            }
+            _ => Ok(self.filter_dir.to_owned()),
         }
     }
 }

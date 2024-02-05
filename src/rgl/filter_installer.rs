@@ -1,5 +1,5 @@
 use super::{
-    get_filter_cache_dir, resolve_url, Filter, FilterContext, RemoteFilter, RemoteFilterConfig,
+    get_filter_cache_dir, resolve_url, Filter, FilterContext, FilterType, RemoteFilterConfig,
 };
 use crate::fs::{copy_dir, empty_dir, move_dir, rimraf};
 use crate::subprocess::Subprocess;
@@ -58,9 +58,14 @@ impl FilterInstaller {
         Ok(Self { name, url, git_ref })
     }
 
-    pub fn install(&self, data_path: &Path, force: bool) -> Result<bool> {
+    pub fn install(
+        &self,
+        filter_type: FilterType,
+        data_path: Option<&Path>,
+        force: bool,
+    ) -> Result<bool> {
         let name = &self.name;
-        let filter_dir = RemoteFilter::cache_dir(name);
+        let filter_dir = filter_type.cache_dir(name)?;
         if filter_dir.exists() && !force {
             warn!("Filter {name} already added, use --force to overwrite");
             return Ok(false);
@@ -91,15 +96,17 @@ impl FilterInstaller {
 
         copy_dir(cache_dir.join(name), &filter_dir)?;
 
-        let filter_data = filter_dir.join("data");
-        let target_path = data_path.join(name);
-        if filter_data.is_dir() && !target_path.exists() {
-            info!("Moving filter data to <b>{}</>", target_path.display());
-            move_dir(filter_data, target_path)?;
+        if let Some(data_path) = data_path {
+            let filter_data = filter_dir.join("data");
+            let target_path = data_path.join(name);
+            if filter_data.is_dir() && !target_path.exists() {
+                info!("Moving filter data to <b>{}</>", target_path.display());
+                move_dir(filter_data, target_path)?;
+            }
         }
 
-        let config = RemoteFilterConfig::new(name, &self.git_ref)?;
-        let context = FilterContext::new(name, true)?;
+        let config = RemoteFilterConfig::new(filter_dir, &self.git_ref)?;
+        let context = FilterContext::new(filter_type, name)?;
         for filter in config.filters {
             info!("Installing dependencies for <b>{name}</>...");
             filter.install_dependencies(&context)?;

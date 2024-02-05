@@ -1,5 +1,5 @@
 use crate::info;
-use crate::rgl::{ref_to_version, Config, FilterInstaller, RemoteFilter, Session};
+use crate::rgl::{ref_to_version, Config, FilterInstaller, FilterType, RemoteFilter, Session};
 use anyhow::Result;
 use std::path::Path;
 
@@ -10,7 +10,7 @@ pub fn add_filters(filters: Vec<&String>, force: bool) -> Result<()> {
     for arg in filters {
         info!("Adding filter <b>{}</>...", arg);
         let filter = FilterInstaller::from_arg(arg)?;
-        if filter.install(data_path, force)? {
+        if filter.install(FilterType::Remote, Some(data_path), force)? {
             info!("Filter <b>{}</> successfully added", filter.name);
             let version = ref_to_version(&filter.git_ref);
             config.regolith.filter_definitions.insert(

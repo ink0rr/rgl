@@ -54,7 +54,7 @@ impl Profile {
 
                     measure_time!(filter_name, {
                         info!("Running filter <b>{filter_name}</>");
-                        let context = FilterContext::new(filter_name, filter.is_remote())?;
+                        let context = FilterContext::new(filter.get_type(), filter_name)?;
                         filter
                             .run(&context, temp, &run_args)
                             .context(format!("Failed running filter <b>{filter_name}</>"))?;
