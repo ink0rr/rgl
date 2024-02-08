@@ -135,6 +135,14 @@ fn cli() -> Command {
                 .arg(Arg::new("tool_name").action(ArgAction::Set).required(true)),
         )
         .subcommand(
+            Command::new("uninstall").about("Uninstall tool(s)").arg(
+                Arg::new("tools")
+                    .num_args(1..)
+                    .action(ArgAction::Set)
+                    .required(true),
+            ),
+        )
+        .subcommand(
             Command::new("watch")
                 .about("Watch for file changes and restart automatically")
                 .arg(Arg::new("profile").action(ArgAction::Set))
@@ -209,6 +217,13 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             let args = env::args().skip(3).collect();
             commands::tool(tool_name, args)
                 .context(format!("Error running tool <b>{tool_name}</>"))?;
+        }
+        Some(("uninstall", matches)) => {
+            let tools = matches
+                .get_many::<String>("tools")
+                .map(|tools| tools.collect())
+                .unwrap();
+            commands::uninstall_tools(tools).context("Error uninstalling tool(s)")?;
         }
         Some(("watch", matches)) => {
             let profile = match matches.get_one::<String>("profile") {
