@@ -16,13 +16,15 @@ impl Watcher {
         Ok(Self { rx, debouncer })
     }
 
-    pub fn watch(&mut self, path: &str) -> Result<()> {
+    pub fn watch(&mut self, path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
         self.debouncer
             .watcher()
-            .watch(Path::new(path), RecursiveMode::Recursive)
+            .watch(path, RecursiveMode::Recursive)
             .context(format!(
                 "Failed to watch directory\n\
-                 <yellow> >></> Path: {path}"
+                 <yellow> >></> Path: {}",
+                path.display()
             ))
     }
 

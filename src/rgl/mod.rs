@@ -1,6 +1,5 @@
 mod cache;
 mod config;
-mod context;
 mod filter;
 mod filter_deno;
 mod filter_exe;
@@ -19,7 +18,6 @@ mod update_check;
 
 pub use self::cache::*;
 pub use self::config::*;
-pub use self::context::*;
 pub use self::filter::*;
 pub use self::filter_deno::*;
 pub use self::filter_exe::*;

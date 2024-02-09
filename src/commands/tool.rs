@@ -12,9 +12,9 @@ pub fn tool(tool_name: &str, run_args: Vec<String>) -> Result<()> {
     let temp_rp = temp.join("RP");
 
     empty_dir(&temp)?;
-    try_symlink(config.packs.behavior_pack, temp_bp)?;
-    try_symlink(config.packs.resource_pack, temp_rp)?;
-    try_symlink(config.regolith.data_path, temp.join("data"))?;
+    try_symlink(config.get_behavior_pack(), temp_bp)?;
+    try_symlink(config.get_resource_pack(), temp_rp)?;
+    try_symlink(config.get_data_path(), temp.join("data"))?;
 
     let context = FilterContext::new(FilterType::Tool, tool_name)?;
     let config_path = context.filter_dir.join("filter.json");

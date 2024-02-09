@@ -1,34 +1,37 @@
-use super::{Export, FilterRunner, Profile};
+use super::{
+    ref_to_version, Export, FilterDefinition, FilterInstaller, FilterRunner, Profile, RemoteFilter,
+};
 use crate::fs::{read_json, write_json};
-use anyhow::Result;
+use crate::watcher::Watcher;
+use anyhow::{anyhow, Context, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     #[serde(rename = "$schema")]
-    pub schema: String,
-    pub author: String,
-    pub name: String,
-    pub packs: Packs,
-    pub regolith: Regolith,
+    schema: String,
+    author: String,
+    name: String,
+    packs: Packs,
+    regolith: Regolith,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Packs {
-    pub behavior_pack: String,
-    pub resource_pack: String,
+struct Packs {
+    behavior_pack: String,
+    resource_pack: String,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Regolith {
-    pub data_path: String,
-    pub filter_definitions: BTreeMap<String, Value>,
-    pub profiles: IndexMap<String, Profile>,
+struct Regolith {
+    data_path: String,
+    filter_definitions: BTreeMap<String, Value>,
+    profiles: IndexMap<String, Profile>,
 }
 
 impl Config {
@@ -70,11 +73,82 @@ impl Config {
         }
     }
 
-    pub fn load() -> Result<Config> {
-        read_json::<Config>("./config.json")
+    pub fn load() -> Result<Self> {
+        read_json("./config.json")
     }
 
     pub fn save(&self) -> Result<()> {
         write_json("./config.json", self)
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_behavior_pack(&self) -> PathBuf {
+        PathBuf::from(&self.packs.behavior_pack)
+    }
+
+    pub fn get_resource_pack(&self) -> PathBuf {
+        PathBuf::from(&self.packs.resource_pack)
+    }
+
+    pub fn get_data_path(&self) -> PathBuf {
+        PathBuf::from(&self.regolith.data_path)
+    }
+
+    pub fn get_profile(&self, profile_name: &str) -> Result<&Profile> {
+        self.regolith
+            .profiles
+            .get(profile_name)
+            .context(format!("Profile <b>{profile_name}</> not found"))
+    }
+
+    pub fn get_filter(&self, filter_name: &str) -> Result<FilterDefinition> {
+        let value = self
+            .regolith
+            .filter_definitions
+            .get(filter_name)
+            .context(format!(
+                "Filter <b>{filter_name}</> is not defined in filter_definitions"
+            ))?
+            .to_owned();
+        FilterDefinition::from_value(value).map_err(|e| {
+            anyhow!(
+                "Invalid filter definition for <b>{filter_name}</>\n\
+                 <yellow> >></> {e}"
+            )
+        })
+    }
+
+    pub fn get_filters(&self) -> BTreeMap<String, Value> {
+        self.regolith.filter_definitions.to_owned()
+    }
+
+    pub fn add_filter(&mut self, filter: FilterInstaller) -> Result<()> {
+        let name = filter.name;
+        let url = filter.url;
+        let version = ref_to_version(&filter.git_ref);
+        let remote = RemoteFilter { url, version };
+        self.regolith
+            .filter_definitions
+            .insert(name.to_owned(), serde_json::to_value(remote)?);
+        Ok(())
+    }
+
+    pub fn remove_filter(&mut self, name: &str) -> Option<Value> {
+        self.regolith.filter_definitions.remove(name)
+    }
+
+    pub fn watch_project_files(&self) -> Result<()> {
+        let mut watcher = Watcher::new()?;
+
+        watcher.watch(self.get_behavior_pack())?;
+        watcher.watch(self.get_resource_pack())?;
+        watcher.watch(self.get_data_path())?;
+
+        watcher.wait_changes();
+
+        Ok(())
     }
 }
