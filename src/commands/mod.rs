@@ -1,4 +1,5 @@
 mod add;
+mod apply;
 mod clean;
 mod get;
 mod init;
@@ -11,6 +12,7 @@ mod uninstall;
 mod update;
 
 pub use self::add::*;
+pub use self::apply::*;
 pub use self::clean::*;
 pub use self::get::*;
 pub use self::init::*;
