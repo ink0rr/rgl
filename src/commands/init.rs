@@ -36,7 +36,7 @@ pub fn init(force: bool) -> Result<()> {
 
     let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Minimum engine version")
-        .default("1.20.50".to_owned())
+        .default("1.20.60".to_owned())
         .validate_with(|input: &String| -> Result<(), String> {
             if Version::parse(input).is_ok() {
                 Ok(())
