@@ -45,8 +45,11 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
             target_rp.display()
         );
         let export = || -> Result<()> {
-            move_dir(temp_bp, target_bp)?;
-            move_dir(temp_rp, target_rp)
+            if !cached {
+                move_dir(temp_bp, target_bp)?;
+                move_dir(temp_rp, target_rp)?;
+            }
+            Ok(())
         };
         export().context("Failed to export project")?;
     });
