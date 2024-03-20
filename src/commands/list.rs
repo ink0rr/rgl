@@ -4,11 +4,10 @@ use paris::log;
 
 pub fn list() -> Result<()> {
     let config = Config::load()?;
-    let filters = config.regolith.filter_definitions;
 
     let mut local_filters = vec![];
     let mut remote_filters = vec![];
-    for (name, value) in filters {
+    for (name, value) in config.get_filters() {
         let filter = FilterDefinition::from_value(value.to_owned())?;
         match filter {
             FilterDefinition::Local(_) => {

@@ -12,8 +12,8 @@ pub struct FilterPython {
 
 impl Filter for FilterPython {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.dir.join(&self.script);
-        let venv_dir = context.dir.join(".venv");
+        let script = context.filter_dir.join(&self.script);
+        let venv_dir = context.filter_dir.join(".venv");
         if venv_dir.exists() {
             let py = match cfg!(windows) {
                 true => venv_dir.join("Scripts").join("python.exe"),

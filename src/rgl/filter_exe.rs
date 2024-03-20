@@ -11,11 +11,11 @@ pub struct FilterExe {
 
 impl Filter for FilterExe {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let exe = context.dir.join(&self.exe);
+        let exe = context.filter_dir.join(&self.exe);
         Subprocess::new(exe)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.dir)?
+            .setup_env(&context.filter_dir)?
             .run()?;
         Ok(())
     }

@@ -132,6 +132,19 @@ pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     ))
 }
 
+pub fn try_symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
+    if let Err(e) = symlink(&from, &to) {
+        match e.downcast_ref::<io::Error>().map(|e| e.kind()) {
+            Some(io::ErrorKind::NotFound) => {
+                fs::create_dir_all(&from)?;
+                symlink(from, to)?;
+            }
+            _ => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<()> {
     let path = path.as_ref();
     fs::write(path, contents).context(format!(

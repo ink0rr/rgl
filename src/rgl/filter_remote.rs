@@ -1,4 +1,4 @@
-use super::{ref_to_version, Filter, FilterContext, FilterDefinition};
+use super::{ref_to_version, Filter, FilterContext, LocalFilter};
 use crate::fs::{read_json, write_json};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -11,18 +11,13 @@ pub struct RemoteFilter {
     pub version: String,
 }
 
-impl RemoteFilter {
-    pub fn cache_dir(name: &str) -> PathBuf {
-        PathBuf::from(".regolith")
-            .join("cache")
-            .join("filters")
-            .join(name)
-    }
-}
-
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let config = RemoteFilterConfig::load(&context.name)?;
+        let config_path = context.filter_dir.join("filter.json");
+        let config = read_json::<RemoteFilterConfig>(config_path).context(format!(
+            "Failed to load config for filter <b>{}</>",
+            context.name
+        ))?;
         let is_latest = matches!(self.version.as_str(), "HEAD" | "latest");
         if !is_latest && self.version != config.version {
             bail!(
@@ -42,25 +37,18 @@ impl Filter for RemoteFilter {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
-    pub filters: Vec<FilterDefinition>,
+    pub filters: Vec<LocalFilter>,
     pub version: String,
 }
 
 impl RemoteFilterConfig {
-    pub fn new(name: &str, git_ref: &str) -> Result<Self> {
-        let config_path = RemoteFilter::cache_dir(name).join("filter.json");
+    pub fn new(filter_dir: PathBuf, git_ref: &str) -> Result<Self> {
+        let config_path = filter_dir.join("filter.json");
         let mut config = read_json::<Value>(&config_path)?;
         config["version"] = json!(ref_to_version(git_ref));
         write_json(config_path, &config)?;
 
         let config = serde_json::from_value(config)?;
-        Ok(config)
-    }
-
-    pub fn load(name: &str) -> Result<Self> {
-        let filter_dir = RemoteFilter::cache_dir(name);
-        let config = read_json::<RemoteFilterConfig>(filter_dir.join("filter.json"))
-            .context(format!("Failed to load config for filter <b>{name}</>"))?;
         Ok(config)
     }
 }

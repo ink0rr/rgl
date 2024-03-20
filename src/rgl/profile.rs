@@ -1,4 +1,4 @@
-use super::{find_mojang_dir, Filter, FilterContext, RunContext};
+use super::{find_mojang_dir, Config, Filter, FilterContext};
 use crate::{info, measure_time};
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
@@ -35,7 +35,7 @@ pub enum FilterRunner {
 }
 
 impl Profile {
-    pub fn run(&self, context: &RunContext, temp: &PathBuf) -> Result<()> {
+    pub fn run(&self, config: &Config, temp: &PathBuf, root_profile: &str) -> Result<()> {
         for entry in self.filters.iter() {
             match entry {
                 FilterRunner::Filter {
@@ -43,7 +43,7 @@ impl Profile {
                     arguments,
                     settings,
                 } => {
-                    let filter = context.get_filter(filter_name)?;
+                    let filter = config.get_filter(filter_name)?;
                     let mut run_args: Vec<String> = vec![];
                     if let Some(settings) = settings {
                         run_args = vec![serde_json::to_string(settings)?]
@@ -54,20 +54,20 @@ impl Profile {
 
                     measure_time!(filter_name, {
                         info!("Running filter <b>{filter_name}</>");
-                        let context = FilterContext::new(filter_name, filter.is_remote())?;
+                        let context = FilterContext::new(filter.get_type(), filter_name)?;
                         filter
                             .run(&context, temp, &run_args)
                             .context(format!("Failed running filter <b>{filter_name}</>"))?;
                     });
                 }
                 FilterRunner::ProfileFilter { profile_name } => {
-                    if profile_name == &context.root_profile {
+                    if profile_name == root_profile {
                         bail!("Found circular profile reference in <b>{profile_name}</>");
                     }
-                    let profile = context.get_profile(profile_name)?;
+                    let profile = config.get_profile(profile_name)?;
 
                     info!("Running <b>{profile_name}</> nested profile");
-                    profile.run(context, temp)?;
+                    profile.run(config, temp, root_profile)?;
                 }
             }
         }
