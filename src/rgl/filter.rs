@@ -1,5 +1,6 @@
 use super::{
-    get_cache_dir, FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython, RemoteFilter,
+    get_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython,
+    RemoteFilter,
 };
 use anyhow::{anyhow, Result};
 use dunce::canonicalize;
@@ -46,6 +47,7 @@ impl FilterDefinition {
 #[serde(rename_all = "camelCase", tag = "runWith")]
 #[enum_dispatch]
 pub enum LocalFilter {
+    Bun(FilterBun),
     Deno(FilterDeno),
     Exe(FilterExe),
     Go(FilterGo),

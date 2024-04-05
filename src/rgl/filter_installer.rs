@@ -1,7 +1,7 @@
 use super::{
     get_filter_cache_dir, resolve_url, Filter, FilterContext, FilterType, RemoteFilterConfig,
 };
-use crate::fs::{copy_dir, empty_dir, move_dir, rimraf};
+use crate::fs::{copy_dir, empty_dir, move_dir, read_json, rimraf};
 use crate::subprocess::Subprocess;
 use crate::{info, warn};
 use anyhow::{bail, Result};
@@ -66,11 +66,15 @@ impl FilterInstaller {
     ) -> Result<bool> {
         let name = &self.name;
         let filter_dir = filter_type.cache_dir(name)?;
-        if filter_dir.exists() && !force {
-            warn!("Filter {name} already added, use --force to overwrite");
-            return Ok(false);
-        } else {
-            rimraf(&filter_dir)?;
+        if filter_dir.exists() {
+            let config = read_json::<RemoteFilterConfig>(filter_dir.join("filter.json"))?;
+            let filter_version = format!("{}-{}", name, config.version);
+            if !force && (config.version == self.git_ref || filter_version == self.git_ref) {
+                warn!("Filter {name} already added, use --force to overwrite");
+                return Ok(false);
+            } else {
+                rimraf(&filter_dir)?;
+            }
         }
 
         let https_url = format!("https://{}", self.url);
