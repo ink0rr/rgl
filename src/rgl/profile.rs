@@ -80,6 +80,9 @@ impl Profile {
         let (bp, rp) = match target {
             "development" => {
                 let mojang_dir = find_mojang_dir()?;
+                if !mojang_dir.exists() {
+                    bail!("Failed to find com.mojang directory")
+                }
                 let bp = mojang_dir
                     .join("development_behavior_packs")
                     .join(format!("{}_bp", name));
