@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use dunce::canonicalize;
 use std::{ffi::OsStr, path::Path, process};
 
@@ -50,6 +50,7 @@ impl Subprocess {
     pub fn run(&mut self) -> Result<process::Output> {
         self.command
             .spawn()
+            .map_err(|_| anyhow!("Program {:?} not found", self.command.get_program()))
             .context("Failed spawning subprocess")?
             .wait_with_output()
             .context("Failed running subprocess")
