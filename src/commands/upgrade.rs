@@ -39,7 +39,7 @@ pub fn upgrade(force: bool) -> Result<()> {
         .context("Failed to replace current executable with the new one")?;
     fs::set_permissions(current_exe_path, permissions)?;
 
-    info!("Upgraded successful");
+    info!("Upgrade successful");
     Ok(())
 }
 
