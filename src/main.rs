@@ -109,17 +109,6 @@ fn cli() -> Command {
                 .about("List project's filters"),
         )
         .subcommand(
-            Command::new("update")
-                .aliases(["up", "upgrade"])
-                .about("Checks for update and installs it if available")
-                .arg(
-                    Arg::new("force")
-                        .short('f')
-                        .long("force")
-                        .action(ArgAction::SetTrue),
-                ),
-        )
-        .subcommand(
             Command::new("remove")
                 .alias("rm")
                 .about("Remove filter(s) from current project")
@@ -148,6 +137,16 @@ fn cli() -> Command {
                 .arg(Arg::new("tool_name").action(ArgAction::Set).required(true)),
         )
         .subcommand(
+            Command::new("upgrade")
+                .about("Upgrade rgl to the latest version")
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .action(ArgAction::SetTrue),
+                ),
+        )
+        .subcommand(
             Command::new("uninstall").about("Uninstall tool(s)").arg(
                 Arg::new("tools")
                     .num_args(1..)
@@ -170,9 +169,9 @@ fn cli() -> Command {
 
 fn run_command(matches: ArgMatches) -> Result<()> {
     let handle = match matches.subcommand_name() {
-        // Don't trigger update check when running these commands
-        Some("update" | "watch") => None,
-        _ => Some(thread::spawn(rgl::check_for_update)),
+        // Don't trigger version check when running these commands
+        Some("upgrade" | "watch") => None,
+        _ => Some(thread::spawn(rgl::version_check)),
     };
     match matches.subcommand() {
         Some(("add", matches)) => {
@@ -217,10 +216,6 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         Some(("list", _)) => {
             commands::list().context("Error listing installed filters")?;
         }
-        Some(("update", matches)) => {
-            let force = matches.get_flag("force");
-            commands::update(force).context("Error updating rgl")?;
-        }
         Some(("remove", matches)) => {
             let filters = matches
                 .get_many::<String>("filters")
@@ -244,6 +239,10 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::tool(tool_name, args)
                 .context(format!("Error running tool <b>{tool_name}</>"))?;
         }
+        Some(("upgrade", matches)) => {
+            let force = matches.get_flag("force");
+            commands::upgrade(force).context("Error upgrading rgl")?;
+        }
         Some(("uninstall", matches)) => {
             let tools = matches
                 .get_many::<String>("tools")
@@ -266,11 +265,11 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         match handle.join().unwrap() {
             Ok(version) => {
                 if let Some(version) = version {
-                    rgl::prompt_update(version)?
+                    rgl::prompt_upgrade(version)?
                 }
             }
             Err(e) => {
-                warn!("Update check failed");
+                warn!("Version check failed");
                 e.chain().for_each(|e| log!("<yellow>[?]</> {e}"));
             }
         }
