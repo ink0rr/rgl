@@ -60,6 +60,12 @@ fn cli() -> Command {
             Command::new("clean").about("Clean the current project's cache and build files"),
         )
         .subcommand(
+            Command::new("exec")
+                .alias("x")
+                .about("Executes a filter and apply changes to the current project")
+                .arg(Arg::new("filter").action(ArgAction::Set).required(true)),
+        )
+        .subcommand(
             Command::new("get")
                 .about("Get all filters defined in current project")
                 .arg(
@@ -183,6 +189,11 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         }
         Some(("clean", _)) => {
             commands::clean().context("Error cleaning files")?;
+        }
+        Some(("exec", matches)) => {
+            let filter = matches.get_one::<String>("filter").unwrap();
+            let args = env::args().skip(3).collect();
+            commands::exec(filter, args).context(format!("Error running filter <b>{filter}</>"))?;
         }
         Some(("get", matches)) => {
             let force = matches.get_flag("force");
