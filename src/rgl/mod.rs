@@ -15,7 +15,7 @@ mod paths;
 mod profile;
 mod resolver;
 mod session;
-mod update_check;
+mod version_check;
 
 pub use self::cache::*;
 pub use self::config::*;
@@ -34,4 +34,4 @@ pub use self::paths::*;
 pub use self::profile::*;
 pub use self::resolver::*;
 pub use self::session::*;
-pub use self::update_check::*;
+pub use self::version_check::*;

@@ -10,7 +10,7 @@ mod remove;
 mod run;
 mod tool;
 mod uninstall;
-mod update;
+mod upgrade;
 
 pub use self::add::*;
 pub use self::apply::*;
@@ -24,4 +24,4 @@ pub use self::remove::*;
 pub use self::run::*;
 pub use self::tool::*;
 pub use self::uninstall::*;
-pub use self::update::*;
+pub use self::upgrade::*;

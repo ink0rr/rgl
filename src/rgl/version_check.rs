@@ -44,13 +44,13 @@ pub fn fetch_latest_version() -> Result<String> {
 }
 
 /// Check if there is a new version available.
-pub fn check_for_update() -> Result<Option<String>> {
+pub fn version_check() -> Result<Option<String>> {
     let timestamp_path = get_timestamp_path()?;
-    let last_update_check = timestamp_path.metadata()?.modified()?;
+    let last_checked = timestamp_path.metadata()?.modified()?;
     let now = SystemTime::now();
-    let elapsed_hour = now.duration_since(last_update_check)?.as_secs() / 60 / 60;
+    let elapsed_hour = now.duration_since(last_checked)?.as_secs() / 60 / 60;
 
-    debug!("Last update check: {elapsed_hour} hour(s) ago");
+    debug!("Last version check: {elapsed_hour} hour(s) ago");
     if elapsed_hour > 24 {
         debug!("Fetching latest version info");
         let version = fetch_latest_version()?;
@@ -60,12 +60,12 @@ pub fn check_for_update() -> Result<Option<String>> {
     }
 }
 
-/// Prompt the user to update if there is a new version available.
-pub fn prompt_update(latest_version: String) -> Result<()> {
+/// Prompt the user to upgrade if there is a new version available.
+pub fn prompt_upgrade(latest_version: String) -> Result<()> {
     let current_version = crate_version!();
     if current_version != latest_version {
         log!("<green>A new version of rgl is available: <cyan>{current_version}</> → <cyan>{latest_version}</>");
-        log!("<bright-black><i>Run `rgl update` to install it</>");
+        log!("<bright-black><i>Run `rgl upgrade` to install it</>");
     }
     update_timestamp()
 }

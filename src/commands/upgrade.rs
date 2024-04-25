@@ -13,7 +13,7 @@ const TARGET: &str = env!("TARGET");
 
 const RELEASE_URL: &str = "https://github.com/ink0rr/rgl/releases";
 
-pub fn update(force: bool) -> Result<()> {
+pub fn upgrade(force: bool) -> Result<()> {
     info!("Looking up latest version");
     let current_version = crate_version!();
     let latest_version = fetch_latest_version()?;
@@ -29,7 +29,7 @@ pub fn update(force: bool) -> Result<()> {
     );
     let bytes = download_pkg(&url).context(format!("Failed downloading {url}"))?;
 
-    info!("Updating rgl to {latest_version}");
+    info!("Upgrading rgl to {latest_version}");
     let temp = tempdir()?;
     let current_exe_path = env::current_exe()?;
     let output_exe_path = extract_pkg(bytes, temp.path())?;
@@ -39,7 +39,7 @@ pub fn update(force: bool) -> Result<()> {
         .context("Failed to replace current executable with the new one")?;
     fs::set_permissions(current_exe_path, permissions)?;
 
-    info!("Update successful");
+    info!("Upgrade successful");
     Ok(())
 }
 
