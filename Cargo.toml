@@ -1,30 +1,30 @@
 [package]
 name = "rgl"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 
 [[bin]]
 name = "rgl"
 
 [dependencies]
-anyhow = "1.0.80"
-clap = { version = "4.5.2", features = ["cargo"] }
+anyhow = "1.0.82"
+clap = { version = "4.5.4", features = ["cargo"] }
 dialoguer = "0.11.0"
 dunce = "1.0.4"
-enum_dispatch = "0.3.12"
+enum_dispatch = "0.3.13"
 fslock = "0.2.1"
-indexmap = { version = "2.2.5", features = ["serde"] }
+indexmap = { version = "2.2.6", features = ["serde"] }
 md5 = "0.7.0"
 notify = "6.1.1"
 notify-debouncer-mini = "0.4.1"
 paris = { version = "1.5.15", features = ["macros"] }
-rayon = "1.9.0"
+rayon = "1.10.0"
 semver = "1.0.22"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+serde = { version = "1.0.198", features = ["derive"] }
+serde_json = "1.0.116"
 tempfile = "3.10.1"
 ureq = "2.9.6"
-uuid = { version = "1.7.0", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 walkdir = "2.5.0"
-which = "6.0.0"
+which = "6.0.1"
 zip = "0.6.6"

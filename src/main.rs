@@ -53,11 +53,18 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("apply")
+                .hide(true)
                 .about("Runs a filter to modify the current project's files")
                 .arg(Arg::new("filter").action(ArgAction::Set).required(true)),
         )
         .subcommand(
             Command::new("clean").about("Clean the current project's cache and build files"),
+        )
+        .subcommand(
+            Command::new("exec")
+                .alias("x")
+                .about("Executes a filter and apply changes to the current project")
+                .arg(Arg::new("filter").action(ArgAction::Set).required(true)),
         )
         .subcommand(
             Command::new("get")
@@ -136,6 +143,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("tool")
+                .hide(true)
                 .about("Runs a tool in the current project")
                 .arg(Arg::new("tool_name").action(ArgAction::Set).required(true)),
         )
@@ -178,11 +186,17 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         Some(("apply", matches)) => {
             let filter = matches.get_one::<String>("filter").unwrap();
             let args = env::args().skip(3).collect();
+            warn!("`rgl apply` function will change in the next version. Use `rgl exec` instead");
             commands::apply(filter, args)
                 .context(format!("Error applying filter <b>{filter}</>"))?;
         }
         Some(("clean", _)) => {
             commands::clean().context("Error cleaning files")?;
+        }
+        Some(("exec", matches)) => {
+            let filter = matches.get_one::<String>("filter").unwrap();
+            let args = env::args().skip(3).collect();
+            commands::exec(filter, args).context(format!("Error running filter <b>{filter}</>"))?;
         }
         Some(("get", matches)) => {
             let force = matches.get_flag("force");
@@ -226,6 +240,7 @@ fn run_command(matches: ArgMatches) -> Result<()> {
         Some(("tool", matches)) => {
             let tool_name = matches.get_one::<String>("tool_name").unwrap();
             let args = env::args().skip(3).collect();
+            warn!("`rgl tool` is deprecated. Use `rgl exec` instead");
             commands::tool(tool_name, args)
                 .context(format!("Error running tool <b>{tool_name}</>"))?;
         }
