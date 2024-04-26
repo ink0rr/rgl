@@ -1,5 +1,5 @@
 use super::{
-    get_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo, FilterNode, FilterPython,
+    get_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo, FilterNodejs, FilterPython,
     RemoteFilter,
 };
 use anyhow::{anyhow, Result};
@@ -51,7 +51,7 @@ pub enum LocalFilter {
     Deno(FilterDeno),
     Exe(FilterExe),
     Go(FilterGo),
-    Nodejs(FilterNode),
+    Nodejs(FilterNodejs),
     Python(FilterPython),
 }
 

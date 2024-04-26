@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterNode {
+pub struct FilterNodejs {
     pub script: String,
 }
 
-impl Filter for FilterNode {
+impl Filter for FilterNodejs {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
         Subprocess::new("node")
