@@ -8,7 +8,7 @@ name = "rgl"
 
 [dependencies]
 anyhow = "1.0.82"
-clap = { version = "4.5.4", features = ["cargo"] }
+clap = { version = "4.5.4", features = ["cargo", "derive"] }
 dialoguer = "0.11.0"
 dunce = "1.0.4"
 enum_dispatch = "0.3.13"

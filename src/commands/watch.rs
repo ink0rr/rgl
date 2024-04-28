@@ -3,19 +3,19 @@ use crate::rgl::run_or_watch;
 use anyhow::Result;
 use clap::Args;
 
-/// Runs rgl with specified profile
+/// Watch for file changes and restart automatically
 #[derive(Args)]
-pub struct Run {
+pub struct Watch {
     #[arg(default_value = "default")]
     profile: String,
-    /// Use previous run output as cache
+    /// Do not use previous run output as cache
     #[arg(long)]
-    cached: bool,
+    no_cache: bool,
 }
 
-impl Command for Run {
+impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(&self.profile, false, self.cached)
+        run_or_watch(&self.profile, true, !self.no_cache)
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)

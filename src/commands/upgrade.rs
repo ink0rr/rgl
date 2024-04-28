@@ -1,7 +1,8 @@
+use super::Command;
 use crate::info;
 use crate::rgl::fetch_latest_version;
 use anyhow::{Context, Result};
-use clap::crate_version;
+use clap::{crate_version, Args};
 use std::{
     env, fs, io,
     path::{Path, PathBuf},
@@ -13,34 +14,46 @@ const TARGET: &str = env!("TARGET");
 
 const RELEASE_URL: &str = "https://github.com/ink0rr/rgl/releases";
 
-pub fn upgrade(force: bool) -> Result<()> {
-    info!("Looking up latest version");
-    let current_version = crate_version!();
-    let latest_version = fetch_latest_version()?;
+/// Checks for new rgl version and installs it if available
+#[derive(Args)]
+pub struct Upgrade {
+    #[arg(short, long)]
+    force: bool,
+}
 
-    if !force && current_version == latest_version {
-        info!("Already up to date");
-        return Ok(());
+impl Command for Upgrade {
+    fn dispatch(&self) -> Result<()> {
+        info!("Looking up latest version");
+        let current_version = crate_version!();
+        let latest_version = fetch_latest_version()?;
+
+        if !self.force && current_version == latest_version {
+            info!("Already up to date");
+            return Ok(());
+        }
+        info!("Found latest version: {latest_version}");
+        let url = format!(
+            "{}/download/v{}/rgl-{}.zip",
+            RELEASE_URL, latest_version, TARGET
+        );
+        let bytes = download_pkg(&url).context(format!("Failed downloading {url}"))?;
+
+        info!("Upgrading rgl to {latest_version}");
+        let temp = tempdir()?;
+        let current_exe_path = env::current_exe()?;
+        let output_exe_path = extract_pkg(bytes, temp.path())?;
+        let permissions = current_exe_path.metadata()?.permissions();
+
+        replace_exe(&output_exe_path, &current_exe_path)
+            .context("Failed to replace current executable with the new one")?;
+        fs::set_permissions(current_exe_path, permissions)?;
+
+        info!("Upgrade successful");
+        Ok(())
     }
-    info!("Found latest version: {latest_version}");
-    let url = format!(
-        "{}/download/v{}/rgl-{}.zip",
-        RELEASE_URL, latest_version, TARGET
-    );
-    let bytes = download_pkg(&url).context(format!("Failed downloading {url}"))?;
-
-    info!("Upgrading rgl to {latest_version}");
-    let temp = tempdir()?;
-    let current_exe_path = env::current_exe()?;
-    let output_exe_path = extract_pkg(bytes, temp.path())?;
-    let permissions = current_exe_path.metadata()?.permissions();
-
-    replace_exe(&output_exe_path, &current_exe_path)
-        .context("Failed to replace current executable with the new one")?;
-    fs::set_permissions(current_exe_path, permissions)?;
-
-    info!("Upgrade successful");
-    Ok(())
+    fn error_context(&self) -> String {
+        "Error upgrading rgl".to_owned()
+    }
 }
 
 fn download_pkg(url: &str) -> Result<Vec<u8>> {
