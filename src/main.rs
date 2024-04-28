@@ -88,9 +88,9 @@ fn cli() -> Command {
         .subcommand(
             Command::new("install")
                 .alias("i")
-                .about("Install tool(s)")
+                .about("Install filter(s) globally")
                 .arg(
-                    Arg::new("tools")
+                    Arg::new("filters")
                         .num_args(1..)
                         .action(ArgAction::Set)
                         .required(true),
@@ -130,12 +130,6 @@ fn cli() -> Command {
                 ),
         )
         .subcommand(
-            Command::new("tool")
-                .hide(true)
-                .about("Runs a tool in the current project")
-                .arg(Arg::new("tool_name").action(ArgAction::Set).required(true)),
-        )
-        .subcommand(
             Command::new("upgrade")
                 .about("Upgrade rgl to the latest version")
                 .arg(
@@ -146,12 +140,14 @@ fn cli() -> Command {
                 ),
         )
         .subcommand(
-            Command::new("uninstall").about("Uninstall tool(s)").arg(
-                Arg::new("tools")
-                    .num_args(1..)
-                    .action(ArgAction::Set)
-                    .required(true),
-            ),
+            Command::new("uninstall")
+                .about("Uninstall globally installed filter(s)")
+                .arg(
+                    Arg::new("filters")
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
+                ),
         )
         .subcommand(
             Command::new("watch")
@@ -202,12 +198,12 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::init(force).context("Error initializing project")?;
         }
         Some(("install", matches)) => {
-            let tools = matches
-                .get_many::<String>("tools")
-                .map(|tools| tools.collect())
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect())
                 .unwrap();
             let force = matches.get_flag("force");
-            commands::install_tools(tools, force).context("Error installing tool")?;
+            commands::install_filters(filters, force).context("Error installing filter")?;
         }
         Some(("list", _)) => {
             commands::list().context("Error listing installed filters")?;
@@ -228,23 +224,16 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::run_or_watch(profile, false, cached)
                 .context(format!("Error running <b>{profile}</> profile"))?;
         }
-        Some(("tool", matches)) => {
-            let tool_name = matches.get_one::<String>("tool_name").unwrap();
-            let args = env::args().skip(3).collect();
-            warn!("`rgl tool` is deprecated. Use `rgl exec` instead");
-            commands::tool(tool_name, args)
-                .context(format!("Error running tool <b>{tool_name}</>"))?;
-        }
         Some(("upgrade", matches)) => {
             let force = matches.get_flag("force");
             commands::upgrade(force).context("Error upgrading rgl")?;
         }
         Some(("uninstall", matches)) => {
-            let tools = matches
-                .get_many::<String>("tools")
-                .map(|tools| tools.collect())
+            let filters = matches
+                .get_many::<String>("filters")
+                .map(|filters| filters.collect())
                 .unwrap();
-            commands::uninstall_tools(tools).context("Error uninstalling tool(s)")?;
+            commands::uninstall_filters(filters).context("Error uninstalling filter(s)")?;
         }
         Some(("watch", matches)) => {
             let profile = match matches.get_one::<String>("profile") {

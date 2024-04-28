@@ -23,16 +23,14 @@ pub fn exec(filter_name: &str, run_args: Vec<String>) -> Result<()> {
         filter.run(&context, &temp, &run_args)?;
     } else {
         info!("Running global filter <b>{filter_name}</>");
-        let context = FilterContext::new(FilterType::Tool, filter_name)?;
+        let context = FilterContext::new(FilterType::Global, filter_name)?;
         let config_path = context.filter_dir.join("filter.json");
         let config = read_json::<RemoteFilterConfig>(config_path).context(format!(
-            "Failed to load config for tool <b>{filter_name}</>"
+            "Failed to load config for filter <b>{filter_name}</>"
         ))?;
-
         for filter in config.filters {
             filter.run(&context, &temp, &run_args)?;
         }
     }
-
     session.unlock()
 }

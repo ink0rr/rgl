@@ -3,14 +3,14 @@ use crate::rgl::FilterType;
 use crate::{info, warn};
 use anyhow::Result;
 
-pub fn uninstall_tools(tools: Vec<&String>) -> Result<()> {
-    for name in tools {
-        let filter_dir = FilterType::Tool.cache_dir(name)?;
+pub fn uninstall_filters(filters: Vec<&String>) -> Result<()> {
+    for name in filters {
+        let filter_dir = FilterType::Global.cache_dir(name)?;
         if filter_dir.exists() {
             rimraf(filter_dir)?;
-            info!("Uninstalled tool <b>{name}</>");
+            info!("Uninstalled filter <b>{name}</>");
         } else {
-            warn!("Tool <b>{name}</> not found");
+            warn!("Filter <b>{name}</> not found");
         }
     }
     Ok(())

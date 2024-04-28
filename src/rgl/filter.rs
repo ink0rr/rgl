@@ -58,7 +58,7 @@ pub enum LocalFilter {
 pub enum FilterType {
     Local,
     Remote,
-    Tool,
+    Global,
 }
 
 impl FilterType {
@@ -69,7 +69,7 @@ impl FilterType {
                 .join("cache")
                 .join("filters")
                 .join(name),
-            FilterType::Tool => get_cache_dir()?.join("tools").join(name),
+            FilterType::Global => get_cache_dir()?.join("global-filters").join(name),
         };
         Ok(dir)
     }
@@ -91,8 +91,8 @@ impl FilterContext {
                     FilterType::Remote => {
                         anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
                     }
-                    FilterType::Tool => anyhow!(
-                        "Tool <b>{name}</> is not installed, run `rgl install {name}` to install it"
+                    FilterType::Global => anyhow!(
+                        "Filter <b>{name}</> is not installed, run `rgl install {name}` to install it"
                     ),
                 },
             )?,
