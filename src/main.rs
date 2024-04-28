@@ -53,9 +53,8 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("apply")
-                .hide(true)
-                .about("Runs a filter to modify the current project's files")
-                .arg(Arg::new("filter").action(ArgAction::Set).required(true)),
+                .about("Runs a profile and apply changes to the current project")
+                .arg(Arg::new("profile").action(ArgAction::Set).required(true)),
         )
         .subcommand(
             Command::new("clean").about("Clean the current project's cache and build files"),
@@ -183,11 +182,8 @@ fn run_command(matches: ArgMatches) -> Result<()> {
             commands::add_filters(filters, force).context("Error adding filter(s)")?;
         }
         Some(("apply", matches)) => {
-            let filter = matches.get_one::<String>("filter").unwrap();
-            let args = env::args().skip(3).collect();
-            warn!("`rgl apply` function will change in the next version. Use `rgl exec` instead");
-            commands::apply(filter, args)
-                .context(format!("Error applying filter <b>{filter}</>"))?;
+            let profile = matches.get_one::<String>("profile").unwrap();
+            commands::apply(profile).context(format!("Error applying profile <b>{profile}</>"))?;
         }
         Some(("clean", _)) => {
             commands::clean().context("Error cleaning files")?;

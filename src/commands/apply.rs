@@ -1,10 +1,10 @@
 use crate::fs::{empty_dir, try_symlink};
-use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, Session};
+use crate::rgl::{Config, Session};
+use crate::{info, measure_time};
 use anyhow::Result;
 use std::path::Path;
 
-pub fn apply(filter_name: &str, run_args: Vec<String>) -> Result<()> {
+pub fn apply(profile_name: &str) -> Result<()> {
     let config = Config::load()?;
     let mut session = Session::lock()?;
 
@@ -17,10 +17,11 @@ pub fn apply(filter_name: &str, run_args: Vec<String>) -> Result<()> {
     try_symlink(config.get_resource_pack(), temp_rp)?;
     try_symlink(config.get_data_path(), temp.join("data"))?;
 
-    let filter = config.get_filter(filter_name)?;
-    let context = FilterContext::new(filter.get_type(), filter_name)?;
-    filter.run(&context, &temp, &run_args)?;
-    info!("Successfully applied filter <b>{filter_name}</>");
-
+    let profile = config.get_profile(profile_name)?;
+    measure_time!(profile_name, {
+        info!("Running <b>{profile_name}</> profile");
+        profile.run(&config, &temp, profile_name)?;
+    });
+    info!("Successfully applied profile <b>{profile_name}</>");
     session.unlock()
 }
