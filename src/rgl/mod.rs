@@ -16,6 +16,7 @@ mod profile;
 mod resolver;
 mod runner;
 mod session;
+mod user_config;
 mod version_check;
 
 pub use self::cache::*;
@@ -36,4 +37,5 @@ pub use self::profile::*;
 pub use self::resolver::*;
 pub use self::runner::*;
 pub use self::session::*;
+pub use self::user_config::*;
 pub use self::version_check::*;

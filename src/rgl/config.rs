@@ -1,5 +1,6 @@
 use super::{
     ref_to_version, Export, FilterDefinition, FilterInstaller, FilterRunner, Profile, RemoteFilter,
+    UserConfig,
 };
 use crate::fs::{read_json, write_json};
 use crate::watcher::Watcher;
@@ -59,7 +60,7 @@ impl Config {
         );
         Self {
             schema: "https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json".to_owned(),
-            author: "Your name".to_owned(),
+            author: UserConfig::username(),
             name,
             packs: Packs{
                 behavior_pack: "./packs/BP".to_owned(),
