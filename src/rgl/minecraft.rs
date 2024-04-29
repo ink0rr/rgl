@@ -1,12 +1,10 @@
+use super::UserConfig;
 use anyhow::Result;
 use std::env;
 use std::path::PathBuf;
 
 #[cfg(target_os = "linux")]
-pub fn find_mojang_dir() -> Result<PathBuf> {
-    if let Ok(com_mojang) = env::var("COM_MOJANG") {
-        return Ok(PathBuf::from(com_mojang));
-    }
+pub fn mojang_dir() -> Result<PathBuf> {
     let home = env::var("HOME")?;
     Ok(PathBuf::from(home)
         .join(".local")
@@ -17,10 +15,7 @@ pub fn find_mojang_dir() -> Result<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn find_mojang_dir() -> Result<PathBuf> {
-    if let Ok(com_mojang) = env::var("COM_MOJANG") {
-        return Ok(PathBuf::from(com_mojang));
-    }
+pub fn mojang_dir() -> Result<PathBuf> {
     let home = env::var("HOME")?;
     Ok(PathBuf::from(home)
         .join("Library")
@@ -31,7 +26,7 @@ pub fn find_mojang_dir() -> Result<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn find_mojang_dir() -> Result<PathBuf> {
+fn mojang_dir() -> Result<PathBuf> {
     let localappdata = env::var("LocalAppData")?;
     Ok(PathBuf::from(localappdata)
         .join("Packages")
@@ -39,4 +34,11 @@ pub fn find_mojang_dir() -> Result<PathBuf> {
         .join("LocalState")
         .join("games")
         .join("com.mojang"))
+}
+
+pub fn find_mojang_dir() -> Result<PathBuf> {
+    if let Some(com_mojang) = UserConfig::mojang_dir() {
+        return Ok(PathBuf::from(com_mojang));
+    }
+    mojang_dir()
 }

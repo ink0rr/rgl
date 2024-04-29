@@ -10,6 +10,7 @@ pub struct UserConfig {
     pub username: String,
     #[serde(default = "default_resolvers")]
     pub resolvers: Vec<String>,
+    pub mojang_dir: Option<String>,
 }
 
 impl UserConfig {
@@ -17,6 +18,7 @@ impl UserConfig {
         Self {
             username: default_username(),
             resolvers: default_resolvers(),
+            mojang_dir: None,
         }
     }
 
@@ -26,6 +28,10 @@ impl UserConfig {
 
     pub fn resolvers() -> Vec<String> {
         get_user_config().resolvers.to_owned()
+    }
+
+    pub fn mojang_dir() -> Option<String> {
+        get_user_config().mojang_dir.to_owned()
     }
 }
 
