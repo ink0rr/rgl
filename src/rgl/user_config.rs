@@ -11,6 +11,8 @@ pub struct UserConfig {
     #[serde(default = "default_resolvers")]
     pub resolvers: Vec<String>,
     pub mojang_dir: Option<String>,
+    pub nodejs_runtime: Option<String>,
+    pub nodejs_package_manager: Option<String>,
 }
 
 impl UserConfig {
@@ -19,6 +21,8 @@ impl UserConfig {
             username: default_username(),
             resolvers: default_resolvers(),
             mojang_dir: None,
+            nodejs_runtime: None,
+            nodejs_package_manager: None,
         }
     }
 
@@ -32,6 +36,23 @@ impl UserConfig {
 
     pub fn mojang_dir() -> Option<String> {
         get_user_config().mojang_dir.to_owned()
+    }
+
+    pub fn nodejs_runtime() -> String {
+        get_user_config()
+            .nodejs_runtime
+            .to_owned()
+            .unwrap_or("node".to_owned())
+    }
+
+    pub fn nodejs_package_manager() -> String {
+        get_user_config()
+            .nodejs_package_manager
+            .to_owned()
+            .unwrap_or(match cfg!(windows) {
+                true => "npm.cmd".to_owned(),
+                false => "npm".to_owned(),
+            })
     }
 }
 
