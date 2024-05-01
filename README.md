@@ -34,13 +34,13 @@ Results may vary depending on your machine, project size, and what kind of filte
 Shell (Mac, Linux):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ink0rr/rgl/main/scripts/install.sh | sh
+curl -fsSL rgl.ink0rr.dev/install.sh | sh
 ```
 
 PowerShell (Windows):
 
 ```powershell
-irm https://raw.githubusercontent.com/ink0rr/rgl/main/scripts/install.ps1 | iex
+irm rgl.ink0rr.dev/install.ps1 | iex
 ```
 
 ### Uninstall
