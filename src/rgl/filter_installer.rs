@@ -87,16 +87,24 @@ impl FilterInstaller {
                 .run_silent()?;
         } else {
             empty_dir(&cache_dir)?;
-            Subprocess::new("git")
+            let clone = Subprocess::new("git")
                 .args(vec!["clone", &https_url, "."])
                 .current_dir(&cache_dir)
                 .run_silent()?;
+
+            if !clone.status.success() {
+                bail!("Failed to clone `{}`", https_url);
+            }
         }
 
-        Subprocess::new("git")
+        let checkout = Subprocess::new("git")
             .args(vec!["checkout", &self.git_ref])
             .current_dir(&cache_dir)
             .run_silent()?;
+
+        if !checkout.status.success() {
+            bail!("Failed to checkout ref `{}`", self.git_ref);
+        }
 
         copy_dir(cache_dir.join(name), &filter_dir)?;
 
