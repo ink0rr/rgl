@@ -54,7 +54,7 @@ struct Cli {
     #[command(subcommand)]
     subcommand: Subcommands,
     /// Print debug messages
-    #[arg(long)]
+    #[arg(long, global = true)]
     debug: bool,
 }
 
