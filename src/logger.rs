@@ -106,6 +106,6 @@ macro_rules! measure_time {
     ($label:expr, $code:expr) => {
         let start_time = std::time::Instant::now();
         $code;
-        $crate::debug!("{} took {}ms", $label, start_time.elapsed().as_millis());
+        $crate::debug!("{}: {}ms", $label, start_time.elapsed().as_millis());
     };
 }

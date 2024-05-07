@@ -28,9 +28,11 @@ fn run_command(cli: Cli) -> Result<()> {
         Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,
         _ => Some(thread::spawn(rgl::version_check)),
     };
-    cli.subcommand
-        .dispatch()
-        .with_context(|| cli.subcommand.error_context())?;
+    measure_time!("Total time", {
+        cli.subcommand
+            .dispatch()
+            .with_context(|| cli.subcommand.error_context())?;
+    });
     if let Some(handle) = handle {
         match handle.join().unwrap() {
             Ok(version) => {

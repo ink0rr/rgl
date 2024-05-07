@@ -1,12 +1,10 @@
 use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, try_symlink};
 use crate::rgl::{copy_dir_cached, Config, Session};
-use crate::{debug, info, measure_time, warn};
+use crate::{info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::fs::create_dir_all;
-use std::time;
 
 pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()> {
-    let start_time = time::Instant::now();
     let config = Config::load()?;
     let mut session = Session::lock()?;
 
@@ -18,7 +16,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
 
-    measure_time!("Setup temp dir", {
+    measure_time!("Setup temp", {
         if cached {
             create_dir_all(&temp)?;
             copy_dir_cached(bp, &temp_bp, &target_bp)?;
@@ -41,26 +39,23 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
         profile.run(&config, &temp, profile_name)?;
     });
 
-    measure_time!("Export project", {
-        info!(
-            "Moving files to target location: \n\
-             \tBP: {} \n\
-             \tRP: {}",
-            target_bp.display(),
-            target_rp.display()
-        );
-        let export = || -> Result<()> {
-            if !cached {
-                move_dir(temp_bp, target_bp)?;
-                move_dir(temp_rp, target_rp)?;
-            }
-            Ok(())
-        };
-        export().context("Failed to export project")?;
-    });
+    info!(
+        "Moving files to target location: \n\
+         \tBP: {} \n\
+         \tRP: {}",
+        target_bp.display(),
+        target_rp.display()
+    );
+    let export = || -> Result<()> {
+        if !cached {
+            move_dir(temp_bp, target_bp)?;
+            move_dir(temp_rp, target_rp)?;
+        }
+        Ok(())
+    };
+    export().context("Failed to export project")?;
 
     info!("Successfully ran the <b>{profile_name}</> profile");
-    debug!("Total time: {}ms", start_time.elapsed().as_millis());
     if watch {
         info!("Watching for changes...");
         info!("Press Ctrl+C to stop watching");
