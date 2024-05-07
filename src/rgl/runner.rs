@@ -1,5 +1,5 @@
 use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, try_symlink};
-use crate::rgl::{copy_dir_cached, Config, Session};
+use crate::rgl::{copy_changed, Config, Session};
 use crate::{info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::fs::create_dir_all;
@@ -19,8 +19,14 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     measure_time!("Setup temp", {
         if cached {
             create_dir_all(&temp)?;
-            copy_dir_cached(bp, &temp_bp, &target_bp)?;
-            copy_dir_cached(rp, &temp_rp, &target_rp)?;
+            if !temp_bp.is_symlink() {
+                try_symlink(&target_bp, &temp_bp)?;
+            }
+            if !temp_rp.is_symlink() {
+                try_symlink(&target_rp, &temp_rp)?;
+            }
+            copy_changed(bp, &target_bp)?;
+            copy_changed(rp, &target_rp)?;
         } else {
             empty_dir(&temp)?;
             rimraf(&target_bp)?;

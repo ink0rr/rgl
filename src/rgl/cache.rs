@@ -1,4 +1,4 @@
-use crate::fs::{copy_dir, rimraf, try_symlink};
+use crate::fs::{copy_dir, rimraf};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::{
@@ -7,33 +7,25 @@ use std::{
     path::Path,
 };
 
-pub fn copy_dir_cached(
-    from: impl AsRef<Path>,
-    to: impl AsRef<Path>,
-    cache: impl AsRef<Path>,
-) -> Result<()> {
+/// Copy files from the source directory to the target directory, but only if they are different.
+pub fn copy_changed(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
     let from = from.as_ref();
     let to = to.as_ref();
-    let cache = cache.as_ref();
-    if !to.is_symlink() {
-        try_symlink(cache, to)?;
-    }
-    if cache.is_dir() {
-        copy_cached(from, cache).context(format!(
+    if to.is_dir() {
+        copy_changed_impl(from, to).context(format!(
             "Failed to copy directory\n\
              <yellow> >></> From: {}\n\
              <yellow> >></> To: {}",
             from.display(),
-            cache.display(),
+            to.display(),
         ))?;
-        cleanup(from, cache)
+        cleanup(from, to)
     } else {
-        copy_dir(from, cache)
+        copy_dir(from, to)
     }
 }
 
-/// Copy files from the source directory to the target directory, but only if they are different.
-fn copy_cached(from: &Path, to: &Path) -> Result<()> {
+fn copy_changed_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
     fs::read_dir(from)?
         .par_bridge()
@@ -45,7 +37,7 @@ fn copy_cached(from: &Path, to: &Path) -> Result<()> {
                 if to.is_file() {
                     fs::remove_file(&to)?;
                 }
-                return copy_cached(&from, &to);
+                return copy_changed_impl(&from, &to);
             }
             if to.is_dir() {
                 rimraf(&to)?;
@@ -68,16 +60,16 @@ fn cleanup(from: &Path, to: &Path) -> Result<()> {
             let to = entry.path();
             let is_dir = to.is_dir();
             if !from.exists() {
-                return match is_dir {
-                    true => rimraf(&to),
-                    false => fs::remove_file(&to).context(format!(
+                if is_dir {
+                    rimraf(to)?;
+                } else {
+                    fs::remove_file(&to).context(format!(
                         "Failed to remove file\n\
                          <yellow> >></> Path: {}",
                         to.display(),
-                    )),
-                };
-            }
-            if is_dir {
+                    ))?;
+                }
+            } else if is_dir {
                 cleanup(&from, &to)?;
             }
             Ok(())
