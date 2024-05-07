@@ -4,30 +4,35 @@ Fast and minimal implementation of Regolith.
 
 ## Benchmark
 
-Benchmark result on a project with ~2300 files, no filters, and a total size of 9.2MB.
+Benchmark result on a project with ~2700 files, no filters, and a total size of 14MB.
 
 ```
-$ hyperfine --warmup 2 --runs 10 --setup 'rgl clean' 'regolith run build' 'rgl run build' 'rgl run build --cached'
+$ hyperfine --warmup 3 --runs 10 --setup 'rgl clean' 'regolith run' 'regolith run --experiments size_time_check' 'rgl run' 'rgl run --cached'
 
-Benchmark 1: regolith run build
-  Time (mean ± σ):      1.277 s ±  0.019 s    [User: 0.028 s, System: 0.270 s]
-  Range (min … max):    1.256 s …  1.309 s    10 runs
+Benchmark 1: regolith run
+  Time (mean ± σ):      1.543 s ±  0.017 s    [User: 0.037 s, System: 0.427 s]
+  Range (min … max):    1.511 s …  1.577 s    10 runs
 
-Benchmark 2: rgl run build
-  Time (mean ± σ):     278.0 ms ±  12.6 ms    [User: 9.4 ms, System: 135.3 ms]
-  Range (min … max):   260.8 ms … 306.8 ms    10 runs
+Benchmark 2: regolith run --experiments size_time_check
+  Time (mean ± σ):     438.5 ms ±   7.2 ms    [User: 15.2 ms, System: 62.5 ms]
+  Range (min … max):   429.1 ms … 448.7 ms    10 runs
 
-Benchmark 3: rgl run build --cached
-  Time (mean ± σ):      69.2 ms ±   0.8 ms    [User: 3.1 ms, System: 54.1 ms]
-  Range (min … max):    68.2 ms …  70.4 ms    10 runs
+Benchmark 3: rgl run
+  Time (mean ± σ):     384.8 ms ±  10.4 ms    [User: 44.8 ms, System: 614.1 ms]
+  Range (min … max):   364.1 ms … 402.8 ms    10 runs
+
+Benchmark 4: rgl run --cached
+  Time (mean ± σ):      76.1 ms ±   1.2 ms    [User: 10.6 ms, System: 46.9 ms]
+  Range (min … max):    74.0 ms …  77.8 ms    10 runs
 
 Summary
-  rgl run build --cached ran
-    4.02 ± 0.19 times faster than rgl run build
-   18.46 ± 0.34 times faster than regolith run build
+  rgl run --cached ran
+    5.06 ± 0.16 times faster than rgl run
+    5.76 ± 0.13 times faster than regolith run --experiments size_time_check
+   20.28 ± 0.39 times faster than regolith run
 ```
 
-Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 4x faster than Regolith and 18x faster when using the `--cached` flag.
+Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 4x faster than Regolith and 20x faster when using the `--cached` flag.
 
 ### Install
 
