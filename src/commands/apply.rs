@@ -1,6 +1,6 @@
 use super::Command;
-use crate::fs::{empty_dir, try_symlink};
-use crate::rgl::{Config, Session};
+use crate::fs::{copy_dir, empty_dir, try_symlink};
+use crate::rgl::{copy_changed, Config, Session};
 use crate::{info, measure_time};
 use anyhow::Result;
 use clap::Args;
@@ -17,13 +17,16 @@ impl Command for Apply {
         let config = Config::load()?;
         let mut session = Session::lock()?;
 
+        let bp = config.get_behavior_pack();
+        let rp = config.get_resource_pack();
+
         let temp = Path::new(".regolith").join("tmp");
         let temp_bp = temp.join("BP");
         let temp_rp = temp.join("RP");
 
         empty_dir(&temp)?;
-        try_symlink(config.get_behavior_pack(), temp_bp)?;
-        try_symlink(config.get_resource_pack(), temp_rp)?;
+        copy_dir(&bp, &temp_bp)?;
+        copy_dir(&rp, &temp_rp)?;
         try_symlink(config.get_data_path(), temp.join("data"))?;
 
         let profile = config.get_profile(&self.profile)?;
@@ -31,6 +34,17 @@ impl Command for Apply {
             info!("Running <b>{}</> profile", self.profile);
             profile.run(&config, &temp, &self.profile)?;
         });
+
+        info!(
+            "Applying changes to source directory: \n\
+             \tBP: {} \n\
+             \tRP: {}",
+            bp.display(),
+            rp.display()
+        );
+        copy_changed(temp_bp, bp)?;
+        copy_changed(temp_rp, rp)?;
+
         info!("Successfully applied profile <b>{}</>", self.profile);
         session.unlock()
     }
