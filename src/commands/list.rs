@@ -1,8 +1,8 @@
 use super::Command;
+use crate::log;
 use crate::rgl::{Config, FilterDefinition};
 use anyhow::{Context, Result};
 use clap::Args;
-use paris::log;
 
 /// List filters defined in the `config.json` file
 #[derive(Args)]

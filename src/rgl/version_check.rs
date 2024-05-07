@@ -1,8 +1,7 @@
-use crate::debug;
 use crate::rgl::get_cache_dir;
+use crate::{debug, log};
 use anyhow::{Context, Result};
 use clap::crate_version;
-use paris::log;
 use std::{
     env, fs,
     path::PathBuf,

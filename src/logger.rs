@@ -1,39 +1,103 @@
-use std::sync::Mutex;
+use std::{
+    fmt::Display,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex, MutexGuard, OnceLock,
+    },
+};
 
-pub static DEBUG: Mutex<bool> = Mutex::new(false);
+static DEBUG_FLAG: AtomicBool = AtomicBool::new(false);
 
-pub fn init(debug: bool) {
-    let mut guard = DEBUG.lock().unwrap();
-    *guard = debug;
+fn get_logger() -> MutexGuard<'static, paris::Logger<'static>> {
+    static LOGGER: OnceLock<Mutex<paris::Logger<'static>>> = OnceLock::new();
+    let logger = LOGGER.get_or_init(|| Mutex::new(paris::Logger::new()));
+    logger.lock().unwrap()
+}
+
+pub struct Logger;
+
+impl Logger {
+    pub fn log<T: Display>(message: T) {
+        get_logger().log(message);
+    }
+
+    pub fn info<T: Display>(message: T) {
+        Logger::log(format!("<blue>[INFO]</> {}", message));
+    }
+
+    pub fn warn<T: Display>(message: T) {
+        Logger::log(format!("<yellow>[WARN]</> {}", message));
+    }
+
+    pub fn error<T: Display>(message: T) {
+        Logger::log(format!("<red>[ERROR]</> {}", message));
+    }
+
+    pub fn set_debug(debug: bool) {
+        DEBUG_FLAG.store(debug, Ordering::Relaxed);
+    }
+
+    pub fn debug<T: Display>(message: T) {
+        if DEBUG_FLAG.load(Ordering::Relaxed) {
+            Logger::log(format!("<magenta>[DEBUG]</> {}", message))
+        }
+    }
+
+    pub fn loading<T: Display>(message: T) {
+        get_logger().loading(message);
+    }
+
+    pub fn success<T: Display>(message: T) {
+        Logger::log(format!("<green>[DONE]</> {}", message));
+    }
+}
+
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {
+        $crate::logger::Logger::log(format!($($arg)*))
+    }
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        paris::output::format_stdout(format!("<blue>[INFO]</> {}", format!($($arg)*)), "\n")
-    }
-}
-
-#[macro_export]
-macro_rules! error {
-    ($($arg:tt)*) => {
-        paris::output::format_stdout(format!("<red>[ERROR]</> {}", format!($($arg)*)), "\n")
+        $crate::logger::Logger::info(format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! warn {
     ($($arg:tt)*) => {
-        paris::output::format_stdout(format!("<yellow>[WARN]</> {}", format!($($arg)*)), "\n")
+        $crate::logger::Logger::warn(format!($($arg)*))
+    }
+}
+
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)*) => {
+        $crate::logger::Logger::error(format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
-        if *$crate::logger::DEBUG.lock().unwrap() {
-            paris::output::format_stdout(format!("<magenta>[DEBUG]</> {}", format!($($arg)*)), "\n")
-        }
+        $crate::logger::Logger::debug(format!($($arg)*))
+    }
+}
+
+#[macro_export]
+macro_rules! loading {
+    ($($arg:tt)*) => {
+        $crate::logger::Logger::loading(format!($($arg)*))
+    }
+}
+
+#[macro_export]
+macro_rules! success {
+    ($($arg:tt)*) => {
+        $crate::logger::Logger::success(format!($($arg)*))
     }
 }
 

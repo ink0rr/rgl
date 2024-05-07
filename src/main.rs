@@ -9,12 +9,12 @@ use anyhow::{Context, Result};
 use clap::{crate_name, Parser, Subcommand};
 use commands::*;
 use enum_dispatch::enum_dispatch;
-use paris::log;
+use logger::Logger;
 use std::thread;
 
 fn main() {
     let cli = Cli::parse();
-    logger::init(cli.debug);
+    Logger::set_debug(cli.debug);
     if let Err(e) = run_command(cli) {
         error!("{}", e);
         e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));

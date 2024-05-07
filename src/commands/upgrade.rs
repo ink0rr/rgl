@@ -1,6 +1,6 @@
 use super::Command;
-use crate::info;
 use crate::rgl::fetch_latest_version;
+use crate::{info, loading, success};
 use anyhow::{Context, Result};
 use clap::{crate_version, Args};
 use std::{
@@ -57,14 +57,13 @@ impl Command for Upgrade {
 }
 
 fn download_pkg(url: &str) -> Result<Vec<u8>> {
-    let mut logger = paris::Logger::new();
-    logger.loading(format!("Downloading {url}"));
+    loading!("Downloading {url}");
 
     let mut reader = ureq::get(url).call()?.into_reader();
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes)?;
 
-    logger.log(format!("<green>[SUCCESS]</> Downloaded {url}"));
+    success!("Downloaded {url}");
     Ok(bytes)
 }
 
