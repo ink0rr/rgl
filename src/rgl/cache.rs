@@ -1,4 +1,4 @@
-use crate::fs::{copy_dir, rimraf, symlink};
+use crate::fs::{copy_dir, rimraf, try_symlink};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::{
@@ -15,19 +15,20 @@ pub fn copy_dir_cached(
     let from = from.as_ref();
     let to = to.as_ref();
     let cache = cache.as_ref();
+    if !to.is_symlink() {
+        try_symlink(cache, to)?;
+    }
     if cache.is_dir() {
-        symlink(cache, to)?;
-        copy_cached(from, to).context(format!(
+        copy_cached(from, cache).context(format!(
             "Failed to copy directory\n\
              <yellow> >></> From: {}\n\
              <yellow> >></> To: {}",
             from.display(),
-            to.display(),
+            cache.display(),
         ))?;
-        cleanup(from, to)
+        cleanup(from, cache)
     } else {
-        copy_dir(from, cache)?;
-        symlink(cache, to)
+        copy_dir(from, cache)
     }
 }
 
