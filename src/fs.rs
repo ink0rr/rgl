@@ -1,7 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use dunce::canonicalize;
 use rayon::prelude::*;
-use std::{fs, io, path::Path};
+use std::{
+    fs,
+    io::{self, BufRead, BufReader},
+    path::Path,
+};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
@@ -169,4 +173,103 @@ where
          <yellow> >></> Path: {}",
         path.display()
     ))
+}
+
+/// Sync target directory with source directory.
+pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()> {
+    let source = source.as_ref();
+    let target = target.as_ref();
+    if target.is_dir() {
+        sync_dir_impl(source, target).context(format!(
+            "Failed to copy directory\n\
+             <yellow> >></> From: {}\n\
+             <yellow> >></> To: {}",
+            source.display(),
+            target.display(),
+        ))?;
+        cleanup(source, target)
+    } else {
+        copy_dir(source, target)
+    }
+}
+
+fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
+    fs::create_dir_all(target)?;
+    fs::read_dir(source)?
+        .par_bridge()
+        .map(|entry| -> Result<()> {
+            let entry = entry?;
+            let source = entry.path();
+            let target = target.join(entry.file_name());
+            if source.is_dir() {
+                if target.is_file() {
+                    fs::remove_file(&target)?;
+                }
+                return sync_dir_impl(&source, &target);
+            }
+            if target.is_dir() {
+                rimraf(&target)?;
+            }
+            if !diff(&source, &target)? {
+                fs::copy(source, target)?;
+            }
+            Ok(())
+        })
+        .collect()
+}
+
+/// Remove files that are not present in the source directory.
+fn cleanup(source: &Path, target: &Path) -> Result<()> {
+    fs::read_dir(target)?
+        .par_bridge()
+        .map(|entry| -> Result<()> {
+            let entry = entry?;
+            let source = source.join(entry.file_name());
+            let target = entry.path();
+            let is_dir = target.is_dir();
+            if !source.exists() {
+                if is_dir {
+                    rimraf(target)?;
+                } else {
+                    fs::remove_file(&target).context(format!(
+                        "Failed to remove file\n\
+                         <yellow> >></> Path: {}",
+                        target.display(),
+                    ))?;
+                }
+            } else if is_dir {
+                cleanup(&source, &target)?;
+            }
+            Ok(())
+        })
+        .collect()
+}
+
+/// Compare two file contents. Return true if they are identical.
+fn diff(a: &Path, b: &Path) -> Result<bool> {
+    let a = fs::File::open(a);
+    let b = fs::File::open(b);
+    if a.is_err() || b.is_err() {
+        return Ok(false);
+    }
+    let mut a_reader = BufReader::new(a.unwrap());
+    let mut b_reader = BufReader::new(b.unwrap());
+    if a_reader.capacity() != b_reader.capacity() {
+        return Ok(false);
+    }
+    loop {
+        let len = {
+            let a_buf = a_reader.fill_buf()?;
+            let b_buf = b_reader.fill_buf()?;
+            if a_buf.is_empty() && b_buf.is_empty() {
+                return Ok(true);
+            }
+            if a_buf != b_buf {
+                return Ok(false);
+            }
+            a_buf.len()
+        };
+        a_reader.consume(len);
+        b_reader.consume(len);
+    }
 }

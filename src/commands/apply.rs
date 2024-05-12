@@ -1,6 +1,6 @@
 use super::Command;
-use crate::fs::{copy_dir, empty_dir, try_symlink};
-use crate::rgl::{copy_changed, Config, Session};
+use crate::fs::{copy_dir, empty_dir, sync_dir, try_symlink};
+use crate::rgl::{Config, Session};
 use crate::{info, measure_time};
 use anyhow::Result;
 use clap::Args;
@@ -42,8 +42,8 @@ impl Command for Apply {
             bp.display(),
             rp.display()
         );
-        copy_changed(temp_bp, bp)?;
-        copy_changed(temp_rp, rp)?;
+        sync_dir(temp_bp, bp)?;
+        sync_dir(temp_rp, rp)?;
 
         info!("Successfully applied profile <b>{}</>", self.profile);
         session.unlock()

@@ -1,5 +1,5 @@
-use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, try_symlink};
-use crate::rgl::{copy_changed, Config, Session};
+use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, sync_dir, try_symlink};
+use crate::rgl::{Config, Session};
 use crate::{info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::fs::create_dir_all;
@@ -25,8 +25,8 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
             if !temp_rp.is_symlink() {
                 try_symlink(&target_rp, &temp_rp)?;
             }
-            copy_changed(bp, &target_bp)?;
-            copy_changed(rp, &target_rp)?;
+            sync_dir(bp, &target_bp)?;
+            sync_dir(rp, &target_rp)?;
         } else {
             empty_dir(&temp)?;
             rimraf(&target_bp)?;

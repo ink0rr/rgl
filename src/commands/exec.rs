@@ -1,9 +1,7 @@
 use super::Command;
-use crate::fs::{copy_dir, empty_dir, read_json, try_symlink};
+use crate::fs::{copy_dir, empty_dir, read_json, sync_dir, try_symlink};
 use crate::info;
-use crate::rgl::{
-    copy_changed, Config, Filter, FilterContext, FilterType, RemoteFilterConfig, Session,
-};
+use crate::rgl::{Config, Filter, FilterContext, FilterType, RemoteFilterConfig, Session};
 use anyhow::{Context, Result};
 use clap::Args;
 use std::path::Path;
@@ -57,8 +55,8 @@ impl Command for Exec {
             bp.display(),
             rp.display()
         );
-        copy_changed(temp_bp, bp)?;
-        copy_changed(temp_rp, rp)?;
+        sync_dir(temp_bp, bp)?;
+        sync_dir(temp_rp, rp)?;
 
         info!("Successfully executed filter <b>{}</>", self.filter);
         session.unlock()

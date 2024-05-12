@@ -1,4 +1,3 @@
-mod cache;
 mod config;
 mod filter;
 mod filter_deno;
@@ -18,7 +17,6 @@ mod session;
 mod user_config;
 mod version_check;
 
-pub use self::cache::*;
 pub use self::config::*;
 pub use self::filter::*;
 pub use self::filter_deno::*;
