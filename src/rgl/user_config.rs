@@ -13,6 +13,7 @@ pub struct UserConfig {
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
+    pub python_command: Option<String>,
 }
 
 impl UserConfig {
@@ -23,6 +24,7 @@ impl UserConfig {
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
+            python_command: None,
         }
     }
 
@@ -53,6 +55,13 @@ impl UserConfig {
                 true => "npm.cmd".to_owned(),
                 false => "npm".to_owned(),
             })
+    }
+
+    pub fn python_command() -> String {
+        get_user_config()
+            .python_command
+            .to_owned()
+            .unwrap_or("python".to_owned())
     }
 }
 

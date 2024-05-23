@@ -1,9 +1,8 @@
-use super::{Filter, FilterContext};
+use super::{Filter, FilterContext, UserConfig};
 use crate::subprocess::Subprocess;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use which::which;
 
 #[derive(Serialize, Deserialize)]
 pub struct FilterPython {
@@ -14,24 +13,18 @@ impl Filter for FilterPython {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
         let venv_dir = context.filter_dir.join(".venv");
-        if venv_dir.exists() {
-            let py = match cfg!(windows) {
+        let mut subprocess = Subprocess::new(match venv_dir.exists() {
+            true => match cfg!(windows) {
                 true => venv_dir.join("Scripts").join("python.exe"),
                 false => venv_dir.join("bin").join("python"),
-            };
-            Subprocess::new(py)
-                .arg(script)
-                .args(run_args)
-                .current_dir(temp)
-                .run()?;
-        } else {
-            let py = get_python();
-            Subprocess::new(py)
-                .arg(script)
-                .args(run_args)
-                .current_dir(temp)
-                .run()?;
-        }
+            },
+            false => UserConfig::python_command().into(),
+        });
+        subprocess
+            .arg(script)
+            .args(run_args)
+            .current_dir(temp)
+            .run()?;
         Ok(())
     }
 
@@ -39,7 +32,7 @@ impl Filter for FilterPython {
         let filter_dir = context.filter_dir(&self.script)?;
         let requirements = filter_dir.join("requirements.txt");
         if requirements.exists() {
-            let py = get_python();
+            let py = UserConfig::python_command();
             Subprocess::new(py)
                 .args(vec!["-m", "venv", ".venv"])
                 .current_dir(&filter_dir)
@@ -57,10 +50,4 @@ impl Filter for FilterPython {
         }
         Ok(())
     }
-}
-
-fn get_python() -> String {
-    which("python")
-        .map(|_| "python".to_owned())
-        .unwrap_or("python3".to_owned())
 }
