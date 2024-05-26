@@ -4,7 +4,7 @@ use super::{
 use crate::fs::{copy_dir, empty_dir, move_dir, read_json, rimraf};
 use crate::subprocess::Subprocess;
 use crate::{info, warn};
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use semver::Version;
 use std::path::Path;
 
@@ -87,24 +87,18 @@ impl FilterInstaller {
                 .run_silent()?;
         } else {
             empty_dir(&cache_dir)?;
-            let clone = Subprocess::new("git")
+            Subprocess::new("git")
                 .args(vec!["clone", &https_url, "."])
                 .current_dir(&cache_dir)
-                .run_silent()?;
-
-            if !clone.status.success() {
-                bail!("Failed to clone `{}`", https_url);
-            }
+                .run_silent()
+                .context(format!("Failed to clone `{}`", https_url))?;
         }
 
-        let checkout = Subprocess::new("git")
+        Subprocess::new("git")
             .args(vec!["checkout", &self.git_ref])
             .current_dir(&cache_dir)
-            .run_silent()?;
-
-        if !checkout.status.success() {
-            bail!("Failed to checkout ref `{}`", self.git_ref);
-        }
+            .run_silent()
+            .context(format!("Failed to checkout `{}`", self.git_ref))?;
 
         copy_dir(cache_dir.join(name), &filter_dir)?;
 
