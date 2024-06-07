@@ -20,9 +20,15 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
         if cached {
             create_dir_all(&temp)?;
             if !temp_bp.is_symlink() {
+                if temp_bp.exists() {
+                    rimraf(&temp_bp)?;
+                }
                 try_symlink(&target_bp, &temp_bp)?;
             }
             if !temp_rp.is_symlink() {
+                if temp_rp.exists() {
+                    rimraf(&temp_rp)?;
+                }
                 try_symlink(&target_rp, &temp_rp)?;
             }
             sync_dir(bp, &target_bp)?;
