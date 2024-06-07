@@ -1,5 +1,6 @@
 use super::{
     ref_to_version, Export, FilterDefinition, FilterInstaller, FilterRunner, Profile, RemoteFilter,
+    UserConfig,
 };
 use crate::fs::{read_json, write_json};
 use crate::watcher::Watcher;
@@ -11,9 +12,10 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    #[serde(rename = "$schema")]
-    schema: String,
-    author: String,
+    #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
+    schema: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    author: Option<String>,
     name: String,
     packs: Packs,
     regolith: Regolith,
@@ -58,8 +60,8 @@ impl Config {
             },
         );
         Self {
-            schema: "https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json".to_owned(),
-            author: "Your name".to_owned(),
+            schema: Some("https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json".to_owned()),
+            author: Some(UserConfig::username()),
             name,
             packs: Packs{
                 behavior_pack: "./packs/BP".to_owned(),

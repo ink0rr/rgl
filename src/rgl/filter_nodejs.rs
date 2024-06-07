@@ -1,19 +1,19 @@
-use super::{Filter, FilterContext};
+use super::{Filter, FilterContext, UserConfig};
 use crate::subprocess::Subprocess;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
-pub struct FilterBun {
+pub struct FilterNodejs {
     pub script: String,
 }
 
-impl Filter for FilterBun {
+impl Filter for FilterNodejs {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+        let runtime = UserConfig::nodejs_runtime();
         let script = context.filter_dir.join(&self.script);
-        Subprocess::new("bun")
-            .arg("run")
+        Subprocess::new(runtime)
             .arg(script)
             .args(run_args)
             .current_dir(temp)
@@ -23,8 +23,9 @@ impl Filter for FilterBun {
     }
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+        let package_manager = UserConfig::nodejs_package_manager();
         let filter_dir = context.filter_dir(&self.script)?;
-        Subprocess::new("bun")
+        Subprocess::new(package_manager)
             .arg("i")
             .current_dir(filter_dir)
             .run_silent()?;
