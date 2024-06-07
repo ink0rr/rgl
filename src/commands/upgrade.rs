@@ -49,6 +49,7 @@ impl Command for Upgrade {
         fs::set_permissions(current_exe_path, permissions)?;
 
         info!("Upgrade successful");
+        info!("Release notes: {RELEASE_URL}/tag/v{latest_version}");
         Ok(())
     }
     fn error_context(&self) -> String {
