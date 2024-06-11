@@ -75,7 +75,7 @@ impl Profile {
     }
 
     /// Returns bp, rp, and temp paths respectively.
-    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf, PathBuf)> {
+    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf)> {
         let target = self.export.target.as_str();
         match target {
             "development" => {
@@ -89,8 +89,7 @@ impl Profile {
                 let rp = mojang_dir
                     .join("development_resource_packs")
                     .join(format!("{}_rp", name));
-                let temp = mojang_dir.join(".rgl").join(name);
-                Ok((bp, rp, temp))
+                Ok((bp, rp))
             }
             "local" => {
                 let build = PathBuf::from("build");
@@ -99,8 +98,7 @@ impl Profile {
                 }
                 let bp = build.join("BP");
                 let rp = build.join("RP");
-                let temp = PathBuf::from(".regolith").join("tmp");
-                Ok((bp, rp, temp))
+                Ok((bp, rp))
             }
             _ => bail!("Export target <b>{target}</> is not valid"),
         }

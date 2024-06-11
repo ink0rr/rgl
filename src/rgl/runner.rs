@@ -1,8 +1,9 @@
-use crate::fs::{copy_dir, empty_dir, move_dir, rimraf, sync_dir, try_symlink};
+use crate::fs::{copy_dir, rimraf, sync_dir, try_symlink};
 use crate::rgl::{Config, Session};
 use crate::{info, measure_time, warn};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::fs::create_dir_all;
+use std::path::Path;
 
 pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()> {
     let config = Config::load()?;
@@ -12,37 +13,32 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let rp = config.get_resource_pack();
 
     let profile = config.get_profile(profile_name)?;
-    let (target_bp, target_rp, temp) = profile.get_export_paths(config.get_name())?;
+    let (target_bp, target_rp) = profile.get_export_paths(config.get_name())?;
+
+    let temp = Path::new(".regolith").join("tmp");
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
+    let temp_data = temp.join("data");
 
     measure_time!("Setup temp", {
         if cached {
-            create_dir_all(&temp)?;
-            if !temp_bp.is_symlink() {
-                if temp_bp.exists() {
-                    rimraf(&temp_bp)?;
-                }
-                try_symlink(&target_bp, &temp_bp)?;
-            }
-            if !temp_rp.is_symlink() {
-                if temp_rp.exists() {
-                    rimraf(&temp_rp)?;
-                }
-                try_symlink(&target_rp, &temp_rp)?;
-            }
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
         } else {
-            empty_dir(&temp)?;
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
-            copy_dir(bp, &temp_bp)?;
-            copy_dir(rp, &temp_rp)?;
+            copy_dir(bp, &target_bp)?;
+            copy_dir(rp, &target_rp)?;
         }
-        let data_path = temp.join("data");
-        if !data_path.is_symlink() {
-            try_symlink(config.get_data_path(), data_path)?;
+        create_dir_all(&temp)?;
+        if !temp_bp.is_symlink() {
+            try_symlink(&target_bp, &temp_bp)?;
+        }
+        if !temp_rp.is_symlink() {
+            try_symlink(&target_rp, &temp_rp)?;
+        }
+        if !temp_data.is_symlink() {
+            try_symlink(config.get_data_path(), temp_data)?;
         }
     });
 
@@ -52,20 +48,12 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     });
 
     info!(
-        "Moving files to target location: \n\
+        "Applied changes to target location: \n\
          \tBP: {} \n\
          \tRP: {}",
         target_bp.display(),
         target_rp.display()
     );
-    let export = || -> Result<()> {
-        if !cached {
-            move_dir(temp_bp, target_bp)?;
-            move_dir(temp_rp, target_rp)?;
-        }
-        Ok(())
-    };
-    export().context("Failed to export project")?;
 
     info!("Successfully ran the <b>{profile_name}</> profile");
     if watch {
