@@ -13,7 +13,7 @@ impl Filter for FilterDeno {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
         Subprocess::new("deno")
-            .args(vec!["run", "-A"])
+            .args(vec!["run", "-A", "--no-lock"])
             .arg(script)
             .args(run_args)
             .current_dir(temp)
