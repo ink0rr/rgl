@@ -148,6 +148,7 @@ impl Config {
         watcher.watch(self.get_behavior_pack())?;
         watcher.watch(self.get_resource_pack())?;
         watcher.watch(self.get_data_path())?;
+        watcher.watch("./config.json")?;
 
         watcher.wait_changes();
 
