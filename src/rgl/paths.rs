@@ -24,6 +24,14 @@ pub fn get_cache_dir() -> Result<PathBuf> {
     Ok(get_user_cache_dir()?.join("rgl"))
 }
 
+pub fn get_timestamp_path() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("latest.txt"))
+}
+
+pub fn get_user_config_path() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("user_config.json"))
+}
+
 pub fn get_filter_cache_dir(https_url: &str) -> Result<PathBuf> {
     let digest = md5::compute(https_url.as_bytes());
     Ok(get_cache_dir()?

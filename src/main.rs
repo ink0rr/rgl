@@ -23,6 +23,10 @@ fn main() {
 }
 
 fn run_command(cli: Cli) -> Result<()> {
+    let cache_dir = rgl::get_cache_dir()?;
+    if !cache_dir.exists() {
+        fs::empty_dir(cache_dir)?;
+    }
     let handle = match cli.subcommand {
         // Don't trigger update check when running these commands
         Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,

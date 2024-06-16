@@ -1,4 +1,4 @@
-use crate::rgl::get_cache_dir;
+use crate::rgl::get_timestamp_path;
 use crate::{debug, log};
 use anyhow::{Context, Result};
 use clap::crate_version;
@@ -10,18 +10,16 @@ use std::{
 
 const CARGO_URL: &str = "https://raw.githubusercontent.com/ink0rr/rgl/master/Cargo.toml";
 
-fn get_timestamp_path() -> Result<PathBuf> {
-    let cache_dir = get_cache_dir()?;
-    let path = cache_dir.join("latest.txt");
+fn get_timestamp() -> Result<PathBuf> {
+    let path = get_timestamp_path()?;
     if !path.exists() {
-        fs::create_dir_all(cache_dir)?;
         fs::write(&path, b"")?;
     }
     Ok(path)
 }
 
 fn update_timestamp() -> Result<()> {
-    let path = get_timestamp_path()?;
+    let path = get_timestamp()?;
     fs::write(path, b"")?;
     Ok(())
 }
@@ -44,8 +42,8 @@ pub fn fetch_latest_version() -> Result<String> {
 
 /// Check if there is a new version available.
 pub fn version_check() -> Result<Option<String>> {
-    let timestamp_path = get_timestamp_path()?;
-    let last_checked = timestamp_path.metadata()?.modified()?;
+    let timestamp = get_timestamp()?;
+    let last_checked = timestamp.metadata()?.modified()?;
     let now = SystemTime::now();
     let elapsed_hour = now.duration_since(last_checked)?.as_secs() / 60 / 60;
 

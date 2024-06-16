@@ -1,5 +1,5 @@
 use crate::fs::{read_json, write_json};
-use crate::rgl::get_cache_dir;
+use crate::rgl::get_user_config_path;
 use crate::warn;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -76,12 +76,12 @@ fn default_resolvers() -> Vec<String> {
 fn get_user_config() -> &'static UserConfig {
     static USER_CONFIG: OnceLock<UserConfig> = OnceLock::new();
     USER_CONFIG.get_or_init(|| {
-        let path = get_cache_dir();
+        let path = get_user_config_path();
         if path.is_err() {
             warn!("Failed to get user config path");
             return UserConfig::default();
         }
-        let path = path.unwrap().join("user_config.json");
+        let path = path.unwrap();
         match read_json(&path) {
             Ok(user_config) => user_config,
             Err(_) => {
