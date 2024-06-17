@@ -1,5 +1,5 @@
 use super::{Config, Session};
-use crate::fs::{copy_dir, rimraf, sync_dir, try_symlink};
+use crate::fs::{copy_dir, empty_dir, rimraf, sync_dir, try_symlink};
 use crate::{info, measure_time, warn};
 use anyhow::Result;
 use std::fs::create_dir_all;
@@ -25,6 +25,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
         } else {
+            empty_dir(&temp)?;
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
             copy_dir(bp, &target_bp)?;
