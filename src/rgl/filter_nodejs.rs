@@ -24,7 +24,7 @@ impl Filter for FilterNodejs {
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         let package_manager = UserConfig::nodejs_package_manager();
-        let filter_dir = context.filter_dir(&self.script)?;
+        let filter_dir = context.filter_dir(&self.script);
         Subprocess::new(package_manager)
             .arg("i")
             .current_dir(filter_dir)

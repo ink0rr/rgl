@@ -29,7 +29,7 @@ impl Filter for FilterPython {
     }
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let filter_dir = context.filter_dir(&self.script)?;
+        let filter_dir = context.filter_dir(&self.script);
         let requirements = filter_dir.join("requirements.txt");
         if requirements.exists() {
             let py = UserConfig::python_command();

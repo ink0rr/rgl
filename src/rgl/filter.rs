@@ -98,14 +98,14 @@ impl FilterContext {
         })
     }
 
-    pub fn filter_dir(&self, path: &str) -> Result<PathBuf> {
+    pub fn filter_dir(&self, path: &str) -> PathBuf {
         match self.filter_type {
             FilterType::Local => {
                 let mut dir = PathBuf::from(path);
                 dir.pop();
-                Ok(dir)
+                dir
             }
-            _ => Ok(self.filter_dir.to_owned()),
+            _ => self.filter_dir.to_owned(),
         }
     }
 }
