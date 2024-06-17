@@ -1,4 +1,4 @@
-use crate::rgl::get_timestamp_path;
+use super::get_timestamp_path;
 use crate::{debug, log};
 use anyhow::{Context, Result};
 use clap::crate_version;

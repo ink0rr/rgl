@@ -1,5 +1,5 @@
+use super::{Config, Session};
 use crate::fs::{copy_dir, rimraf, sync_dir, try_symlink};
-use crate::rgl::{Config, Session};
 use crate::{info, measure_time, warn};
 use anyhow::Result;
 use std::fs::create_dir_all;

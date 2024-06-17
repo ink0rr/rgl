@@ -1,5 +1,5 @@
+use super::get_user_config_path;
 use crate::fs::{read_json, write_json};
-use crate::rgl::get_user_config_path;
 use crate::warn;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
