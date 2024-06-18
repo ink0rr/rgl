@@ -57,7 +57,7 @@ impl FilterContext {
                 let dir = get_filter_cache_dir(name, remote)?;
                 if !dir.exists() {
                     info!("Filter {name} is not installed, installing...");
-                    remote.install(name, false)?;
+                    remote.install(name, None, false)?;
                 }
                 dir
             }

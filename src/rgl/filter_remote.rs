@@ -83,43 +83,47 @@ impl RemoteFilter {
         Ok((name, Self { url, version }))
     }
 
-    pub fn install(&self, name: &str, force: bool) -> Result<()> {
+    pub fn install(&self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
         let url = &self.url;
         let version = &self.version;
         let filter_dir = get_filter_cache_dir(name, self)?;
 
-        if !force && filter_dir.exists() {
-            return Ok(());
+        if force {
+            rimraf(&filter_dir)?;
         }
-        rimraf(&filter_dir)?;
-
-        let repo_dir = get_repo_cache_dir()?.join(url);
-
-        if repo_dir.exists() {
+        if !filter_dir.exists() {
+            let repo_dir = get_repo_cache_dir()?.join(url);
+            if repo_dir.exists() {
+                Subprocess::new("git")
+                    .args(vec!["fetch", "--all"])
+                    .current_dir(&repo_dir)
+                    .run_silent()?;
+            } else {
+                empty_dir(&repo_dir)?;
+                Subprocess::new("git")
+                    .args(vec!["clone", &format!("https://{url}"), "."])
+                    .current_dir(&repo_dir)
+                    .run_silent()
+                    .context(format!("Failed to clone `{url}`"))?;
+            }
+            let git_ref = Version::parse(version)
+                .map(|_| format!("{name}-{version}"))
+                .unwrap_or(version.to_owned());
             Subprocess::new("git")
-                .args(vec!["fetch", "--all"])
-                .current_dir(&repo_dir)
-                .run_silent()?;
-        } else {
-            empty_dir(&repo_dir)?;
-            Subprocess::new("git")
-                .args(vec!["clone", &format!("https://{url}"), "."])
+                .args(vec!["checkout", &git_ref])
                 .current_dir(&repo_dir)
                 .run_silent()
-                .context(format!("Failed to clone `{url}`"))?;
+                .context(format!("Failed to checkout `{git_ref}`"))?;
+            copy_dir(repo_dir.join(name), &filter_dir)?;
         }
-
-        let git_ref = Version::parse(version)
-            .map(|_| format!("{name}-{version}"))
-            .unwrap_or(version.to_owned());
-
-        Subprocess::new("git")
-            .args(vec!["checkout", &git_ref])
-            .current_dir(&repo_dir)
-            .run_silent()
-            .context(format!("Failed to checkout `{git_ref}`"))?;
-
-        copy_dir(repo_dir.join(name), &filter_dir)?;
+        if let Some(data_path) = data_path {
+            let filter_data = filter_dir.join("data");
+            let target_path = data_path.join(name);
+            if filter_data.is_dir() && !target_path.exists() {
+                info!("Copying filter data to <b>{}</>", target_path.display());
+                copy_dir(filter_data, target_path)?;
+            }
+        }
 
         let filter = self.to_owned().into();
         let context = FilterContext::new(name, &filter)?;

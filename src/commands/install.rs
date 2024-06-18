@@ -20,7 +20,8 @@ impl Command for Install {
         for arg in &self.filters {
             info!("Installing filter <b>{}</>...", arg);
             let (name, remote) = RemoteFilter::parse(arg)?;
-            remote.install(&name, self.force)?;
+            remote.install(&name, None, self.force)?;
+
             info!("Filter <b>{name}</> successfully installed");
             global_filters.add(&name, remote);
         }

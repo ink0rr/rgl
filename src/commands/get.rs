@@ -15,11 +15,12 @@ impl Command for Get {
     fn dispatch(&self) -> Result<()> {
         let config = Config::load()?;
         let mut session = Session::lock()?;
+        let data_path = config.get_data_path();
         for (name, value) in config.get_filters() {
             match FilterDefinition::from_value(value)? {
                 FilterDefinition::Remote(remote) => {
                     info!("Downloading filter <b>{name}</>...");
-                    remote.install(&name, false)?;
+                    remote.install(&name, Some(&data_path), false)?;
                 }
                 filter => {
                     info!("Installing dependencies for <b>{name}</>...");

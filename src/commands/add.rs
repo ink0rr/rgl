@@ -1,7 +1,6 @@
 use super::Command;
-use crate::fs::copy_dir;
 use crate::info;
-use crate::rgl::{get_filter_cache_dir, Config, RemoteFilter, Session};
+use crate::rgl::{Config, RemoteFilter, Session};
 use anyhow::Result;
 use clap::Args;
 
@@ -22,15 +21,9 @@ impl Command for Add {
         for arg in &self.filters {
             info!("Adding filter <b>{}</>...", arg);
             let (name, remote) = RemoteFilter::parse(arg)?;
-            remote.install(&name, self.force)?;
-            info!("Filter <b>{name}</> successfully added");
+            remote.install(&name, Some(&data_path), self.force)?;
 
-            let filter_data = get_filter_cache_dir(&name, &remote)?.join("data");
-            let target_path = data_path.join(&name);
-            if filter_data.is_dir() && !target_path.exists() {
-                info!("Copying filter data to <b>{}</>", target_path.display());
-                copy_dir(filter_data, target_path)?;
-            }
+            info!("Filter <b>{name}</> successfully added");
             config.add_filter(&name, &remote.into())?;
         }
         config.save()?;
