@@ -1,9 +1,9 @@
 use super::{
     get_filter_cache_dir, get_repo_cache_dir, resolve_url, Filter, FilterContext, LocalFilter,
+    Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
 use crate::info;
-use crate::subprocess::Subprocess;
 use anyhow::{bail, Context, Result};
 use semver::Version;
 use serde::{Deserialize, Serialize};

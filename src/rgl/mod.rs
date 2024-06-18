@@ -14,6 +14,7 @@ mod profile;
 mod resolver;
 mod runner;
 mod session;
+mod subprocess;
 mod user_config;
 mod version_check;
 
@@ -33,5 +34,6 @@ pub use self::profile::*;
 pub use self::resolver::*;
 pub use self::runner::*;
 pub use self::session::*;
+pub use self::subprocess::*;
 pub use self::user_config::*;
 pub use self::version_check::*;

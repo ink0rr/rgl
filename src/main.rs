@@ -2,7 +2,6 @@ mod commands;
 mod fs;
 mod logger;
 mod rgl;
-mod subprocess;
 mod watcher;
 
 use anyhow::{Context, Result};
