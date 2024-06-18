@@ -82,16 +82,13 @@ fn get_user_config() -> &'static UserConfig {
             return UserConfig::default();
         }
         let path = path.unwrap();
-        match read_json(&path) {
-            Ok(user_config) => user_config,
-            Err(_) => {
-                warn!("Failed to load user config, creating a new one...");
-                let user_config = UserConfig::default();
-                if let Err(e) = write_json(path, &user_config) {
-                    warn!("Failed to write default user config: {}", e);
-                }
-                user_config
+        read_json(&path).unwrap_or_else(|_| {
+            warn!("Failed to load user config, creating a new one...");
+            let user_config = UserConfig::default();
+            if let Err(e) = write_json(path, &user_config) {
+                warn!("Failed to write default user config: {}", e);
             }
-        }
+            user_config
+        })
     })
 }
