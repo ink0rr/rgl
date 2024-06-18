@@ -1,5 +1,5 @@
 use super::{
-    get_filter_cache_dir, get_repo_cache_dir, resolve_url, Filter, FilterContext, LocalFilter,
+    get_filter_cache_dir, get_repo_cache_dir, Filter, FilterContext, LocalFilter, Resolver,
     Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
@@ -74,7 +74,7 @@ impl RemoteFilter {
             }
         } else {
             name = url;
-            url = resolve_url(&name)?;
+            url = Resolver::resolve(&name)?;
         }
 
         let version = get_version(&name, &url, version_arg)?;
