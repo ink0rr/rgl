@@ -1,6 +1,6 @@
 use super::Command;
 use crate::info;
-use crate::rgl::{FilterInstaller, FilterType};
+use crate::rgl::{GlobalFilters, RemoteFilter};
 use anyhow::Result;
 use clap::Args;
 
@@ -16,14 +16,15 @@ pub struct Install {
 
 impl Command for Install {
     fn dispatch(&self) -> Result<()> {
+        let mut global_filters = GlobalFilters::load()?;
         for arg in &self.filters {
             info!("Installing filter <b>{}</>...", arg);
-            let filter = FilterInstaller::from_arg(arg)?;
-            if filter.install(FilterType::Global, None, self.force)? {
-                info!("Filter <b>{}</> successfully installed", filter.name);
-            }
+            let (name, remote) = RemoteFilter::parse(arg)?;
+            remote.install(&name, self.force)?;
+            info!("Filter <b>{name}</> successfully installed");
+            global_filters.add(&name, remote);
         }
-        Ok(())
+        global_filters.save()
     }
     fn error_context(&self) -> String {
         "Error installing filter".to_owned()

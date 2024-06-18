@@ -20,20 +20,20 @@ fn get_resolver() -> Result<Resolver> {
     for resolver_url in UserConfig::resolvers() {
         let (url, path) = resolve_resolver_url(&resolver_url)
             .context(format!("Failed to resolve url `{resolver_url}`",))?;
-        let cache_dir = get_resolver_cache_dir(&url)?;
-        if cache_dir.exists() {
+        let resolver_dir = get_resolver_cache_dir()?.join(&url);
+        if resolver_dir.exists() {
             Subprocess::new("git")
                 .args(["pull"])
-                .current_dir(&cache_dir)
+                .current_dir(&resolver_dir)
                 .run_silent()?;
         } else {
-            empty_dir(&cache_dir)?;
+            empty_dir(&resolver_dir)?;
             Subprocess::new("git")
-                .args(["clone", &url, "."])
-                .current_dir(&cache_dir)
+                .args(["clone", &format!("https://{url}"), "."])
+                .current_dir(&resolver_dir)
                 .run_silent()?;
         }
-        let resolver = read_json::<Resolver>(cache_dir.join(path))?;
+        let resolver = read_json::<Resolver>(resolver_dir.join(path))?;
         result.filters.extend(resolver.filters)
     }
     Ok(result)
@@ -46,7 +46,7 @@ fn resolve_resolver_url(url: &str) -> Result<(String, String)> {
     }
     let repo_url = url_parts[0..3].join("/");
     let path = url_parts[3..].join("/");
-    Ok((format!("https://{}", repo_url), path))
+    Ok((repo_url, path))
 }
 
 pub fn resolve_url(name: &str) -> Result<String> {

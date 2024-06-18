@@ -14,9 +14,9 @@ dunce = "1.0.4"
 enum_dispatch = "0.3.13"
 fslock = "0.2.1"
 indexmap = { version = "2.2.6", features = ["serde"] }
-md5 = "0.7.0"
 notify = "6.1.1"
 notify-debouncer-mini = "0.4.1"
+once_cell = "1.19.0"
 paris = { version = "1.5.15", features = ["macros"] }
 rayon = "1.10.0"
 semver = "1.0.23"

@@ -1,6 +1,5 @@
 use super::Command;
-use crate::fs::rimraf;
-use crate::rgl::{Config, FilterType, Session};
+use crate::rgl::{Config, Session};
 use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
@@ -19,8 +18,6 @@ impl Command for Remove {
         let mut session = Session::lock()?;
         for name in &self.filters {
             if config.remove_filter(name).is_some() {
-                let filter_dir = FilterType::Remote.cache_dir(name)?;
-                rimraf(filter_dir)?;
                 info!("Removed filter <b>{name}</>");
             } else {
                 warn!("Filter <b>{name}</> not found");

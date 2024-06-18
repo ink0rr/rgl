@@ -52,18 +52,6 @@ pub fn empty_dir(path: impl AsRef<Path>) -> Result<()> {
     ))
 }
 
-pub fn move_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    let from = from.as_ref();
-    let to = to.as_ref();
-    fs::rename(from, to).context(format!(
-        "Failed to move directory\n\
-         <yellow> >></> From: {}\n\
-         <yellow> >></> To: {}",
-        from.display(),
-        to.display(),
-    ))
-}
-
 pub fn read_json<T>(path: impl AsRef<Path>) -> Result<T>
 where
     T: serde::de::DeserializeOwned,

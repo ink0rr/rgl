@@ -1,6 +1,14 @@
+use super::RemoteFilter;
 use anyhow::Result;
+use once_cell::sync::OnceCell;
 use std::env;
 use std::path::PathBuf;
+
+pub fn get_current_dir() -> Result<PathBuf> {
+    static CURRENT_DIR: OnceCell<PathBuf> = OnceCell::new();
+    let current_dir = CURRENT_DIR.get_or_try_init(env::current_dir);
+    Ok(current_dir?.to_owned())
+}
 
 #[cfg(target_os = "linux")]
 fn get_user_cache_dir() -> Result<PathBuf> {
@@ -21,7 +29,9 @@ fn get_user_cache_dir() -> Result<PathBuf> {
 }
 
 pub fn get_cache_dir() -> Result<PathBuf> {
-    Ok(get_user_cache_dir()?.join("rgl"))
+    static CACHE_DIR: OnceCell<PathBuf> = OnceCell::new();
+    let cache_dir = CACHE_DIR.get_or_try_init(|| get_user_cache_dir().map(|path| path.join("rgl")));
+    Ok(cache_dir?.to_owned())
 }
 
 pub fn get_timestamp_path() -> Result<PathBuf> {
@@ -32,16 +42,22 @@ pub fn get_user_config_path() -> Result<PathBuf> {
     Ok(get_cache_dir()?.join("user_config.json"))
 }
 
-pub fn get_filter_cache_dir(https_url: &str) -> Result<PathBuf> {
-    let digest = md5::compute(https_url.as_bytes());
-    Ok(get_cache_dir()?
-        .join("filter-cache")
-        .join(format!("{digest:?}")))
+pub fn get_global_filters_path() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("global_filters.json"))
 }
 
-pub fn get_resolver_cache_dir(https_url: &str) -> Result<PathBuf> {
-    let digest = md5::compute(https_url.as_bytes());
+pub fn get_filter_cache_dir(name: &str, remote: &RemoteFilter) -> Result<PathBuf> {
     Ok(get_cache_dir()?
-        .join("resolver-cache")
-        .join(format!("{digest:?}")))
+        .join("filters")
+        .join(&remote.url)
+        .join(name)
+        .join(&remote.version))
+}
+
+pub fn get_repo_cache_dir() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("repo"))
+}
+
+pub fn get_resolver_cache_dir() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("resolver"))
 }
