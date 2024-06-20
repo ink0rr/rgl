@@ -30,7 +30,11 @@ fn get_user_cache_dir() -> Result<PathBuf> {
 
 pub fn get_cache_dir() -> Result<PathBuf> {
     static CACHE_DIR: OnceCell<PathBuf> = OnceCell::new();
-    let cache_dir = CACHE_DIR.get_or_try_init(|| get_user_cache_dir().map(|path| path.join("rgl")));
+    let cache_dir = CACHE_DIR.get_or_try_init(|| -> Result<PathBuf> {
+        env::var("RGL_DIR")
+            .map(PathBuf::from)
+            .or_else(|_| get_user_cache_dir().map(|dir| dir.join("rgl")))
+    });
     Ok(cache_dir?.to_owned())
 }
 
