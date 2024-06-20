@@ -6,12 +6,9 @@ use clap::Args;
 
 /// Uninstall filter(s)
 #[derive(Args)]
-#[clap(aliases = ["rm"])]
 pub struct Uninstall {
     #[arg(required = true)]
     filters: Vec<String>,
-    #[arg(short, long)]
-    global: bool,
 }
 
 impl Command for Uninstall {
