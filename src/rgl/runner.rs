@@ -68,8 +68,6 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
         info!("Press Ctrl+C to stop watching");
         config.watch_project_files()?;
         warn!("Changes detected, restarting...");
-        session.unlock()?;
-        return run_or_watch(profile_name, watch, cached);
     }
     session.unlock()
 }

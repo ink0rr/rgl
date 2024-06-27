@@ -15,7 +15,9 @@ pub struct Watch {
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(&self.profile, true, !self.no_cache)
+        loop {
+            run_or_watch(&self.profile, true, !self.no_cache)?;
+        }
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)
