@@ -10,6 +10,8 @@ pub struct UserConfig {
     pub username: String,
     #[serde(default = "default_resolvers")]
     pub resolvers: Vec<String>,
+    #[serde(default = "default_resolver_update_interval")]
+    pub resolver_update_interval: u64,
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
@@ -21,6 +23,7 @@ impl UserConfig {
         Self {
             username: default_username(),
             resolvers: default_resolvers(),
+            resolver_update_interval: default_resolver_update_interval(),
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
@@ -34,6 +37,10 @@ impl UserConfig {
 
     pub fn resolvers() -> Vec<String> {
         get_user_config().resolvers.to_owned()
+    }
+
+    pub fn resolver_update_interval() -> u64 {
+        get_user_config().resolver_update_interval
     }
 
     pub fn mojang_dir() -> Option<String> {
@@ -71,6 +78,10 @@ fn default_username() -> String {
 
 fn default_resolvers() -> Vec<String> {
     vec!["github.com/Bedrock-OSS/regolith-filter-resolver/resolver.json".to_owned()]
+}
+
+fn default_resolver_update_interval() -> u64 {
+    300
 }
 
 fn get_user_config() -> &'static UserConfig {

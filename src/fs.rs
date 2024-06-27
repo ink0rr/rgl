@@ -5,6 +5,7 @@ use std::{
     fs,
     io::{self, BufRead, BufReader},
     path::Path,
+    time::SystemTime,
 };
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
@@ -98,6 +99,20 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
         ))?;
     }
     Ok(())
+}
+
+pub fn set_modified_time(path: impl AsRef<Path>, time: SystemTime) -> Result<()> {
+    let inner = || {
+        fs::File::options()
+            .write(true)
+            .open(&path)?
+            .set_modified(time)
+    };
+    inner().context(format!(
+        "Failed to set modified time\n\
+         <yellow> >></> Path: {}",
+        path.as_ref().display(),
+    ))
 }
 
 #[cfg(unix)]
