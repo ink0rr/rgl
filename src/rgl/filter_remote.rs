@@ -49,35 +49,23 @@ impl RemoteFilterConfig {
 impl RemoteFilter {
     /// Parse RemoteFilter from string argument
     pub fn parse(arg: &str) -> Result<(String, Self)> {
-        let name: String;
-        let mut url: String;
-        let version_arg: Option<String>;
+        // Extract version argument if present
+        let parts: Vec<_> = arg.split('@').collect();
+        let (arg, version_arg) = match parts.len() {
+            1 => (parts[0], None),
+            2 => (parts[0], Some(parts[1].to_owned())),
+            _ => bail!("Invalid argument <b>{arg}</>"),
+        };
 
-        if arg.contains("==") {
-            let parts: Vec<_> = arg.split("==").collect();
-            if parts.len() != 2 {
-                bail!("Invalid argument <b>{arg}</>");
-            }
-            url = parts[0].to_owned();
-            version_arg = Some(parts[1].to_owned());
-        } else {
-            url = arg.to_owned();
-            version_arg = None;
-        }
+        // Resolve filter name and URL
+        let url_parts: Vec<_> = arg.split('/').collect();
+        let (name, url) = match url_parts.len() {
+            1 => (arg.to_owned(), Resolver::resolve_url(arg)?),
+            4 => (url_parts[3].to_owned(), url_parts[..3].join("/")),
+            _ => bail!("Incorrect URL format. Expected: `github.com/<user>/<repo>/<filter-name>`"),
+        };
 
-        if url.contains('/') {
-            let mut split: Vec<_> = url.split('/').collect();
-            name = split.pop().unwrap().to_owned();
-            url = split.join("/");
-            if url.starts_with("https://") {
-                url = url.replace("https://", "");
-            }
-        } else {
-            name = url;
-            url = Resolver::resolve(&name)?;
-        }
-
-        let version = get_version(&name, &url, version_arg)?;
+        let version = Resolver::resolve_version(&name, &url, version_arg)?;
         info!("Resolved <b>{arg}</> to <b>{url}/{name}@{version}</>");
 
         Ok((name, Self { url, version }))
@@ -130,52 +118,4 @@ impl RemoteFilter {
         info!("Installing dependencies for <b>{name}</>...");
         filter.install_dependencies(&context)
     }
-}
-
-fn get_version(name: &str, url: &str, version_arg: Option<String>) -> Result<String> {
-    if let Some(version) = &version_arg {
-        if Version::parse(version).is_ok() {
-            return Ok(version.to_owned());
-        }
-    }
-    if version_arg.is_none() || version_arg == Some("latest".to_owned()) {
-        let output = Subprocess::new("git")
-            .args(["ls-remote", "--tags", &format!("https://{url}")])
-            .run_silent()?;
-        let output = String::from_utf8(output.stdout)?;
-
-        let tag = output
-            .trim()
-            .split('\n')
-            .filter_map(|line| {
-                line.split(&format!("refs/tags/{name}-"))
-                    .last()
-                    .and_then(|version| Version::parse(version).ok())
-            })
-            .last();
-        if let Some(tag) = tag {
-            return Ok(tag.to_string());
-        }
-    }
-    if version_arg.is_none() || version_arg == Some("HEAD".to_owned()) {
-        let output = Subprocess::new("git")
-            .args(["ls-remote", "--symref", &format!("https://{url}"), "HEAD"])
-            .run_silent()?;
-        let output = String::from_utf8(output.stdout)?;
-
-        let sha = output
-            .split('\n')
-            .nth(1)
-            .and_then(|line| line.split('\t').next());
-        if let Some(sha) = sha {
-            return Ok(sha.to_owned());
-        }
-    }
-    bail!(
-        "Failed to resolve filter version\n\
-         <yellow> >></> Filter: {name}\n\
-         <yellow> >></> URL: {url}\n\
-         <yellow> >></> Version: {}",
-        version_arg.unwrap_or("unspecified".to_owned())
-    )
 }
