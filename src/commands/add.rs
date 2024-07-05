@@ -1,6 +1,6 @@
 use super::Command;
 use crate::info;
-use crate::rgl::{Config, FilterInstaller, FilterType, Session};
+use crate::rgl::{Config, RemoteFilter, Session};
 use anyhow::Result;
 use clap::Args;
 
@@ -20,11 +20,11 @@ impl Command for Add {
         let data_path = config.get_data_path();
         for arg in &self.filters {
             info!("Adding filter <b>{}</>...", arg);
-            let filter = FilterInstaller::from_arg(arg)?;
-            if filter.install(FilterType::Remote, Some(&data_path), self.force)? {
-                info!("Filter <b>{}</> successfully added", filter.name);
-                config.add_filter(filter)?;
-            }
+            let (name, remote) = RemoteFilter::parse(arg)?;
+            remote.install(&name, Some(&data_path), self.force)?;
+
+            info!("Filter <b>{name}</> successfully added");
+            config.add_filter(&name, &remote.into())?;
         }
         config.save()?;
         session.unlock()

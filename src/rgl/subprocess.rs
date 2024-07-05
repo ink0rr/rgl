@@ -1,6 +1,6 @@
+use super::get_current_dir;
 use anyhow::{anyhow, bail, Context, Result};
-use dunce::canonicalize;
-use std::{env, ffi::OsStr, path::Path, process};
+use std::{ffi::OsStr, path::Path, process};
 
 pub struct Subprocess {
     command: process::Command,
@@ -39,30 +39,28 @@ impl Subprocess {
     }
 
     pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> Result<&mut Self> {
-        let root_dir = env::current_dir()?;
-        let filter_dir = canonicalize(filter_dir)?;
-        self.command
-            .env("ROOT_DIR", root_dir)
-            .env("FILTER_DIR", filter_dir);
+        self.command.env("FILTER_DIR", filter_dir.as_ref());
         Ok(self)
     }
 
     pub fn run(&mut self) -> Result<process::Output> {
         let output = self
             .command
+            .env("ROOT_DIR", get_current_dir()?)
             .spawn()
             .map_err(|_| anyhow!("Program {:?} not found", self.command.get_program()))
             .context("Failed spawning subprocess")?
             .wait_with_output()
             .context("Failed running subprocess")?;
-        if !output.status.success() {
-            bail!("Process exited with non-zero status code");
-        }
         Ok(output)
     }
 
     pub fn run_silent(&mut self) -> Result<process::Output> {
-        let output = self.command.output().context("Failed running subprocess")?;
+        let output = self
+            .command
+            .env("ROOT_DIR", get_current_dir()?)
+            .output()
+            .context("Failed running subprocess")?;
         if !output.status.success() {
             bail!("Process exited with non-zero status code");
         }

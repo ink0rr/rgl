@@ -1,5 +1,5 @@
+use super::get_user_config_path;
 use crate::fs::{read_json, write_json};
-use crate::rgl::get_cache_dir;
 use crate::warn;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -10,6 +10,8 @@ pub struct UserConfig {
     pub username: String,
     #[serde(default = "default_resolvers")]
     pub resolvers: Vec<String>,
+    #[serde(default = "default_resolver_update_interval")]
+    pub resolver_update_interval: u64,
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
@@ -21,6 +23,7 @@ impl UserConfig {
         Self {
             username: default_username(),
             resolvers: default_resolvers(),
+            resolver_update_interval: default_resolver_update_interval(),
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
@@ -34,6 +37,10 @@ impl UserConfig {
 
     pub fn resolvers() -> Vec<String> {
         get_user_config().resolvers.to_owned()
+    }
+
+    pub fn resolver_update_interval() -> u64 {
+        get_user_config().resolver_update_interval
     }
 
     pub fn mojang_dir() -> Option<String> {
@@ -73,25 +80,26 @@ fn default_resolvers() -> Vec<String> {
     vec!["github.com/Bedrock-OSS/regolith-filter-resolver/resolver.json".to_owned()]
 }
 
+fn default_resolver_update_interval() -> u64 {
+    300
+}
+
 fn get_user_config() -> &'static UserConfig {
     static USER_CONFIG: OnceLock<UserConfig> = OnceLock::new();
     USER_CONFIG.get_or_init(|| {
-        let path = get_cache_dir();
+        let path = get_user_config_path();
         if path.is_err() {
             warn!("Failed to get user config path");
             return UserConfig::default();
         }
-        let path = path.unwrap().join("user_config.json");
-        match read_json(&path) {
-            Ok(user_config) => user_config,
-            Err(_) => {
-                warn!("Failed to load user config, creating a new one...");
-                let user_config = UserConfig::default();
-                if let Err(e) = write_json(path, &user_config) {
-                    warn!("Failed to write default user config: {}", e);
-                }
-                user_config
+        let path = path.unwrap();
+        read_json(&path).unwrap_or_else(|_| {
+            warn!("Failed to load user config, creating a new one...");
+            let user_config = UserConfig::default();
+            if let Err(e) = write_json(path, &user_config) {
+                warn!("Failed to write default user config: {}", e);
             }
-        }
+            user_config
+        })
     })
 }

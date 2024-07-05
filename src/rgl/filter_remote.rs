@@ -1,11 +1,15 @@
-use super::{ref_to_version, Filter, FilterContext, LocalFilter};
-use crate::fs::{read_json, write_json};
+use super::{
+    get_filter_cache_dir, get_repo_cache_dir, Filter, FilterContext, LocalFilter, Resolver,
+    Subprocess,
+};
+use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
+use crate::info;
 use anyhow::{bail, Context, Result};
+use semver::Version;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RemoteFilter {
     pub url: String,
     pub version: String,
@@ -13,23 +17,16 @@ pub struct RemoteFilter {
 
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let config_path = context.filter_dir.join("filter.json");
-        let config = read_json::<RemoteFilterConfig>(config_path).context(format!(
-            "Failed to load config for filter <b>{}</>",
-            context.name
-        ))?;
-        let is_latest = matches!(self.version.as_str(), "HEAD" | "latest");
-        if !is_latest && self.version != config.version {
-            bail!(
-                "Filter version mismatch\n\
-                 <yellow> >></> Installed version: {}\n\
-                 <yellow> >></> Required version: {}",
-                config.version,
-                self.version
-            );
-        }
+        let config = RemoteFilterConfig::load(context)?;
         for filter in config.filters {
             filter.run(context, temp, run_args)?;
+        }
+        Ok(())
+    }
+    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+        let config = RemoteFilterConfig::load(context)?;
+        for filter in config.filters {
+            filter.install_dependencies(context)?;
         }
         Ok(())
     }
@@ -38,17 +35,87 @@ impl Filter for RemoteFilter {
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
     pub filters: Vec<LocalFilter>,
-    pub version: String,
 }
 
 impl RemoteFilterConfig {
-    pub fn new(filter_dir: PathBuf, git_ref: &str) -> Result<Self> {
-        let config_path = filter_dir.join("filter.json");
-        let mut config = read_json::<Value>(&config_path)?;
-        config["version"] = json!(ref_to_version(git_ref));
-        write_json(config_path, &config)?;
+    fn load(context: &FilterContext) -> Result<Self> {
+        read_json(context.filter_dir.join("filter.json")).context(format!(
+            "Failed to load config for filter <b>{}</>",
+            context.name
+        ))
+    }
+}
 
-        let config = serde_json::from_value(config)?;
-        Ok(config)
+impl RemoteFilter {
+    /// Parse RemoteFilter from string argument
+    pub fn parse(arg: &str) -> Result<(String, Self)> {
+        // Extract version argument if present
+        let parts: Vec<_> = arg.split('@').collect();
+        let (arg, version_arg) = match parts.len() {
+            1 => (parts[0], None),
+            2 => (parts[0], Some(parts[1].to_owned())),
+            _ => bail!("Invalid argument <b>{arg}</>"),
+        };
+
+        // Resolve filter name and URL
+        let url_parts: Vec<_> = arg.split('/').collect();
+        let (name, url) = match url_parts.len() {
+            1 => (arg.to_owned(), Resolver::resolve_url(arg)?),
+            4 => (url_parts[3].to_owned(), url_parts[..3].join("/")),
+            _ => bail!("Incorrect URL format. Expected: `github.com/<user>/<repo>/<filter-name>`"),
+        };
+
+        let version = Resolver::resolve_version(&name, &url, version_arg)?;
+        info!("Resolved <b>{arg}</> to <b>{url}/{name}@{version}</>");
+
+        Ok((name, Self { url, version }))
+    }
+
+    pub fn install(&self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
+        let url = &self.url;
+        let version = &self.version;
+        let filter_dir = get_filter_cache_dir(name, self)?;
+
+        if force {
+            rimraf(&filter_dir)?;
+        }
+        if !filter_dir.exists() {
+            let repo_dir = get_repo_cache_dir()?.join(url);
+            if repo_dir.exists() {
+                Subprocess::new("git")
+                    .args(vec!["fetch", "--all"])
+                    .current_dir(&repo_dir)
+                    .run_silent()?;
+            } else {
+                empty_dir(&repo_dir)?;
+                Subprocess::new("git")
+                    .args(vec!["clone", &format!("https://{url}"), "."])
+                    .current_dir(&repo_dir)
+                    .run_silent()
+                    .context(format!("Failed to clone `{url}`"))?;
+            }
+            let git_ref = Version::parse(version)
+                .map(|_| format!("{name}-{version}"))
+                .unwrap_or(version.to_owned());
+            Subprocess::new("git")
+                .args(vec!["checkout", &git_ref])
+                .current_dir(&repo_dir)
+                .run_silent()
+                .context(format!("Failed to checkout `{git_ref}`"))?;
+            copy_dir(repo_dir.join(name), &filter_dir)?;
+        }
+        if let Some(data_path) = data_path {
+            let filter_data = filter_dir.join("data");
+            let target_path = data_path.join(name);
+            if filter_data.is_dir() && !target_path.exists() {
+                info!("Copying filter data to <b>{}</>", target_path.display());
+                copy_dir(filter_data, target_path)?;
+            }
+        }
+
+        let filter = self.to_owned().into();
+        let context = FilterContext::new(name, &filter)?;
+        info!("Installing dependencies for <b>{name}</>...");
+        filter.install_dependencies(&context)
     }
 }

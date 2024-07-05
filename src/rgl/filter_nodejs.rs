@@ -1,5 +1,4 @@
-use super::{Filter, FilterContext, UserConfig};
-use crate::subprocess::Subprocess;
+use super::{Filter, FilterContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -24,7 +23,7 @@ impl Filter for FilterNodejs {
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         let package_manager = UserConfig::nodejs_package_manager();
-        let filter_dir = context.filter_dir(&self.script)?;
+        let filter_dir = context.filter_dir(&self.script);
         Subprocess::new(package_manager)
             .arg("i")
             .current_dir(filter_dir)

@@ -1,4 +1,5 @@
-use crate::rgl::get_cache_dir;
+use super::get_cache_dir;
+use crate::fs::set_modified_time;
 use crate::{debug, log};
 use anyhow::{Context, Result};
 use clap::crate_version;
@@ -10,20 +11,12 @@ use std::{
 
 const CARGO_URL: &str = "https://raw.githubusercontent.com/ink0rr/rgl/master/Cargo.toml";
 
-fn get_timestamp_path() -> Result<PathBuf> {
-    let cache_dir = get_cache_dir()?;
-    let path = cache_dir.join("latest.txt");
+fn get_timestamp() -> Result<PathBuf> {
+    let path = get_cache_dir()?.join("latest.txt");
     if !path.exists() {
-        fs::create_dir_all(cache_dir)?;
         fs::write(&path, b"")?;
     }
     Ok(path)
-}
-
-fn update_timestamp() -> Result<()> {
-    let path = get_timestamp_path()?;
-    fs::write(path, b"")?;
-    Ok(())
 }
 
 pub fn fetch_latest_version() -> Result<String> {
@@ -44,8 +37,8 @@ pub fn fetch_latest_version() -> Result<String> {
 
 /// Check if there is a new version available.
 pub fn version_check() -> Result<Option<String>> {
-    let timestamp_path = get_timestamp_path()?;
-    let last_checked = timestamp_path.metadata()?.modified()?;
+    let timestamp = get_timestamp()?;
+    let last_checked = timestamp.metadata()?.modified()?;
     let now = SystemTime::now();
     let elapsed_hour = now.duration_since(last_checked)?.as_secs() / 60 / 60;
 
@@ -66,5 +59,6 @@ pub fn prompt_upgrade(latest_version: String) -> Result<()> {
         log!("<green>A new version of rgl is available: <cyan>{current_version}</> → <cyan>{latest_version}</>");
         log!("<bright-black><i>Run `rgl upgrade` to install it</>");
     }
-    update_timestamp()
+    let timestamp = get_timestamp()?;
+    set_modified_time(timestamp, SystemTime::now())
 }

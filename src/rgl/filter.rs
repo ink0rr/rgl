@@ -1,15 +1,13 @@
 use super::{
-    get_cache_dir, FilterDeno, FilterExe, FilterGo, FilterNodejs, FilterPython, RemoteFilter,
+    get_current_dir, get_filter_cache_dir, FilterDeno, FilterExe, FilterGo, FilterNodejs,
+    FilterPython, RemoteFilter,
 };
-use anyhow::{anyhow, Result};
-use dunce::canonicalize;
+use crate::info;
+use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
@@ -33,13 +31,6 @@ impl FilterDefinition {
         };
         Ok(filter)
     }
-
-    pub fn get_type(&self) -> FilterType {
-        match self {
-            FilterDefinition::Local(_) => FilterType::Local,
-            FilterDefinition::Remote(_) => FilterType::Remote,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -53,59 +44,39 @@ pub enum LocalFilter {
     Python(FilterPython),
 }
 
-pub enum FilterType {
-    Local,
-    Remote,
-    Global,
-}
-
-impl FilterType {
-    pub fn cache_dir(&self, name: &str) -> Result<PathBuf> {
-        let dir = match self {
-            FilterType::Local => env::current_dir()?,
-            FilterType::Remote => PathBuf::from(".regolith")
-                .join("cache")
-                .join("filters")
-                .join(name),
-            FilterType::Global => get_cache_dir()?.join("global-filters").join(name),
-        };
-        Ok(dir)
-    }
-}
-
 pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
-    filter_type: FilterType,
+    pub is_remote: bool,
 }
 
 impl FilterContext {
-    pub fn new(filter_type: FilterType, name: &str) -> Result<Self> {
+    pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
+        let filter_dir = match &filter {
+            FilterDefinition::Remote(remote) => {
+                let dir = get_filter_cache_dir(name, remote)?;
+                if !dir.exists() {
+                    info!("Filter {name} is not installed, installing...");
+                    remote.install(name, None, false)?;
+                }
+                dir
+            }
+            _ => get_current_dir()?,
+        };
         Ok(Self {
             name: name.to_owned(),
-            filter_dir: canonicalize(filter_type.cache_dir(name)?).map_err(
-                |_| match filter_type {
-                    FilterType::Local => unreachable!(),
-                    FilterType::Remote => {
-                        anyhow!("Filter <b>{name}</> is missing, run `rgl get` to retrieve it")
-                    }
-                    FilterType::Global => anyhow!(
-                        "Filter <b>{name}</> is not installed, run `rgl install {name}` to install it"
-                    ),
-                },
-            )?,
-            filter_type,
+            filter_dir,
+            is_remote: matches!(filter, FilterDefinition::Remote(_)),
         })
     }
 
-    pub fn filter_dir(&self, path: &str) -> Result<PathBuf> {
-        match self.filter_type {
-            FilterType::Local => {
-                let mut dir = PathBuf::from(path);
-                dir.pop();
-                Ok(dir)
-            }
-            _ => Ok(self.filter_dir.to_owned()),
+    pub fn filter_dir(&self, path: &str) -> PathBuf {
+        if self.is_remote {
+            self.filter_dir.to_owned()
+        } else {
+            let mut dir = PathBuf::from(path);
+            dir.pop();
+            dir
         }
     }
 }

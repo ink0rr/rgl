@@ -1,5 +1,4 @@
-use super::{Filter, FilterContext};
-use crate::subprocess::Subprocess;
+use super::{Filter, FilterContext, Subprocess};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -13,7 +12,7 @@ impl Filter for FilterDeno {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
         Subprocess::new("deno")
-            .args(vec!["run", "-A"])
+            .args(vec!["run", "-A", "--no-lock"])
             .arg(script)
             .args(run_args)
             .current_dir(temp)

@@ -1,7 +1,4 @@
-use super::{
-    ref_to_version, Export, FilterDefinition, FilterInstaller, FilterRunner, Profile, RemoteFilter,
-    UserConfig,
-};
+use super::{Export, FilterDefinition, FilterRunner, Profile, UserConfig};
 use crate::fs::{read_json, write_json};
 use crate::watcher::Watcher;
 use anyhow::{anyhow, Context, Result};
@@ -112,7 +109,7 @@ impl Config {
             .filter_definitions
             .get(filter_name)
             .context(format!(
-                "Filter <b>{filter_name}</> is not defined in filter_definitions"
+                "Filter <b>{filter_name}</> is not defined in filterDefinitions"
             ))?
             .to_owned();
         FilterDefinition::from_value(value).map_err(|e| {
@@ -127,14 +124,10 @@ impl Config {
         self.regolith.filter_definitions.to_owned()
     }
 
-    pub fn add_filter(&mut self, filter: FilterInstaller) -> Result<()> {
-        let name = filter.name;
-        let url = filter.url;
-        let version = ref_to_version(&filter.git_ref);
-        let remote = RemoteFilter { url, version };
+    pub fn add_filter(&mut self, name: &str, filter: &FilterDefinition) -> Result<()> {
         self.regolith
             .filter_definitions
-            .insert(name.to_owned(), serde_json::to_value(remote)?);
+            .insert(name.to_owned(), serde_json::to_value(filter)?);
         Ok(())
     }
 
@@ -145,6 +138,7 @@ impl Config {
     pub fn watch_project_files(&self) -> Result<()> {
         let mut watcher = Watcher::new()?;
 
+        watcher.watch("./config.json")?;
         watcher.watch(self.get_behavior_pack())?;
         watcher.watch(self.get_resource_pack())?;
         watcher.watch(self.get_data_path())?;

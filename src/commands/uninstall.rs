@@ -1,11 +1,10 @@
 use super::Command;
-use crate::fs::rimraf;
-use crate::rgl::FilterType;
+use crate::rgl::GlobalFilters;
 use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
 
-/// Uninstall globally installed filter(s)
+/// Uninstall filter(s)
 #[derive(Args)]
 pub struct Uninstall {
     #[arg(required = true)]
@@ -14,16 +13,15 @@ pub struct Uninstall {
 
 impl Command for Uninstall {
     fn dispatch(&self) -> Result<()> {
+        let mut global_filters = GlobalFilters::load()?;
         for name in &self.filters {
-            let filter_dir = FilterType::Global.cache_dir(name)?;
-            if filter_dir.exists() {
-                rimraf(filter_dir)?;
+            if global_filters.remove(name).is_some() {
                 info!("Uninstalled filter <b>{name}</>");
             } else {
                 warn!("Filter <b>{name}</> not found");
             }
         }
-        Ok(())
+        global_filters.save()
     }
     fn error_context(&self) -> String {
         "Error uninstalling filter".to_owned()

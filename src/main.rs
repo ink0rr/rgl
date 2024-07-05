@@ -2,7 +2,6 @@ mod commands;
 mod fs;
 mod logger;
 mod rgl;
-mod subprocess;
 mod watcher;
 
 use anyhow::{Context, Result};
@@ -23,6 +22,10 @@ fn main() {
 }
 
 fn run_command(cli: Cli) -> Result<()> {
+    let cache_dir = rgl::get_cache_dir()?;
+    if !cache_dir.exists() {
+        fs::empty_dir(cache_dir)?;
+    }
     let handle = match cli.subcommand {
         // Don't trigger update check when running these commands
         Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,
@@ -68,6 +71,7 @@ enum Subcommands {
     Clean(Clean),
     Exec(Exec),
     Get(Get),
+    Info(Info),
     Init(Init),
     Install(Install),
     List(List),

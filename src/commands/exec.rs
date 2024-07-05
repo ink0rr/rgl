@@ -1,8 +1,8 @@
 use super::Command;
-use crate::fs::{copy_dir, empty_dir, read_json, sync_dir, try_symlink};
+use crate::fs::{copy_dir, empty_dir, sync_dir, try_symlink};
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, FilterType, RemoteFilterConfig, Session};
-use anyhow::{Context, Result};
+use crate::rgl::{Config, Filter, FilterContext, GlobalFilters, Session};
+use anyhow::Result;
 use clap::Args;
 use std::path::Path;
 
@@ -32,20 +32,15 @@ impl Command for Exec {
         try_symlink(config.get_data_path(), temp.join("data"))?;
 
         if let Ok(filter) = config.get_filter(&self.filter) {
-            info!("Running local filter <b>{}</>", self.filter);
-            let context = FilterContext::new(filter.get_type(), &self.filter)?;
+            info!("Running filter <b>{}</>", self.filter);
+            let context = FilterContext::new(&self.filter, &filter)?;
             filter.run(&context, &temp, &self.run_args)?;
         } else {
+            let global_filters = GlobalFilters::load()?;
+            let filter = global_filters.get(&self.filter)?.into();
             info!("Running global filter <b>{}</>", self.filter);
-            let context = FilterContext::new(FilterType::Global, &self.filter)?;
-            let config_path = context.filter_dir.join("filter.json");
-            let config = read_json::<RemoteFilterConfig>(config_path).context(format!(
-                "Failed to load config for filter <b>{}</>",
-                self.filter
-            ))?;
-            for filter in config.filters {
-                filter.run(&context, &temp, &self.run_args)?;
-            }
+            let context = FilterContext::new(&self.filter, &filter)?;
+            filter.run(&context, &temp, &self.run_args)?;
         }
 
         info!(
