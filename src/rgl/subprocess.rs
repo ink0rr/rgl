@@ -52,9 +52,6 @@ impl Subprocess {
             .context("Failed spawning subprocess")?
             .wait_with_output()
             .context("Failed running subprocess")?;
-        if !output.status.success() {
-            bail!("Process exited with non-zero status code");
-        }
         Ok(output)
     }
 
