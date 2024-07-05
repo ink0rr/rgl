@@ -71,6 +71,7 @@ enum Subcommands {
     Clean(Clean),
     Exec(Exec),
     Get(Get),
+    Info(Info),
     Init(Init),
     Install(Install),
     List(List),
