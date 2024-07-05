@@ -1,4 +1,5 @@
-use super::get_timestamp_path;
+use super::get_cache_dir;
+use crate::fs::set_modified_time;
 use crate::{debug, log};
 use anyhow::{Context, Result};
 use clap::crate_version;
@@ -11,17 +12,11 @@ use std::{
 const CARGO_URL: &str = "https://raw.githubusercontent.com/ink0rr/rgl/master/Cargo.toml";
 
 fn get_timestamp() -> Result<PathBuf> {
-    let path = get_timestamp_path()?;
+    let path = get_cache_dir()?.join("latest.txt");
     if !path.exists() {
         fs::write(&path, b"")?;
     }
     Ok(path)
-}
-
-fn update_timestamp() -> Result<()> {
-    let path = get_timestamp()?;
-    fs::write(path, b"")?;
-    Ok(())
 }
 
 pub fn fetch_latest_version() -> Result<String> {
@@ -64,5 +59,6 @@ pub fn prompt_upgrade(latest_version: String) -> Result<()> {
         log!("<green>A new version of rgl is available: <cyan>{current_version}</> → <cyan>{latest_version}</>");
         log!("<bright-black><i>Run `rgl upgrade` to install it</>");
     }
-    update_timestamp()
+    let timestamp = get_timestamp()?;
+    set_modified_time(timestamp, SystemTime::now())
 }

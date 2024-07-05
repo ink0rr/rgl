@@ -38,10 +38,6 @@ pub fn get_cache_dir() -> Result<PathBuf> {
     Ok(cache_dir?.to_owned())
 }
 
-pub fn get_timestamp_path() -> Result<PathBuf> {
-    Ok(get_cache_dir()?.join("latest.txt"))
-}
-
 pub fn get_user_config_path() -> Result<PathBuf> {
     Ok(get_cache_dir()?.join("user_config.json"))
 }
