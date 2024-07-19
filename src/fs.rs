@@ -118,19 +118,19 @@ pub fn set_modified_time(path: impl AsRef<Path>, time: SystemTime) -> Result<()>
 #[cfg(unix)]
 fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
     use std::os::unix;
-    unix::fs::symlink(from, to)
+    unix::fs::symlink(canonicalize(from)?, to)
 }
 
 #[cfg(windows)]
 fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
     use std::os::windows;
-    windows::fs::symlink_dir(from, to)
+    windows::fs::symlink_dir(canonicalize(from)?, to)
 }
 
 pub fn symlink(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    let from = canonicalize(from)?;
+    let from = from.as_ref();
     let to = to.as_ref();
-    symlink_impl(&from, to).context(format!(
+    symlink_impl(from, to).context(format!(
         "Failed to create symlink\n\
          <yellow> >></> From: {}\n\
          <yellow> >></> To: {}",

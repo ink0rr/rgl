@@ -30,8 +30,8 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
             copy_dir(rp, &target_rp)?;
         }
         empty_dir(&temp)?;
-        symlink(&target_bp, &temp_bp)?;
-        symlink(&target_rp, &temp_rp)?;
+        symlink(&target_bp, temp_bp)?;
+        symlink(&target_rp, temp_rp)?;
         try_symlink(config.get_data_path(), temp_data)?;
     });
 
