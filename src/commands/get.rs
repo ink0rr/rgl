@@ -16,8 +16,8 @@ impl Command for Get {
         let config = Config::load()?;
         let mut session = Session::lock()?;
         let data_path = config.get_data_path();
-        for (name, value) in config.get_filters() {
-            match FilterDefinition::from_value(value)? {
+        for (name, filter) in config.get_filters()? {
+            match filter {
                 FilterDefinition::Remote(remote) => {
                     info!("Downloading filter <b>{name}</>...");
                     remote.install(&name, Some(&data_path), false)?;

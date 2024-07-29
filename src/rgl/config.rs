@@ -120,8 +120,18 @@ impl Config {
         })
     }
 
-    pub fn get_filters(&self) -> BTreeMap<String, Value> {
-        self.regolith.filter_definitions.to_owned()
+    pub fn get_filters(&self) -> Result<BTreeMap<String, FilterDefinition>> {
+        let mut filters = BTreeMap::<String, FilterDefinition>::new();
+        for (name, value) in &self.regolith.filter_definitions {
+            let filter = FilterDefinition::from_value(value.to_owned()).map_err(|e| {
+                anyhow!(
+                    "Invalid filter definition for <b>{name}</>\n\
+                     <yellow> >></> {e}"
+                )
+            })?;
+            filters.insert(name.to_owned(), filter);
+        }
+        Ok(filters)
     }
 
     pub fn add_filter(&mut self, name: &str, filter: &FilterDefinition) -> Result<()> {

@@ -8,6 +8,7 @@ use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use strum::Display;
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
@@ -33,7 +34,7 @@ impl FilterDefinition {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Display, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "runWith")]
 #[enum_dispatch]
 pub enum LocalFilter {

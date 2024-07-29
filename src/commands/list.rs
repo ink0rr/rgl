@@ -1,7 +1,7 @@
 use super::Command;
 use crate::log;
 use crate::rgl::{Config, FilterDefinition, GlobalFilters};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Args;
 
 /// List filters defined in the `config.json` file
@@ -29,15 +29,10 @@ fn list_project() -> Result<()> {
 
     let mut local_filters = vec![];
     let mut remote_filters = vec![];
-    for (name, value) in config.get_filters() {
-        let filter = FilterDefinition::from_value(value.to_owned())?;
+    for (name, filter) in config.get_filters()? {
         match filter {
-            FilterDefinition::Local(_) => {
-                let run_with = value["runWith"]
-                    .as_str()
-                    .context("Invalid filter definition")?
-                    .to_owned();
-                local_filters.push((name, run_with));
+            FilterDefinition::Local(filter) => {
+                local_filters.push((name, filter.to_string()));
             }
             FilterDefinition::Remote(filter) => {
                 remote_filters.push((name, filter.version));
