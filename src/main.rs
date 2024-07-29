@@ -78,6 +78,7 @@ enum Subcommands {
     Remove(Remove),
     Run(Run),
     Uninstall(Uninstall),
+    Update(Update),
     Upgrade(Upgrade),
     Watch(Watch),
 }
