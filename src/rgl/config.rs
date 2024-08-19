@@ -145,6 +145,20 @@ impl Config {
         self.regolith.filter_definitions.remove(name)
     }
 
+    pub fn add_filter_to_profile(&mut self, filter_name: &str, profile_name: &str) -> bool {
+        match self.regolith.profiles.get_mut(profile_name) {
+            Some(profile) => {
+                profile.filters.push(FilterRunner::Filter {
+                    filter_name: filter_name.to_owned(),
+                    arguments: None,
+                    settings: None,
+                });
+                true
+            }
+            None => false,
+        }
+    }
+
     pub fn watch_project_files(&self) -> Result<()> {
         let mut watcher = Watcher::new()?;
 

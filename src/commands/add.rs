@@ -1,6 +1,6 @@
 use super::Command;
-use crate::info;
 use crate::rgl::{Config, RemoteFilter, Session};
+use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
 
@@ -9,6 +9,8 @@ use clap::Args;
 pub struct Add {
     #[arg(required = true)]
     filters: Vec<String>,
+    #[arg(short, long, default_missing_value = "default", num_args = 0..)]
+    profile: Vec<String>,
     #[arg(short, long)]
     force: bool,
 }
@@ -22,9 +24,15 @@ impl Command for Add {
             info!("Adding filter <b>{}</>...", arg);
             let (name, remote) = RemoteFilter::parse(arg)?;
             remote.install(&name, Some(&data_path), self.force)?;
-
-            info!("Filter <b>{name}</> successfully added");
+            for profile_name in &self.profile {
+                if config.add_filter_to_profile(&name, profile_name) {
+                    info!("Added filter <b>{name}</> to <b>{profile_name}</> profile");
+                } else {
+                    warn!("Profile <b>{profile_name}</> not found, skipping...");
+                }
+            }
             config.add_filter(&name, &remote.into())?;
+            info!("Filter <b>{name}</> successfully added");
         }
         config.save()?;
         session.unlock()
