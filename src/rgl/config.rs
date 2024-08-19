@@ -142,6 +142,12 @@ impl Config {
     }
 
     pub fn remove_filter(&mut self, name: &str) -> Option<Value> {
+        for profile in self.regolith.profiles.values_mut() {
+            profile.filters.retain(|filter| match filter {
+                FilterRunner::Filter { filter_name, .. } => filter_name != name,
+                _ => true,
+            });
+        }
         self.regolith.filter_definitions.remove(name)
     }
 
