@@ -38,7 +38,8 @@ impl Resolver {
             if data.url != url || data.versions.is_none() {
                 return None;
             };
-            let versions = data.versions.as_ref().unwrap();
+            let mut versions = data.versions.to_owned().unwrap();
+            versions.sort_by_key(|v| Version::parse(v).ok());
             match &version_arg {
                 Some(arg) if versions[1..].contains(arg) => Some(arg.to_owned()),
                 None => versions.last().cloned(),
@@ -73,15 +74,16 @@ impl Resolver {
                     "Failed to get latest version from `{url}`. Is the url correct?"
                 ))?;
             let output = String::from_utf8(output.stdout)?;
-            let tag = output
+            let mut tags: Vec<Version> = output
                 .split('\n')
                 .filter_map(|line| {
                     line.split(&format!("refs/tags/{name}-"))
                         .last()
                         .and_then(|version| Version::parse(version).ok())
                 })
-                .last();
-            if let Some(tag) = tag {
+                .collect();
+            tags.sort();
+            if let Some(tag) = tags.last() {
                 return Ok(tag.to_string());
             }
         }

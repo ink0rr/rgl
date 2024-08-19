@@ -1,5 +1,5 @@
+use super::Command;
 use crate::rgl::{get_cache_dir, get_global_filters_path, get_user_config_path};
-use crate::Command;
 use anyhow::Result;
 use clap::{crate_version, Args};
 

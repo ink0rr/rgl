@@ -3,7 +3,7 @@ use super::{
     Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
-use crate::info;
+use crate::{info, warn};
 use anyhow::{bail, Context, Result};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -117,5 +117,18 @@ impl RemoteFilter {
         let context = FilterContext::new(name, &filter)?;
         info!("Installing dependencies for <b>{name}</>...");
         filter.install_dependencies(&context)
+    }
+
+    pub fn update(&mut self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
+        let current_version = self.version.to_owned();
+        let latest_version = Resolver::resolve_version(name, &self.url, Some("latest".to_owned()))?;
+        if current_version == latest_version {
+            warn!("Filter <b>{name}</> is already up-to-date");
+            return Ok(());
+        }
+        info!("Updating filter <b>{name}</> <cyan>{current_version}</> → <cyan>{latest_version}</>...");
+        self.version = latest_version.to_owned();
+        self.install(name, data_path, force)?;
+        Ok(())
     }
 }

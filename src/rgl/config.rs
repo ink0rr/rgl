@@ -120,8 +120,18 @@ impl Config {
         })
     }
 
-    pub fn get_filters(&self) -> BTreeMap<String, Value> {
-        self.regolith.filter_definitions.to_owned()
+    pub fn get_filters(&self) -> Result<BTreeMap<String, FilterDefinition>> {
+        let mut filters = BTreeMap::<String, FilterDefinition>::new();
+        for (name, value) in &self.regolith.filter_definitions {
+            let filter = FilterDefinition::from_value(value.to_owned()).map_err(|e| {
+                anyhow!(
+                    "Invalid filter definition for <b>{name}</>\n\
+                     <yellow> >></> {e}"
+                )
+            })?;
+            filters.insert(name.to_owned(), filter);
+        }
+        Ok(filters)
     }
 
     pub fn add_filter(&mut self, name: &str, filter: &FilterDefinition) -> Result<()> {
@@ -132,7 +142,27 @@ impl Config {
     }
 
     pub fn remove_filter(&mut self, name: &str) -> Option<Value> {
+        for profile in self.regolith.profiles.values_mut() {
+            profile.filters.retain(|filter| match filter {
+                FilterRunner::Filter { filter_name, .. } => filter_name != name,
+                _ => true,
+            });
+        }
         self.regolith.filter_definitions.remove(name)
+    }
+
+    pub fn add_filter_to_profile(&mut self, filter_name: &str, profile_name: &str) -> bool {
+        match self.regolith.profiles.get_mut(profile_name) {
+            Some(profile) => {
+                profile.filters.push(FilterRunner::Filter {
+                    filter_name: filter_name.to_owned(),
+                    arguments: None,
+                    settings: None,
+                });
+                true
+            }
+            None => false,
+        }
     }
 
     pub fn watch_project_files(&self) -> Result<()> {
