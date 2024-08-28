@@ -1,6 +1,6 @@
 use super::{
-    get_current_dir, get_filter_cache_dir, FilterDeno, FilterExe, FilterGo, FilterNodejs,
-    FilterPython, RemoteFilter,
+    get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
+    FilterNodejs, FilterPython, RemoteFilter,
 };
 use crate::info;
 use anyhow::Result;
@@ -38,6 +38,7 @@ impl FilterDefinition {
 #[serde(rename_all = "camelCase", tag = "runWith")]
 #[enum_dispatch]
 pub enum LocalFilter {
+    Bun(FilterBun),
     Deno(FilterDeno),
     Exe(FilterExe),
     Go(FilterGo),

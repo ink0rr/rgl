@@ -1,5 +1,6 @@
 mod config;
 mod filter;
+mod filter_bun;
 mod filter_deno;
 mod filter_exe;
 mod filter_go;
@@ -20,6 +21,7 @@ mod version_check;
 
 pub use self::config::*;
 pub use self::filter::*;
+pub use self::filter_bun::*;
 pub use self::filter_deno::*;
 pub use self::filter_exe::*;
 pub use self::filter_go::*;
