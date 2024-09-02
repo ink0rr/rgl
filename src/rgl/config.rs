@@ -1,4 +1,6 @@
-use super::{Export, FilterDefinition, FilterRunner, Profile, UserConfig};
+use super::{
+    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, UserConfig,
+};
 use crate::fs::{read_json, write_json};
 use crate::watcher::Watcher;
 use anyhow::{anyhow, Context, Result};
@@ -39,18 +41,14 @@ impl Config {
         profiles.insert(
             "default".to_owned(),
             Profile {
-                export: Export {
-                    target: "development".to_owned(),
-                },
+                export: Export::Development(DevelopmentExport::default()),
                 filters: vec![],
             },
         );
         profiles.insert(
             "build".to_owned(),
             Profile {
-                export: Export {
-                    target: "local".to_owned(),
-                },
+                export: Export::Local(LocalExport),
                 filters: vec![FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
                 }],

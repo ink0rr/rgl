@@ -1,4 +1,4 @@
-use super::{Config, Session};
+use super::{Config, ExportPaths, Session};
 use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir, try_symlink};
 use crate::{info, measure_time, warn};
 use anyhow::Result;
@@ -12,7 +12,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let rp = config.get_resource_pack();
 
     let profile = config.get_profile(profile_name)?;
-    let (target_bp, target_rp) = profile.get_export_paths(config.get_name())?;
+    let (target_bp, target_rp) = profile.export.get_paths(config.get_name())?;
 
     let temp = Path::new(".regolith").join("tmp");
     let temp_bp = temp.join("BP");
