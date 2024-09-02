@@ -55,10 +55,13 @@ impl Config {
             },
         );
         Self {
-            schema: Some("https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json".to_owned()),
+            schema: Some(
+                "https://raw.githubusercontent.com/ink0rr/rgl-schemas/main/config/v1.0.json"
+                    .to_owned(),
+            ),
             author: Some(UserConfig::username()),
             name,
-            packs: Packs{
+            packs: Packs {
                 behavior_pack: "./packs/BP".to_owned(),
                 resource_pack: "./packs/RP".to_owned(),
             },
