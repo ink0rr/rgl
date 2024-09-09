@@ -84,7 +84,7 @@ fn rimraf_impl(path: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect::<Result<_>>()?;
+        .collect::<Result<()>>()?;
     fs::remove_dir(path)?;
     Ok(())
 }
