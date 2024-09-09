@@ -1,6 +1,6 @@
 use super::get_current_dir;
 use anyhow::{anyhow, bail, Context, Result};
-use std::{ffi::OsStr, path::Path, process};
+use std::{ffi::OsStr, io, path::Path, process};
 
 pub struct Subprocess {
     command: process::Command,
@@ -60,6 +60,12 @@ impl Subprocess {
             .command
             .env("ROOT_DIR", get_current_dir()?)
             .output()
+            .map_err(|err| match err.kind() {
+                io::ErrorKind::NotFound => {
+                    anyhow!("Program {:?} not found", self.command.get_program())
+                }
+                _ => anyhow!(err),
+            })
             .context("Failed running subprocess")?;
         if !output.status.success() {
             bail!("Process exited with non-zero status code");

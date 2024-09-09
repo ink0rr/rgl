@@ -36,9 +36,45 @@ fn mojang_dir() -> Result<PathBuf> {
         .join("com.mojang"))
 }
 
+#[cfg(target_os = "windows")]
+fn preview_mojang_dir() -> Result<PathBuf> {
+    let localappdata = env::var("LocalAppData")?;
+    Ok(PathBuf::from(localappdata)
+        .join("Packages")
+        .join("Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe")
+        .join("LocalState")
+        .join("games")
+        .join("com.mojang"))
+}
+
+#[cfg(target_os = "windows")]
+fn education_mojang_dir() -> Result<PathBuf> {
+    let appdata = env::var("AppData")?;
+    Ok(PathBuf::from(appdata)
+        .join("Minecraft Education Edition")
+        .join("games")
+        .join("com.mojang"))
+}
+
 pub fn find_mojang_dir() -> Result<PathBuf> {
     if let Some(com_mojang) = UserConfig::mojang_dir() {
         return Ok(PathBuf::from(com_mojang));
     }
     mojang_dir()
+}
+
+pub fn find_preview_mojang_dir() -> Result<PathBuf> {
+    if cfg!(windows) {
+        preview_mojang_dir()
+    } else {
+        mojang_dir()
+    }
+}
+
+pub fn find_education_mojang_dir() -> Result<PathBuf> {
+    if cfg!(windows) {
+        education_mojang_dir()
+    } else {
+        mojang_dir()
+    }
 }

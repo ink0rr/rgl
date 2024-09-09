@@ -1,20 +1,15 @@
-use super::{find_mojang_dir, Config, Filter, FilterContext};
+use super::{Config, Export, Filter, FilterContext};
 use crate::{info, measure_time};
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{fs, path::PathBuf};
+use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
     pub export: Export,
     pub filters: Vec<FilterRunner>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Export {
-    pub target: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,7 +30,7 @@ pub enum FilterRunner {
 }
 
 impl Profile {
-    pub fn run(&self, config: &Config, temp: &PathBuf, root_profile: &str) -> Result<()> {
+    pub fn run(&self, config: &Config, temp: &Path, root_profile: &str) -> Result<()> {
         for entry in self.filters.iter() {
             match entry {
                 FilterRunner::Filter {
@@ -72,35 +67,5 @@ impl Profile {
             }
         }
         Ok(())
-    }
-
-    /// Returns bp, rp, and temp paths respectively.
-    pub fn get_export_paths(&self, name: &str) -> Result<(PathBuf, PathBuf)> {
-        let target = self.export.target.as_str();
-        match target {
-            "development" => {
-                let mojang_dir = find_mojang_dir()?;
-                if !mojang_dir.exists() {
-                    bail!("Failed to find com.mojang directory")
-                }
-                let bp = mojang_dir
-                    .join("development_behavior_packs")
-                    .join(format!("{}_bp", name));
-                let rp = mojang_dir
-                    .join("development_resource_packs")
-                    .join(format!("{}_rp", name));
-                Ok((bp, rp))
-            }
-            "local" => {
-                let build = PathBuf::from("build");
-                if !build.exists() {
-                    fs::create_dir(&build)?;
-                }
-                let bp = build.join("BP");
-                let rp = build.join("RP");
-                Ok((bp, rp))
-            }
-            _ => bail!("Export target <b>{target}</> is not valid"),
-        }
     }
 }

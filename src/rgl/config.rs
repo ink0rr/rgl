@@ -1,4 +1,6 @@
-use super::{Export, FilterDefinition, FilterRunner, Profile, UserConfig};
+use super::{
+    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, UserConfig,
+};
 use crate::fs::{read_json, write_json};
 use crate::watcher::Watcher;
 use anyhow::{anyhow, Context, Result};
@@ -39,28 +41,27 @@ impl Config {
         profiles.insert(
             "default".to_owned(),
             Profile {
-                export: Export {
-                    target: "development".to_owned(),
-                },
+                export: Export::Development(DevelopmentExport::default()),
                 filters: vec![],
             },
         );
         profiles.insert(
             "build".to_owned(),
             Profile {
-                export: Export {
-                    target: "local".to_owned(),
-                },
+                export: Export::Local(LocalExport),
                 filters: vec![FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
                 }],
             },
         );
         Self {
-            schema: Some("https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.1.json".to_owned()),
+            schema: Some(
+                "https://raw.githubusercontent.com/ink0rr/rgl-schemas/main/config/v1.0.json"
+                    .to_owned(),
+            ),
             author: Some(UserConfig::username()),
             name,
-            packs: Packs{
+            packs: Packs {
                 behavior_pack: "./packs/BP".to_owned(),
                 resource_pack: "./packs/RP".to_owned(),
             },
