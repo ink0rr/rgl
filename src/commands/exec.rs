@@ -4,7 +4,7 @@ use crate::info;
 use crate::rgl::{Config, Filter, FilterContext, GlobalFilters, Session};
 use anyhow::Result;
 use clap::Args;
-use std::path::Path;
+use std::path::PathBuf;
 
 /// Executes a filter and apply changes to the current project
 #[derive(Args)]
@@ -22,7 +22,7 @@ impl Command for Exec {
         let bp = config.get_behavior_pack();
         let rp = config.get_resource_pack();
 
-        let temp = Path::new(".regolith").join("tmp");
+        let temp = PathBuf::from(".regolith").join("tmp");
         let temp_bp = temp.join("BP");
         let temp_rp = temp.join("RP");
 
