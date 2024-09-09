@@ -49,7 +49,7 @@ pub fn find_preview_mojang_dir() -> Result<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-fn find_preview_mojang_dir() -> Result<PathBuf> {
+pub fn find_preview_mojang_dir() -> Result<PathBuf> {
     let localappdata = env::var("LocalAppData")?;
     Ok(PathBuf::from(localappdata)
         .join("Packages")
@@ -65,7 +65,7 @@ pub fn find_education_mojang_dir() -> Result<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-fn find_education_mojang_dir() -> Result<PathBuf> {
+pub fn find_education_mojang_dir() -> Result<PathBuf> {
     let appdata = env::var("AppData")?;
     Ok(PathBuf::from(appdata)
         .join("Minecraft Education Edition")
