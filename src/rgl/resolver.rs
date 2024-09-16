@@ -42,7 +42,7 @@ impl Resolver {
             versions.sort_by_key(|v| Version::parse(v).ok());
             match &version_arg {
                 Some(arg) if versions[1..].contains(arg) => Some(arg.to_owned()),
-                None => versions.last().cloned(),
+                None => versions[1..].last().cloned(),
                 _ => None,
             }
         };
@@ -87,7 +87,7 @@ impl Resolver {
                 return Ok(tag.to_string());
             }
         }
-        if version_arg == Some("HEAD") {
+        if version_arg.is_none() || version_arg == Some("HEAD") {
             let output = Subprocess::new("git")
                 .args(["ls-remote", "--symref", &https_url, "HEAD"])
                 .run_silent()
