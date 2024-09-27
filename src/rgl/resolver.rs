@@ -21,7 +21,8 @@ struct ResolverData {
 
 impl Resolver {
     fn get(name: &str) -> Result<&ResolverData> {
-        get_resolver()?
+        get_resolver()
+            .context("Failed to load filter resolver")?
             .filters
             .get(name)
             .context(format!("Failed to resolve filter <b>{name}</>"))
@@ -122,7 +123,7 @@ fn get_resolver() -> Result<&'static Resolver> {
                 .context(format!("Failed to parse url `{resolver_url}`",))?;
             let resolver_dir = get_resolver_cache_dir()?.join(&url);
             let resolver_file = resolver_dir.join(&path);
-            if resolver_dir.exists() {
+            if resolver_dir.is_dir() {
                 let last_modified = resolver_file.metadata()?.modified()?.elapsed()?.as_secs();
                 if last_modified > UserConfig::resolver_update_interval() {
                     Subprocess::new("git")
