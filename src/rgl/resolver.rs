@@ -64,7 +64,7 @@ impl Resolver {
                 ))?;
             let output = String::from_utf8(output.stdout)?;
             if output.split('\n').any(|line| line.ends_with(&tag)) {
-                return Ok(tag);
+                return Ok(version.to_string());
             }
         }
         if version_arg.is_none() || version_arg == Some("latest") {
@@ -75,7 +75,7 @@ impl Resolver {
                     "Failed to get latest version from `{url}`. Is the url correct?"
                 ))?;
             let output = String::from_utf8(output.stdout)?;
-            let mut tags: Vec<Version> = output
+            let mut versions: Vec<Version> = output
                 .split('\n')
                 .filter_map(|line| {
                     line.split(&format!("refs/tags/{name}-"))
@@ -83,9 +83,9 @@ impl Resolver {
                         .and_then(|version| Version::parse(version).ok())
                 })
                 .collect();
-            tags.sort();
-            if let Some(tag) = tags.last() {
-                return Ok(tag.to_string());
+            versions.sort();
+            if let Some(version) = versions.last() {
+                return Ok(version.to_string());
             }
         }
         if version_arg.is_none() || version_arg == Some("HEAD") {
