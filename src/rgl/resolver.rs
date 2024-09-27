@@ -21,7 +21,8 @@ struct ResolverData {
 
 impl Resolver {
     fn get(name: &str) -> Result<&ResolverData> {
-        get_resolver()?
+        get_resolver()
+            .context("Failed to load filter resolver")?
             .filters
             .get(name)
             .context(format!("Failed to resolve filter <b>{name}</>"))
@@ -42,7 +43,7 @@ impl Resolver {
             versions.sort_by_key(|v| Version::parse(v).ok());
             match &version_arg {
                 Some(arg) if versions[1..].contains(arg) => Some(arg.to_owned()),
-                None => versions.last().cloned(),
+                None => versions[1..].last().cloned(),
                 _ => None,
             }
         };
@@ -63,7 +64,7 @@ impl Resolver {
                 ))?;
             let output = String::from_utf8(output.stdout)?;
             if output.split('\n').any(|line| line.ends_with(&tag)) {
-                return Ok(tag);
+                return Ok(version.to_string());
             }
         }
         if version_arg.is_none() || version_arg == Some("latest") {
@@ -74,7 +75,7 @@ impl Resolver {
                     "Failed to get latest version from `{url}`. Is the url correct?"
                 ))?;
             let output = String::from_utf8(output.stdout)?;
-            let mut tags: Vec<Version> = output
+            let mut versions: Vec<Version> = output
                 .split('\n')
                 .filter_map(|line| {
                     line.split(&format!("refs/tags/{name}-"))
@@ -82,12 +83,12 @@ impl Resolver {
                         .and_then(|version| Version::parse(version).ok())
                 })
                 .collect();
-            tags.sort();
-            if let Some(tag) = tags.last() {
-                return Ok(tag.to_string());
+            versions.sort();
+            if let Some(version) = versions.last() {
+                return Ok(version.to_string());
             }
         }
-        if version_arg == Some("HEAD") {
+        if version_arg.is_none() || version_arg == Some("HEAD") {
             let output = Subprocess::new("git")
                 .args(["ls-remote", "--symref", &https_url, "HEAD"])
                 .run_silent()
@@ -122,7 +123,7 @@ fn get_resolver() -> Result<&'static Resolver> {
                 .context(format!("Failed to parse url `{resolver_url}`",))?;
             let resolver_dir = get_resolver_cache_dir()?.join(&url);
             let resolver_file = resolver_dir.join(&path);
-            if resolver_dir.exists() {
+            if resolver_dir.is_dir() {
                 let last_modified = resolver_file.metadata()?.modified()?.elapsed()?.as_secs();
                 if last_modified > UserConfig::resolver_update_interval() {
                     Subprocess::new("git")

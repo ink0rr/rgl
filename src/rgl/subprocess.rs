@@ -48,7 +48,10 @@ impl Subprocess {
             .command
             .env("ROOT_DIR", get_current_dir()?)
             .spawn()
-            .map_err(|_| anyhow!("Program {:?} not found", self.command.get_program()))
+            .map_err(|err| match err.kind() {
+                io::ErrorKind::NotFound => self.program_not_found_error(),
+                _ => anyhow!(err),
+            })
             .context("Failed spawning subprocess")?
             .wait_with_output()
             .context("Failed running subprocess")?;
@@ -61,9 +64,7 @@ impl Subprocess {
             .env("ROOT_DIR", get_current_dir()?)
             .output()
             .map_err(|err| match err.kind() {
-                io::ErrorKind::NotFound => {
-                    anyhow!("Program {:?} not found", self.command.get_program())
-                }
+                io::ErrorKind::NotFound => self.program_not_found_error(),
                 _ => anyhow!(err),
             })
             .context("Failed running subprocess")?;
@@ -71,5 +72,23 @@ impl Subprocess {
             bail!("Process exited with non-zero status code");
         }
         Ok(output)
+    }
+
+    fn program_not_found_error(&self) -> anyhow::Error {
+        let program = self.command.get_program();
+        let mut message = format!("Program {:?} not found", program);
+        let install_link = match program.to_str() {
+            Some("bun") => Some("https://bun.sh/docs/installation"),
+            Some("deno") => Some("https://docs.deno.com/runtime/#install-deno"),
+            Some("git") => Some("https://git-scm.com/downloads"),
+            Some("go") => Some("https://go.dev/doc/install"),
+            Some("node") => Some("https://nodejs.org/en/download/prebuilt-installer"),
+            Some("python") => Some("https://www.python.org/downloads"),
+            _ => None,
+        };
+        if let Some(link) = install_link {
+            message.push_str(&format!(". Install it from {}", link));
+        }
+        anyhow!(message)
     }
 }
