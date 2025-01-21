@@ -12,6 +12,7 @@ clap = { version = "4.5.17", features = ["cargo", "derive"] }
 dialoguer = "0.11.0"
 dunce = "1.0.5"
 enum_dispatch = "0.3.13"
+exprimo = { git = "https://github.com/respectZ/exprimo.git" }
 fslock = "0.2.1"
 indexmap = { version = "2.5.0", features = ["serde"] }
 notify = "6.1.1"
@@ -19,6 +20,7 @@ notify-debouncer-mini = "0.4.1"
 once_cell = "1.19.0"
 paris = { version = "1.5.15", features = ["macros"] }
 rayon = "1.10.0"
+regex = "1.11.1"
 semver = "1.0.23"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"

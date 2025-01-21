@@ -159,6 +159,7 @@ impl Config {
                     filter_name: filter_name.to_owned(),
                     arguments: None,
                     settings: None,
+                    expression: None,
                 });
                 true
             }

@@ -1,4 +1,5 @@
 mod config;
+mod eval;
 mod export;
 mod filter;
 mod filter_bun;
@@ -21,6 +22,7 @@ mod user_config;
 mod version_check;
 
 pub use self::config::*;
+pub use self::eval::*;
 pub use self::export::*;
 pub use self::filter::*;
 pub use self::filter_bun::*;
