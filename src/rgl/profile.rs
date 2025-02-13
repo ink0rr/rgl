@@ -1,5 +1,5 @@
 use super::{Config, Export, Filter, FilterContext};
-use crate::{info, measure_time, rgl::FilterEvaluator};
+use crate::{debug, info, measure_time, rgl::FilterEvaluator};
 use anyhow::{bail, Context, Result};
 use clap::crate_version;
 use indexmap::IndexMap;
@@ -60,6 +60,7 @@ impl Profile {
                                 &context.filter_dir,
                                 settings,
                             );
+                            debug!("Evaluating expression <b>{expression}</>");
                             if !evaluator.run(expression).with_context(|| {
                                 format!("Failed running evaluator for <b>{filter_name}</>")
                             })? {
