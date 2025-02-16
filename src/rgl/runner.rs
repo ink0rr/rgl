@@ -1,4 +1,4 @@
-use super::{Config, ExportPaths, ProxyChannel, Session};
+use super::{Config, ExportPaths, ProxyChannel, Session, UserConfig};
 use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir, try_symlink};
 use crate::rgl::Proxy;
 use crate::{error, info, measure_time, warn};
@@ -60,38 +60,43 @@ pub fn run(profile_name: &str, cached: bool) -> Result<()> {
     session.unlock()
 }
 
-pub fn watch(profile_name: &str, cached: bool) -> Result<()> {
+pub fn watch(profile_name: &str, cached: bool, proxy: bool) -> Result<()> {
     let ch = Arc::new(Mutex::new(ProxyChannel::new()));
     let cloned_ch = Arc::clone(&ch);
-    spawn(async move {
-        let mut proxy = Proxy::new("127.0.0.1:19145", "127.0.0.1:19144");
-        if let Err(e) = proxy.serve().await {
-            error!("Could not start proxy: {}", e);
-            return;
-        }
-        if let Err(e) = proxy.wait_for_client(Arc::clone(&cloned_ch)).await {
-            error!("Proxy error: {}", e);
-        }
-    });
+    if proxy {
+        spawn(async move {
+            let config = UserConfig::proxy_server();
+            let mut proxy = Proxy::new(&config.listen_address, &config.server_address);
+            if let Err(e) = proxy.serve().await {
+                error!("Could not start proxy: {}", e);
+                return;
+            }
+            if let Err(e) = proxy.wait_for_client(Arc::clone(&cloned_ch)).await {
+                error!("Proxy error: {}", e);
+            }
+        });
+    }
 
     loop {
         let config = Config::load()?;
         let mut session = Session::lock()?;
         runner(&config, profile_name, cached)?;
 
-        let ch = Arc::clone(&ch);
-        spawn(async move {
-            let mut ch = ch.lock().await;
-            warn!("Auto reloading...");
-            let commands = vec![
-                "playsound note.bell @a",
-                "tellraw @a {\\\"rawtext\\\":[{\\\"text\\\":\\\"§6[rgl] §aAuto Reload...§r\\\"}]}",
-                "reload",
-            ];
-            for command in commands {
-                ch.send_command(command).await.unwrap();
-            }
-        });
+        if proxy {
+            let ch = Arc::clone(&ch);
+            spawn(async move {
+                let mut ch = ch.lock().await;
+                warn!("Auto reloading...");
+                let commands = vec![
+                    "playsound note.bell @a",
+                    "tellraw @a {\\\"rawtext\\\":[{\\\"text\\\":\\\"§6[rgl] §aAuto Reload...§r\\\"}]}",
+                    "reload",
+                ];
+                for command in commands {
+                    ch.send_command(command).await.unwrap();
+                }
+            });
+        }
 
         info!("Watching for changes...");
         info!("Press Ctrl+C to stop watching");

@@ -11,11 +11,14 @@ pub struct Watch {
     /// Do not use previous run output as cache
     #[arg(long)]
     no_cache: bool,
+    /// Start a proxy server
+    #[arg(long)]
+    proxy: bool,
 }
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
-        watch(&self.profile, !self.no_cache)
+        watch(&self.profile, !self.no_cache, self.proxy)
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)
