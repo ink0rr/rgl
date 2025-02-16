@@ -1,12 +1,11 @@
-use super::{Config, ExportPaths, ProxyChannel, Session, UserConfig};
+use super::{Config, ExportPaths, Session, TcpChannel, TcpServerType, TcpTrait};
 use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir, try_symlink};
-use crate::rgl::Proxy;
 use crate::{error, info, measure_time, warn};
 use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::spawn;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 
 fn runner(config: &Config, profile_name: &str, cached: bool) -> Result<()> {
     let bp = config.get_behavior_pack();
@@ -60,31 +59,26 @@ pub fn run(profile_name: &str, cached: bool) -> Result<()> {
     session.unlock()
 }
 
-pub fn watch(profile_name: &str, cached: bool, proxy: bool) -> Result<()> {
-    let ch = Arc::new(Mutex::new(ProxyChannel::new()));
-    let cloned_ch = Arc::clone(&ch);
-    if proxy {
+pub fn watch(profile_name: &str, cached: bool, server_type: Option<TcpServerType>) -> Result<()> {
+    let notify = Arc::new(Notify::new());
+    let mut has_server = false;
+    if let Some(mut server) = server_type {
+        has_server = true;
+        let ch = Arc::new(Mutex::new(TcpChannel::new()));
+        let notify_cloned = Arc::clone(&notify);
+        let ch_cloned = Arc::clone(&ch);
         spawn(async move {
-            let config = UserConfig::proxy_server();
-            let mut proxy = Proxy::new(&config.listen_address, &config.server_address);
-            if let Err(e) = proxy.serve().await {
-                error!("Could not start proxy: {}", e);
+            if let Err(e) = server.serve().await {
+                error!("Could not start server: {}", e);
                 return;
             }
-            if let Err(e) = proxy.wait_for_client(Arc::clone(&cloned_ch)).await {
-                error!("Proxy error: {}", e);
+            if let Err(e) = server.wait_for_client(Arc::clone(&ch_cloned)).await {
+                error!("Server error: {}", e);
             }
         });
-    }
-
-    loop {
-        let config = Config::load()?;
-        let mut session = Session::lock()?;
-        runner(&config, profile_name, cached)?;
-
-        if proxy {
-            let ch = Arc::clone(&ch);
-            spawn(async move {
+        spawn(async move {
+            loop {
+                notify_cloned.notified().await;
                 let mut ch = ch.lock().await;
                 warn!("Auto reloading...");
                 let commands = vec![
@@ -95,7 +89,18 @@ pub fn watch(profile_name: &str, cached: bool, proxy: bool) -> Result<()> {
                 for command in commands {
                     ch.send_command(command).await.unwrap();
                 }
-            });
+            }
+        });
+    }
+
+    loop {
+        let config = Config::load()?;
+        let mut session = Session::lock()?;
+        runner(&config, profile_name, cached)?;
+
+        if has_server {
+            let notify = Arc::clone(&notify);
+            notify.notify_one();
         }
 
         info!("Watching for changes...");
