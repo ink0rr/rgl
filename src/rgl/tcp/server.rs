@@ -1,6 +1,6 @@
 use super::{PacketRequest, TcpChannel, TcpTrait};
 use crate::{
-    debug, info,
+    debug, error, info,
     rgl::{
         PacketEventType, PacketProtocol, PacketResponse, PacketResponseType, PacketResume,
         PacketStopOnException,
@@ -88,7 +88,14 @@ impl TcpServer {
         // 8 bytes header for size + 1 byte for newline
         let mut buf = [0u8; 9];
         Self::read(reader, &mut buf).await?;
-        let size = u32::from_str_radix(&String::from_utf8_lossy(&buf).trim(), 16)?;
+        let size = match u32::from_str_radix(&String::from_utf8_lossy(&buf).trim(), 16) {
+            Ok(size) => size,
+            Err(e) => {
+                error!("Unable to parse size: {}", e);
+                error!("Buffer: {:?}", buf);
+                return Ok(());
+            }
+        };
         let mut buf = vec![0u8; size as usize];
         Self::read(reader, &mut buf).await?;
         let packet: PacketRequest = match serde_json::from_slice(&buf) {
@@ -112,7 +119,11 @@ impl TcpServer {
                         // TODO: Implement passcode
                         bail!("Passcode required");
                     }
-                    let plugin = event.plugins.first().unwrap();
+                    let plugin = if let Some(plugin) = event.plugins.first() {
+                        plugin
+                    } else {
+                        bail!("No plugins found");
+                    };
                     let responses = [
                         PacketResponse {
                             packet_type: PacketResponseType::Protocol(PacketProtocol {
