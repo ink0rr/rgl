@@ -2,10 +2,6 @@
 
 Fast and minimal implementation of Regolith.
 
-Portions of this code are based on [minecraft-debugger](https://github.com/Mojang/minecraft-debugger), which is licensed under the MIT License.
-
-Copyright (c) Microsoft Corporation
-
 ## Benchmark
 
 Benchmark result on a project with ~2700 files, no filters, and a total size of 14MB.

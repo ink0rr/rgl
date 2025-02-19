@@ -1,3 +1,6 @@
+// Based on https://github.com/Mojang/minecraft-debugger/blob/main/src/session.ts
+// Copyright (c) 2025 Microsoft Corporation. All rights reserved. MIT License.
+
 use super::{PacketRequest, TcpChannel, TcpTrait};
 use crate::{
     debug, error, info,
