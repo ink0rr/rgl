@@ -32,7 +32,13 @@ impl Filter for RemoteFilter {
                     continue;
                 }
             }
-            data.filter.run(context, temp, run_args)?;
+            // This behavior is different from Regolith. It might break some filters
+            // that need the arguments to be passed in a specific order.
+            let mut run_args = run_args.to_vec();
+            if let Some(arguments) = data.arguments {
+                run_args.extend(arguments);
+            };
+            data.filter.run(context, temp, &run_args)?;
         }
         Ok(())
     }
@@ -52,6 +58,7 @@ pub struct RemoteFilterConfig {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfigData {
+    pub arguments: Option<Vec<String>>,
     #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
     pub expression: Option<String>,
     #[serde(flatten)]
