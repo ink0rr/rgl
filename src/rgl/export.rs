@@ -52,7 +52,7 @@ impl ExportPaths for DevelopmentExport {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct LocalExport;
+pub struct LocalExport {}
 
 impl ExportPaths for LocalExport {
     fn get_paths(&self, name: &str) -> Result<(PathBuf, PathBuf)> {
