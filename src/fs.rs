@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use dunce::canonicalize;
 use rayon::prelude::*;
 use std::{
@@ -76,11 +76,23 @@ fn rimraf_impl(path: &Path) -> Result<()> {
             let path = entry.path();
             let metadata = entry.metadata()?;
             if metadata.is_dir() {
-                rimraf_impl(&path)?;
-            } else if cfg!(windows) && metadata.is_symlink() {
-                fs::remove_dir(path)?;
+                return rimraf_impl(&path);
+            }
+            let rm = if cfg!(windows) && metadata.is_symlink() {
+                fs::remove_dir
             } else {
-                fs::remove_file(path)?;
+                fs::remove_file
+            };
+            if let Err(err) = rm(&path) {
+                match err.kind() {
+                    io::ErrorKind::PermissionDenied => {
+                        let mut perm = metadata.permissions();
+                        perm.set_readonly(false);
+                        fs::set_permissions(&path, perm)?;
+                        rm(&path)?;
+                    }
+                    _ => bail!(err),
+                }
             }
             Ok(())
         })
