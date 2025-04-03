@@ -431,7 +431,7 @@ dependencies = [
 [[package]]
 name = "exprimo"
 version = "0.2.0"
-source = "git+https://github.com/respectZ/exprimo.git?branch=rgl#21ce144875f8ffe7ad0e231bf8ddfcc12de46464"
+source = "git+https://github.com/respectZ/exprimo.git?branch=rgl#43c8db88aa3ef9aea391d1c079a4b6fb2497e3f0"
 dependencies = [
  "anyhow",
  "regex",
@@ -937,7 +937,6 @@ dependencies = [
  "once_cell",
  "paris",
  "rayon",
- "regex",
  "semver",
  "serde",
  "serde_json",

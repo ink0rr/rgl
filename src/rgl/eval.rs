@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use exprimo::{ContextEntry, Evaluator};
 use indexmap::IndexMap;
-use regex::Regex;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
@@ -35,7 +34,6 @@ impl FilterEvaluator {
             context.insert("settings".to_string(), to_json(settings));
         }
         add_math_func(&mut context);
-        add_string_func(&mut context);
         Self {
             evaluator: Evaluator::new(context),
         }
@@ -151,138 +149,4 @@ fn add_math_func(context: &mut HashMap<String, ContextEntry>) {
     for &(name, func) in &f2 {
         add_math_func2(context, name, func);
     }
-}
-
-fn add_string_func(context: &mut HashMap<String, ContextEntry>) {
-    context.insert(
-        "replace".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let from = args[1].as_str().unwrap();
-            let to = args[2].as_str().unwrap();
-            Value::String(s.replace(from, to))
-        })),
-    );
-    context.insert(
-        "join".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let sep = args.last().unwrap().as_str().unwrap();
-            let strs = args[..args.len() - 1]
-                .iter()
-                .map(|v| v.as_str().unwrap())
-                .collect::<Vec<&str>>();
-            Value::String(strs.join(sep))
-        })),
-    );
-    context.insert(
-        "contains".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let substr = args[1].as_str().unwrap();
-            Value::Bool(s.contains(substr))
-        })),
-    );
-    context.insert(
-        "split".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let sep = args[1].as_str().unwrap();
-            Value::Array(
-                s.split(sep)
-                    .map(|part| Value::String(part.to_string()))
-                    .collect(),
-            )
-        })),
-    );
-    context.insert(
-        "indexOf".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let substr = args[1].as_str().unwrap();
-            Value::Number(s.find(substr).map(|i| i as i64).unwrap_or(-1).into())
-        })),
-    );
-    context.insert(
-        "lastIndexOf".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let substr = args[1].as_str().unwrap();
-            Value::Number(s.rfind(substr).map(|i| i as i64).unwrap_or(-1).into())
-        })),
-    );
-    context.insert(
-        "toUpperCase".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            Value::String(s.to_uppercase())
-        })),
-    );
-    context.insert(
-        "toLowerCase".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            Value::String(s.to_lowercase())
-        })),
-    );
-    context.insert(
-        "substring".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let start = args[1].as_f64().unwrap() as usize;
-            let end = args[2].as_f64().unwrap() as usize;
-            Value::String(s[start..end].to_string())
-        })),
-    );
-    context.insert(
-        "substringFrom".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let start = args[1].as_f64().unwrap() as usize;
-            Value::String(s[start..].to_string())
-        })),
-    );
-    context.insert(
-        "startsWith".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let substr = args[1].as_str().unwrap();
-            Value::Bool(s.starts_with(substr))
-        })),
-    );
-    context.insert(
-        "endsWith".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let substr = args[1].as_str().unwrap();
-            Value::Bool(s.ends_with(substr))
-        })),
-    );
-    context.insert(
-        "regexReplace".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            let pattern = args[1].as_str().unwrap();
-            let replacement = args[2].as_str().unwrap();
-            Value::String(
-                Regex::new(pattern)
-                    .unwrap()
-                    .replace_all(s, replacement)
-                    .to_string(),
-            )
-        })),
-    );
-    context.insert(
-        "length".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            Value::Number(s.len().into())
-        })),
-    );
-    context.insert(
-        "trim".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            let s = args[0].as_str().unwrap();
-            Value::String(s.trim().to_string())
-        })),
-    );
 }
