@@ -13,5 +13,9 @@ pub enum TcpServerType {
 #[enum_dispatch(TcpServerType)]
 pub trait TcpTrait {
     async fn serve(&mut self) -> Result<()>;
-    async fn wait_for_client(&mut self, channel: Arc<Mutex<TcpChannel>>) -> Result<()>;
+    async fn wait_for_client(
+        &mut self,
+        channel: Arc<Mutex<TcpChannel>>,
+        notifier: Arc<Mutex<bool>>,
+    ) -> Result<()>;
 }

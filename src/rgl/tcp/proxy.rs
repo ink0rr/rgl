@@ -19,7 +19,11 @@ impl TcpTrait for TcpProxy {
         self.listener = Some(listener);
         Ok(())
     }
-    async fn wait_for_client(&mut self, channel: Arc<Mutex<TcpChannel>>) -> Result<()> {
+    async fn wait_for_client(
+        &mut self,
+        channel: Arc<Mutex<TcpChannel>>,
+        notifier: Arc<Mutex<bool>>,
+    ) -> Result<()> {
         if self.listener.is_none() {
             bail!("Listener is not initialized");
         }
@@ -28,8 +32,10 @@ impl TcpTrait for TcpProxy {
             let (inbound, _) = listener.accept().await?;
             let peer_addr = inbound.peer_addr()?;
             info!("New connection: {}", peer_addr.clone());
+            *notifier.lock().await = true;
             Self::handle_connection(inbound, &self.server_addr, channel.clone()).await?;
             warn!("Connection closed: {}", peer_addr);
+            *notifier.lock().await = false;
         }
     }
 }

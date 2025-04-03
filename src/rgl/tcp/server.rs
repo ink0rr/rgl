@@ -30,7 +30,11 @@ impl TcpTrait for TcpServer {
         self.listener = Some(listener);
         Ok(())
     }
-    async fn wait_for_client(&mut self, channel: Arc<Mutex<TcpChannel>>) -> Result<()> {
+    async fn wait_for_client(
+        &mut self,
+        channel: Arc<Mutex<TcpChannel>>,
+        notifier: Arc<Mutex<bool>>,
+    ) -> Result<()> {
         let listener = match &self.listener {
             Some(listener) => listener,
             None => bail!("Listener is not initialized"),
@@ -39,8 +43,10 @@ impl TcpTrait for TcpServer {
             let (inbound, _) = listener.accept().await?;
             let peer_addr = inbound.peer_addr()?;
             info!("New connection: {}", peer_addr.clone());
+            *notifier.lock().await = true;
             Self::handle_connection(inbound, channel.clone()).await?;
             warn!("Connection closed: {}", peer_addr);
+            *notifier.lock().await = false;
         }
     }
 }
