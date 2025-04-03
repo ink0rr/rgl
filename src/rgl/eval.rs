@@ -35,7 +35,6 @@ impl FilterEvaluator {
             context.insert("settings".to_string(), to_json(settings));
         }
         add_math_func(&mut context);
-        add_semver_func(&mut context);
         add_string_func(&mut context);
         Self {
             evaluator: Evaluator::new(context),
@@ -152,47 +151,6 @@ fn add_math_func(context: &mut HashMap<String, ContextEntry>) {
     for &(name, func) in &f2 {
         add_math_func2(context, name, func);
     }
-}
-
-fn add_semver_func(context: &mut HashMap<String, ContextEntry>) {
-    context.insert(
-        "semver".to_string(),
-        ContextEntry::Function(Box::new(|args| {
-            // 4 overloads
-            // semver("1.2.3")
-            // semver([1,2,3])
-            // semver(1,2,3)
-            // semver({major: 1, minor: 2, patch: 3})
-            let number = match args.as_slice() {
-                [Value::String(s)] => {
-                    let parts: Vec<u64> = s.split('.').map(|part| part.parse().unwrap()).collect();
-                    if parts.len() != 3 {
-                        panic!("Invalid semantic version: expected format 'MAJOR.MINOR.PATCH'");
-                    }
-                    parts[0] * 10000 + parts[1] * 100 + parts[2]
-                }
-                [Value::Array(a)] if a.len() == 3 => a
-                    .iter()
-                    .map(|v| v.as_u64().unwrap())
-                    .collect::<Vec<u64>>()
-                    .iter()
-                    .fold(0, |acc, &x| acc * 100 + x),
-                [Value::Object(o)] => {
-                    let major = o.get("major").unwrap().as_u64().unwrap();
-                    let minor = o.get("minor").unwrap().as_u64().unwrap();
-                    let patch = o.get("patch").unwrap().as_u64().unwrap();
-                    major * 10000 + minor * 100 + patch
-                }
-                [Value::Number(major), Value::Number(minor), Value::Number(patch)] => {
-                    major.as_u64().unwrap() * 10000
-                        + minor.as_u64().unwrap() * 100
-                        + patch.as_u64().unwrap()
-                }
-                _ => panic!("Invalid arguments for semver"),
-            };
-            Value::Number(number.into())
-        })),
-    );
 }
 
 fn add_string_func(context: &mut HashMap<String, ContextEntry>) {

@@ -431,10 +431,12 @@ dependencies = [
 [[package]]
 name = "exprimo"
 version = "0.2.0"
-source = "git+https://github.com/respectZ/exprimo.git#d25d59a715aee00a7c70e9f97efd95bb6fa92a43"
+source = "git+https://github.com/respectZ/exprimo.git?branch=rgl#21ce144875f8ffe7ad0e231bf8ddfcc12de46464"
 dependencies = [
  "anyhow",
+ "regex",
  "rslint_parser",
+ "semver",
  "serde",
  "serde_json",
  "thiserror",
@@ -1125,6 +1127,9 @@ name = "semver"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "serde"
