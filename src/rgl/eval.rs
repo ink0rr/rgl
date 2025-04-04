@@ -12,7 +12,6 @@ pub struct FilterEvaluator {
 
 impl FilterEvaluator {
     pub fn new(
-        version: &str,
         profile: &str,
         filter_location: impl AsRef<Path>,
         settings: &Option<IndexMap<String, Value>>,
@@ -20,7 +19,7 @@ impl FilterEvaluator {
         let mut context: HashMap<String, ContextEntry> = vec![
             ("os", OS.to_string()),
             ("arch", ARCH.to_string()),
-            ("version", version.to_string()),
+            ("version", "0.0.0".to_string()),
             ("profile", profile.to_string()),
             (
                 "filterLocation",

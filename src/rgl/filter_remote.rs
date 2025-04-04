@@ -5,7 +5,6 @@ use super::{
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
 use crate::{debug, info, warn};
 use anyhow::{bail, Context, Result};
-use clap::crate_version;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -22,8 +21,7 @@ impl Filter for RemoteFilter {
         for data in config.filters {
             if let Some(expression) = &data.expression {
                 let name = &context.name;
-                let evaluator =
-                    FilterEvaluator::new(crate_version!(), name, &context.filter_dir, &None);
+                let evaluator = FilterEvaluator::new(name, &context.filter_dir, &None);
                 debug!("Evaluating expression <b>{expression}</>");
                 if !evaluator
                     .run(expression)

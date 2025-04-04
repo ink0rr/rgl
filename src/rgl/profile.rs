@@ -1,7 +1,6 @@
-use super::{Config, Export, Filter, FilterContext};
-use crate::{debug, info, measure_time, rgl::FilterEvaluator};
+use super::{Config, Export, Filter, FilterContext, FilterEvaluator};
+use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
-use clap::crate_version;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -54,12 +53,8 @@ impl Profile {
                     measure_time!(filter_name, {
                         let context = FilterContext::new(filter_name, &filter)?;
                         if let Some(expression) = expression {
-                            let evaluator = FilterEvaluator::new(
-                                crate_version!(),
-                                root_profile,
-                                &context.filter_dir,
-                                settings,
-                            );
+                            let evaluator =
+                                FilterEvaluator::new(root_profile, &context.filter_dir, settings);
                             debug!("Evaluating expression <b>{expression}</>");
                             if !evaluator.run(expression).with_context(|| {
                                 format!("Failed running evaluator for <b>{filter_name}</>")
