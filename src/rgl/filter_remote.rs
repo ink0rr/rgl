@@ -18,8 +18,8 @@ pub struct RemoteFilter {
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let config = RemoteFilterConfig::load(context)?;
-        for data in config.filters {
-            if let Some(expression) = &data.expression {
+        for entry in config.filters {
+            if let Some(expression) = &entry.expression {
                 let name = &context.name;
                 let evaluator = FilterEvaluator::new(name, &context.filter_dir, &None);
                 debug!("Evaluating expression <b>{expression}</>");
@@ -33,10 +33,10 @@ impl Filter for RemoteFilter {
             // This behavior is different from Regolith. It might break some filters
             // that need the arguments to be passed in a specific order.
             let mut run_args = run_args.to_vec();
-            if let Some(arguments) = data.arguments {
+            if let Some(arguments) = entry.arguments {
                 run_args.extend(arguments);
             };
-            data.filter.run(context, temp, &run_args)?;
+            entry.filter.run(context, temp, &run_args)?;
         }
         Ok(())
     }
@@ -51,11 +51,11 @@ impl Filter for RemoteFilter {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
-    pub filters: Vec<RemoteFilterConfigData>,
+    pub filters: Vec<RemoteFilterEntry>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RemoteFilterConfigData {
+pub struct RemoteFilterEntry {
     pub arguments: Option<Vec<String>>,
     #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
     pub expression: Option<String>,
