@@ -1,5 +1,5 @@
-use super::{Config, Export, Filter, FilterContext};
-use crate::{info, measure_time};
+use super::{Config, Export, Filter, FilterContext, FilterEvaluator};
+use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -22,6 +22,8 @@ pub enum FilterRunner {
         arguments: Option<Vec<String>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         settings: Option<IndexMap<String, Value>>,
+        #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
+        expression: Option<String>,
     },
     ProfileFilter {
         #[serde(rename = "profile")]
@@ -37,6 +39,7 @@ impl Profile {
                     filter_name,
                     arguments,
                     settings,
+                    expression,
                 } => {
                     let filter = config.get_filter(filter_name)?;
                     let mut run_args: Vec<String> = vec![];
@@ -48,8 +51,19 @@ impl Profile {
                     }
 
                     measure_time!(filter_name, {
-                        info!("Running filter <b>{filter_name}</>");
                         let context = FilterContext::new(filter_name, &filter)?;
+                        if let Some(expression) = expression {
+                            let evaluator =
+                                FilterEvaluator::new(root_profile, &context.filter_dir, settings);
+                            debug!("Evaluating expression <b>{expression}</>");
+                            if !evaluator.run(expression).with_context(|| {
+                                format!("Failed running evaluator for <b>{filter_name}</>")
+                            })? {
+                                info!("Skipping filter <b>{filter_name}</>");
+                                continue;
+                            }
+                        }
+                        info!("Running filter <b>{filter_name}</>");
                         filter
                             .run(&context, temp, &run_args)
                             .context(format!("Failed running filter <b>{filter_name}</>"))?;

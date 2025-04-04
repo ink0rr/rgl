@@ -1,9 +1,9 @@
 use super::{
-    get_filter_cache_dir, get_repo_cache_dir, Filter, FilterContext, LocalFilter, Resolver,
-    Subprocess,
+    get_filter_cache_dir, get_repo_cache_dir, Filter, FilterContext, FilterEvaluator, LocalFilter,
+    Resolver, Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
-use crate::{info, warn};
+use crate::{debug, info, warn};
 use anyhow::{bail, Context, Result};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -18,15 +18,32 @@ pub struct RemoteFilter {
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let config = RemoteFilterConfig::load(context)?;
-        for filter in config.filters {
-            filter.run(context, temp, run_args)?;
+        for entry in config.filters {
+            if let Some(expression) = &entry.expression {
+                let name = &context.name;
+                let evaluator = FilterEvaluator::new(name, &context.filter_dir, &None);
+                debug!("Evaluating expression <b>{expression}</>");
+                if !evaluator
+                    .run(expression)
+                    .with_context(|| format!("Failed running evaluator for <b>{name}</>"))?
+                {
+                    continue;
+                }
+            }
+            // This behavior is different from Regolith. It might break some filters
+            // that need the arguments to be passed in a specific order.
+            let mut run_args = run_args.to_vec();
+            if let Some(arguments) = entry.arguments {
+                run_args.extend(arguments);
+            };
+            entry.filter.run(context, temp, &run_args)?;
         }
         Ok(())
     }
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         let config = RemoteFilterConfig::load(context)?;
-        for filter in config.filters {
-            filter.install_dependencies(context)?;
+        for data in config.filters {
+            data.filter.install_dependencies(context)?;
         }
         Ok(())
     }
@@ -34,7 +51,16 @@ impl Filter for RemoteFilter {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
-    pub filters: Vec<LocalFilter>,
+    pub filters: Vec<RemoteFilterEntry>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RemoteFilterEntry {
+    pub arguments: Option<Vec<String>>,
+    #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
+    pub expression: Option<String>,
+    #[serde(flatten)]
+    pub filter: LocalFilter,
 }
 
 impl RemoteFilterConfig {

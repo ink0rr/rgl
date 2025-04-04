@@ -1,6 +1,6 @@
 use super::{
     get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
-    FilterNodejs, FilterPython, RemoteFilter,
+    FilterNodejs, FilterPython, FilterShell, RemoteFilter,
 };
 use crate::info;
 use anyhow::Result;
@@ -44,6 +44,7 @@ pub enum LocalFilter {
     Go(FilterGo),
     Nodejs(FilterNodejs),
     Python(FilterPython),
+    Shell(FilterShell),
 }
 
 pub struct FilterContext {
