@@ -1,8 +1,11 @@
 use super::{find_education_mojang_dir, find_mojang_dir, find_preview_mojang_dir, Eval};
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
-use std::{env, fs, path::PathBuf};
+use std::{
+    env, fs,
+    path::{Component, PathBuf},
+};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase", tag = "target")]
@@ -10,6 +13,7 @@ use std::{env, fs, path::PathBuf};
 pub enum Export {
     Development(DevelopmentExport),
     Local(LocalExport),
+    Exact(ExactExport),
 }
 
 #[enum_dispatch(Export)]
@@ -95,4 +99,50 @@ impl ExportPaths for LocalExport {
         };
         Ok((bp, rp))
     }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExactExport {
+    bp_path: String,
+    rp_path: String,
+}
+
+impl ExportPaths for ExactExport {
+    fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+        let bp = resolve_path(&self.bp_path)?;
+        if let Some(parent) = bp.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+        let rp = resolve_path(&self.rp_path)?;
+        if let Some(parent) = rp.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+        Ok((bp, rp))
+    }
+}
+
+fn resolve_path(path: &str) -> Result<PathBuf> {
+    let mut res = PathBuf::new();
+    for component in PathBuf::from(path).components() {
+        match component {
+            Component::Normal(os_str) => {
+                let part = os_str.to_string_lossy();
+                if part.starts_with('%') && part.ends_with('%') {
+                    let name = &part[1..part.len() - 1];
+                    let value = env::var(name)
+                        .map_err(|_| anyhow!("Environment variable <b>{name}</> not found"))?;
+                    res.push(value);
+                } else {
+                    res.push(os_str);
+                }
+            }
+            _ => res.push(component),
+        }
+    }
+    Ok(res)
 }
