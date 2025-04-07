@@ -1,4 +1,4 @@
-use super::{Config, Export, Filter, FilterContext, FilterEvaluator};
+use super::{Config, Eval, Export, Filter, FilterContext};
 use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
@@ -53,10 +53,9 @@ impl Profile {
                     measure_time!(filter_name, {
                         let context = FilterContext::new(filter_name, &filter)?;
                         if let Some(expression) = expression {
-                            let evaluator =
-                                FilterEvaluator::new(root_profile, &context.filter_dir, settings);
+                            let eval = Eval::new(root_profile, &context.filter_dir, settings);
                             debug!("Evaluating expression <b>{expression}</>");
-                            if !evaluator.run(expression).with_context(|| {
+                            if !eval.bool(expression).with_context(|| {
                                 format!("Failed running evaluator for <b>{filter_name}</>")
                             })? {
                                 info!("Skipping filter <b>{filter_name}</>");

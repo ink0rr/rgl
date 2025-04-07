@@ -1,6 +1,6 @@
 use super::{
-    get_filter_cache_dir, get_repo_cache_dir, Filter, FilterContext, FilterEvaluator, LocalFilter,
-    Resolver, Subprocess,
+    get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
+    Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
 use crate::{debug, info, warn};
@@ -21,10 +21,10 @@ impl Filter for RemoteFilter {
         for entry in config.filters {
             if let Some(expression) = &entry.expression {
                 let name = &context.name;
-                let evaluator = FilterEvaluator::new(name, &context.filter_dir, &None);
+                let eval = Eval::new(name, &context.filter_dir, &None);
                 debug!("Evaluating expression <b>{expression}</>");
-                if !evaluator
-                    .run(expression)
+                if !eval
+                    .bool(expression)
                     .with_context(|| format!("Failed running evaluator for <b>{name}</>"))?
                 {
                     continue;

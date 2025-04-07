@@ -1,19 +1,17 @@
 use anyhow::{anyhow, Result};
 use exprimo::{ContextEntry, Evaluator};
 use indexmap::IndexMap;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
 use std::path::Path;
 
-pub struct FilterEvaluator {
-    evaluator: Evaluator,
-}
+pub struct Eval(Evaluator);
 
-impl FilterEvaluator {
+impl Eval {
     pub fn new(
         profile: &str,
-        filter_location: impl AsRef<Path>,
+        filter_location: &Path,
         settings: &Option<IndexMap<String, Value>>,
     ) -> Self {
         let mut context: HashMap<String, ContextEntry> = vec![
@@ -21,16 +19,16 @@ impl FilterEvaluator {
             ("arch", ARCH.to_string()),
             ("version", "0.0.0".to_string()),
             ("profile", profile.to_string()),
-            (
-                "filterLocation",
-                filter_location.as_ref().to_string_lossy().to_string(),
-            ),
+            ("filterLocation", filter_location.display().to_string()),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), ContextEntry::Variable(Value::String(v))))
         .collect();
         if let Some(settings) = settings {
-            context.insert("settings".to_string(), to_json(settings));
+            context.insert(
+                "settings".to_string(),
+                ContextEntry::Variable(Value::Object(settings.clone().into_iter().collect())),
+            );
         }
         context.insert(
             "pi".to_string(),
@@ -38,27 +36,26 @@ impl FilterEvaluator {
                 serde_json::Number::from_f64(std::f64::consts::PI).unwrap(),
             )),
         );
-        Self {
-            evaluator: Evaluator::new(context),
-        }
+        Self(Evaluator::new(context))
     }
 
-    pub fn run(&self, expression: &str) -> Result<bool> {
-        let result = self.evaluator.evaluate(expression)?;
-        match result {
-            Value::Bool(b) => Ok(b),
+    pub fn bool(&self, expression: &str) -> Result<bool> {
+        match self.0.evaluate(expression)? {
+            Value::String(v) => Ok(!v.is_empty()),
+            Value::Number(v) => Ok(v.as_f64().unwrap_or_default() != 0.0),
+            Value::Bool(v) => Ok(v),
             Value::Null => Ok(false),
-            Value::String(s) => Ok(!s.is_empty()),
-            Value::Number(n) => Ok(n.as_f64().unwrap() != 0.0),
-            _ => Err(anyhow!("Invalid expression result: {:?}", result)),
+            value => Err(anyhow!("Invalid expression result: {:?}", value)),
         }
     }
-}
 
-fn to_json(settings: &IndexMap<String, Value>) -> ContextEntry {
-    let map = settings
-        .iter()
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect::<Map<String, Value>>();
-    ContextEntry::Variable(Value::Object(map))
+    pub fn string(&self, expression: &str) -> Result<String> {
+        match self.0.evaluate(expression)? {
+            Value::String(s) => Ok(s),
+            value => Err(anyhow!(
+                "Expression evaluated to non-string value: {:?}",
+                value
+            )),
+        }
+    }
 }
