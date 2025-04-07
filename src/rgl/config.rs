@@ -48,7 +48,7 @@ impl Config {
         profiles.insert(
             "build".to_owned(),
             Profile {
-                export: Export::Local(LocalExport {}),
+                export: Export::Local(LocalExport::default()),
                 filters: vec![FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
                 }],

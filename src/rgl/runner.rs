@@ -12,7 +12,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
     let rp = config.get_resource_pack();
 
     let profile = config.get_profile(profile_name)?;
-    let (target_bp, target_rp) = profile.export.get_paths(config.get_name())?;
+    let (target_bp, target_rp) = profile.export.get_paths(config.get_name(), profile_name)?;
 
     let temp = PathBuf::from(".regolith").join("tmp");
     let temp_bp = temp.join("BP");
