@@ -1,3 +1,4 @@
+use crate::logger::Logger;
 use anyhow::{anyhow, Result};
 use exprimo::{ContextEntry, Evaluator};
 use indexmap::IndexMap;
@@ -22,19 +23,21 @@ impl Eval {
             ("filterLocation", filter_location.display().to_string()),
         ]
         .into_iter()
-        .map(|(k, v)| (k.to_string(), ContextEntry::Variable(Value::String(v))))
+        .map(|(k, v)| (k.to_string(), ContextEntry::Variable(v.into())))
         .collect();
         if let Some(settings) = settings {
             context.insert(
                 "settings".to_string(),
-                ContextEntry::Variable(Value::Object(settings.clone().into_iter().collect())),
+                ContextEntry::Variable(settings.clone().into_iter().collect()),
             );
         }
         context.insert(
+            "debug".to_string(),
+            ContextEntry::Variable(Logger::get_debug().into()),
+        );
+        context.insert(
             "pi".to_string(),
-            ContextEntry::Variable(Value::Number(
-                serde_json::Number::from_f64(std::f64::consts::PI).unwrap(),
-            )),
+            ContextEntry::Variable(std::f64::consts::PI.into()),
         );
         Self(Evaluator::new(context))
     }

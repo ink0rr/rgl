@@ -33,6 +33,10 @@ impl Logger {
         Logger::log(format!("<red>[ERROR]</> {}", message));
     }
 
+    pub fn get_debug() -> bool {
+        DEBUG_FLAG.load(Ordering::Relaxed)
+    }
+
     pub fn set_debug(debug: bool) {
         DEBUG_FLAG.store(debug, Ordering::Relaxed);
     }
