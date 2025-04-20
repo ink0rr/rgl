@@ -1,6 +1,6 @@
 # rgl
 
-Fast and minimal implementation of Regolith.
+Fast and efficient Bedrock Addon Compiler.
 
 ## Benchmark
 
