@@ -7,25 +7,25 @@ edition = "2021"
 name = "rgl"
 
 [dependencies]
-anyhow = "1.0.87"
-clap = { version = "4.5.17", features = ["cargo", "derive"] }
+anyhow = "1.0.98"
+clap = { version = "4.5.37", features = ["cargo", "derive"] }
 dialoguer = "0.11.0"
 dunce = "1.0.5"
 enum_dispatch = "0.3.13"
 exprimo = { git = "https://github.com/respectZ/exprimo.git", branch = "rgl" }
 fslock = "0.2.1"
-indexmap = { version = "2.5.0", features = ["serde"] }
-notify = "6.1.1"
-notify-debouncer-mini = "0.4.1"
-once_cell = "1.19.0"
+indexmap = { version = "2.9.0", features = ["serde"] }
+notify = "8.0.0"
+notify-debouncer-mini = "0.6.0"
+once_cell = "1.21.3"
 paris = { version = "1.5.15", features = ["macros"] }
 rayon = "1.10.0"
-semver = "1.0.23"
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
-strum = { version = "0.26.3", features = ["derive"] }
-tempfile = "3.12.0"
-ureq = "2.10.1"
-uuid = { version = "1.10.0", features = ["v4"] }
+semver = "1.0.26"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+strum = { version = "0.27.1", features = ["derive"] }
+tempfile = "3.19.1"
+ureq = "2.12.1"
+uuid = { version = "1.16.0", features = ["v4"] }
 walkdir = "2.5.0"
 zip = "0.6.6"
