@@ -111,16 +111,9 @@ pub struct ExactExport {
 impl ExportPaths for ExactExport {
     fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
         let bp = resolve_path(&self.bp_path)?;
-        if let Some(parent) = bp.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
-        }
         let rp = resolve_path(&self.rp_path)?;
-        if let Some(parent) = rp.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+        if bp == rp {
+            bail!("Both `bpPath` and `rpPath` resolved to the same path")
         }
         Ok((bp, rp))
     }
@@ -144,5 +137,19 @@ fn resolve_path(path: &str) -> Result<PathBuf> {
             _ => res.push(component),
         }
     }
-    Ok(res)
+    fs::create_dir_all(&res).map_err(|_| {
+        anyhow!(
+            "Cannot create directory when a file with the same name exists\n\
+             <yellow> >></> Path: {}",
+            res.display()
+        )
+    })?;
+    if res.join("config.json").is_file() {
+        bail!(
+            "The specified path is a project directory\n\
+             <yellow> >></> Path: {}",
+            res.display()
+        )
+    }
+    Ok(dunce::canonicalize(res)?)
 }
