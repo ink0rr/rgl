@@ -52,7 +52,7 @@ fn run_command(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-/// Fast and minimal implementation of Regolith
+/// Fast and efficient Bedrock Addon Compiler
 #[derive(Parser)]
 #[command(bin_name = crate_name!(), version)]
 struct Cli {
