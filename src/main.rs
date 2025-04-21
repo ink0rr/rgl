@@ -11,7 +11,8 @@ use enum_dispatch::enum_dispatch;
 use logger::Logger;
 use std::thread;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
     Logger::set_debug(cli.debug);
     if let Err(e) = run_command(cli) {

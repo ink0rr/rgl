@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::run_or_watch;
+use crate::rgl::run;
 use anyhow::Result;
 use clap::Args;
 
@@ -15,7 +15,7 @@ pub struct Run {
 
 impl Command for Run {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(&self.profile, false, self.cached)
+        run(&self.profile, self.cached)
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)
