@@ -1,7 +1,7 @@
 use super::{Config, ExportPaths, Session, TcpChannel, TcpServerType, TcpTrait};
 use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir, try_symlink};
 use crate::{error, info, measure_time, warn};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::spawn;
@@ -56,7 +56,10 @@ fn runner(config: &Config, profile_name: &str, cached: bool) -> Result<()> {
     let rp = config.get_resource_pack();
 
     let profile = config.get_profile(profile_name)?;
-    let (target_bp, target_rp) = profile.export.get_paths(config.get_name())?;
+    let (target_bp, target_rp) = profile
+        .export
+        .get_paths(config.get_name(), profile_name)
+        .context("Failed to get export paths")?;
 
     let temp = PathBuf::from(".regolith").join("tmp");
     let temp_bp = temp.join("BP");
