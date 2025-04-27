@@ -113,6 +113,11 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
     Ok(())
 }
 
+/// Checks if directory exists and is not empty
+pub fn is_dir_empty(path: &Path) -> Result<bool> {
+    Ok(!path.is_dir() || path.read_dir()?.next().is_none())
+}
+
 pub fn set_modified_time(path: impl AsRef<Path>, time: SystemTime) -> Result<()> {
     let inner = || {
         fs::File::options()

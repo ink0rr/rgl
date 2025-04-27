@@ -2,6 +2,7 @@ use super::{
     get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
     FilterNodejs, FilterPython, FilterShell, RemoteFilter,
 };
+use crate::fs::is_dir_empty;
 use crate::info;
 use anyhow::Result;
 use enum_dispatch::enum_dispatch;
@@ -58,7 +59,7 @@ impl FilterContext {
         let filter_dir = match &filter {
             FilterDefinition::Remote(remote) => {
                 let dir = get_filter_cache_dir(name, remote)?;
-                if !dir.exists() {
+                if is_dir_empty(&dir)? {
                     info!("Filter {name} is not installed, installing...");
                     remote.install(name, None, false)?;
                 }

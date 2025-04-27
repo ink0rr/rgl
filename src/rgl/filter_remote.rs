@@ -2,7 +2,7 @@ use super::{
     get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
     Subprocess,
 };
-use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
+use crate::fs::{copy_dir, empty_dir, is_dir_empty, read_json, rimraf};
 use crate::{debug, info, warn};
 use anyhow::{bail, Context, Result};
 use semver::Version;
@@ -32,6 +32,8 @@ impl Filter for RemoteFilter {
             }
             // This behavior is different from Regolith. It might break some filters
             // that need the arguments to be passed in a specific order.
+            // Regolith: [settings, remote_args, parent_args]
+            // rgl: [settings, parent_args, remote_args]
             let mut run_args = run_args.to_vec();
             if let Some(arguments) = entry.arguments {
                 run_args.extend(arguments);
@@ -105,24 +107,28 @@ impl RemoteFilter {
         if force {
             rimraf(&filter_dir)?;
         }
-        if !filter_dir.exists() {
+        if is_dir_empty(&filter_dir)? {
             let repo_dir = get_repo_cache_dir()?.join(url);
-            if repo_dir.exists() {
+            if is_dir_empty(&repo_dir)? {
+                empty_dir(&repo_dir)?;
+                let https_url = format!("https://{url}");
+                debug!("Cloning repo: {https_url}");
+                Subprocess::new("git")
+                    .args(vec!["clone", &https_url, "."])
+                    .current_dir(&repo_dir)
+                    .run_silent()
+                    .context(format!("Failed to clone `{https_url}`"))?;
+            } else {
+                debug!("Fetching tags...");
                 Subprocess::new("git")
                     .args(vec!["fetch", "--all"])
                     .current_dir(&repo_dir)
                     .run_silent()?;
-            } else {
-                empty_dir(&repo_dir)?;
-                Subprocess::new("git")
-                    .args(vec!["clone", &format!("https://{url}"), "."])
-                    .current_dir(&repo_dir)
-                    .run_silent()
-                    .context(format!("Failed to clone `{url}`"))?;
             }
             let git_ref = Version::parse(version)
                 .map(|_| format!("{name}-{version}"))
                 .unwrap_or(version.to_owned());
+            debug!("Checkout ref: {git_ref}");
             Subprocess::new("git")
                 .args(vec!["checkout", &git_ref])
                 .current_dir(&repo_dir)
