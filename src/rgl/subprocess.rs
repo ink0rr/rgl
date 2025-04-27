@@ -62,13 +62,18 @@ impl Subprocess {
         let output = self
             .command
             .env("ROOT_DIR", get_current_dir()?)
-            .output()
+            .stderr(process::Stdio::piped())
+            .stdout(process::Stdio::piped())
+            .spawn()
             .map_err(|err| match err.kind() {
                 io::ErrorKind::NotFound => self.program_not_found_error(),
                 _ => anyhow!(err),
             })
+            .context("Failed spawning subprocess")?
+            .wait_with_output()
             .context("Failed running subprocess")?;
         if !output.status.success() {
+            println!("{}", String::from_utf8_lossy(&output.stderr));
             bail!("Process exited with non-zero status code");
         }
         Ok(output)
