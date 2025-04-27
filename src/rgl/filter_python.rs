@@ -35,7 +35,7 @@ impl Filter for FilterPython {
             Subprocess::new(py)
                 .args(vec!["-m", "venv", ".venv"])
                 .current_dir(&filter_dir)
-                .run_silent()?;
+                .run()?;
 
             let venv_dir = filter_dir.join(".venv");
             let pip = match cfg!(windows) {
@@ -45,7 +45,7 @@ impl Filter for FilterPython {
             Subprocess::new(pip)
                 .args(vec!["install", "-r", "requirements.txt"])
                 .current_dir(filter_dir)
-                .run_silent()?;
+                .run()?;
         }
         Ok(())
     }

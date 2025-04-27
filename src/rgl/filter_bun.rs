@@ -26,7 +26,7 @@ impl Filter for FilterBun {
         Subprocess::new("bun")
             .arg("i")
             .current_dir(filter_dir)
-            .run_silent()?;
+            .run()?;
         Ok(())
     }
 }
