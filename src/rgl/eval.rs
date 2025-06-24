@@ -1,7 +1,7 @@
 use crate::logger::Logger;
 use anyhow::{anyhow, Result};
-use exprimo::{ContextEntry, Evaluator};
 use indexmap::IndexMap;
+use oxide_eval::{context::ContextEntry, Evaluator};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
