@@ -12,7 +12,7 @@ fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
     fs::read_dir(from)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let path = entry.path();
             let to = to.join(entry.file_name());
@@ -23,7 +23,6 @@ fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect()
 }
 
 pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
@@ -71,7 +70,7 @@ where
 fn rimraf_impl(path: &Path) -> Result<()> {
     fs::read_dir(path)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let path = entry.path();
             let metadata = entry.metadata()?;
@@ -95,8 +94,7 @@ fn rimraf_impl(path: &Path) -> Result<()> {
                 }
             }
             Ok(())
-        })
-        .collect::<Result<()>>()?;
+        })?;
     fs::remove_dir(path)?;
     Ok(())
 }
@@ -223,7 +221,7 @@ fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
     fs::create_dir_all(target)?;
     fs::read_dir(source)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let source = entry.path();
             let target = target.join(entry.file_name());
@@ -241,14 +239,13 @@ fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect()
 }
 
 /// Remove files that are not present in the source directory.
 fn cleanup(source: &Path, target: &Path) -> Result<()> {
     fs::read_dir(target)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let source = source.join(entry.file_name());
             let target = entry.path();
@@ -268,7 +265,6 @@ fn cleanup(source: &Path, target: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect()
 }
 
 /// Compare two file contents. Return true if they are identical.
