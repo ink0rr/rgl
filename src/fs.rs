@@ -142,8 +142,7 @@ fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
 fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
     use std::os::windows;
     windows::fs::symlink_dir(canonicalize(from)?, to).map_err(|e| match e.raw_os_error() {
-        Some(1314) => io::Error::new(
-            io::ErrorKind::Other,
+        Some(1314) => io::Error::other(
             "A required privilege is not held by the client. (os error 1314)\n\
              <blue>[?]</> Try enabling developer mode in Windows settings or run the terminal as an administrator",
         ),
