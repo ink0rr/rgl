@@ -30,6 +30,8 @@ impl Eval {
                 "settings".to_string(),
                 ContextEntry::Variable(settings.clone().into_iter().collect()),
             );
+        } else {
+            context.insert("settings".to_string(), ContextEntry::Variable(Value::Null));
         }
         context.insert(
             "debug".to_string(),
