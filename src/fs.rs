@@ -67,48 +67,63 @@ where
     ))
 }
 
-fn rimraf_impl(path: &Path) -> Result<()> {
-    fs::read_dir(path)?
-        .par_bridge()
-        .try_for_each(|entry| -> Result<()> {
-            let entry = entry?;
-            let path = entry.path();
-            let metadata = entry.metadata()?;
-            if metadata.is_dir() {
-                return rimraf_impl(&path);
-            }
-            let rm = if cfg!(windows) && metadata.is_symlink() {
-                fs::remove_dir
-            } else {
-                fs::remove_file
-            };
-            if let Err(err) = rm(&path) {
-                match err.kind() {
-                    io::ErrorKind::PermissionDenied => {
-                        let mut perm = metadata.permissions();
-                        perm.set_readonly(false);
-                        fs::set_permissions(&path, perm)?;
-                        rm(&path)?;
-                    }
-                    _ => bail!(err),
-                }
-            }
-            Ok(())
-        })?;
-    fs::remove_dir(path)?;
-    Ok(())
-}
-
 pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
+    fn remove_entry(path: &Path, metadata: &fs::Metadata) -> Result<()> {
+        let rm = if cfg!(windows) && metadata.is_symlink() {
+            fs::remove_dir
+        } else {
+            fs::remove_file
+        };
+        if let Err(e) = rm(&path) {
+            match e.kind() {
+                io::ErrorKind::PermissionDenied => {
+                    let mut perm = metadata.permissions();
+                    perm.set_readonly(false);
+                    fs::set_permissions(path, perm)?;
+                    rm(&path)?;
+                }
+                _ => bail!(e),
+            }
+        }
+        Ok(())
+    }
+
+    fn rimraf_impl(path: &Path) -> Result<()> {
+        fs::read_dir(path)?
+            .par_bridge()
+            .try_for_each(|entry| -> Result<()> {
+                let entry = entry?;
+                let path = entry.path();
+                let metadata = entry.metadata()?;
+                if metadata.is_dir() {
+                    rimraf_impl(&path)
+                } else {
+                    remove_entry(&path, &metadata)
+                }
+            })?;
+        fs::remove_dir(path)?;
+        Ok(())
+    }
+
     let path = path.as_ref();
-    if path.is_dir() {
+    let metadata = match path.symlink_metadata() {
+        Ok(val) => val,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => bail!(e),
+    };
+    if metadata.is_dir() {
         rimraf_impl(path).context(format!(
             "Failed to remove directory\n\
              <yellow> >></> Path: {}",
             path.display()
-        ))?;
+        ))
+    } else {
+        remove_entry(path, &metadata).context(format!(
+            "Failed to remove\n\
+             <yellow> >></> Path: {}",
+            path.display()
+        ))
     }
-    Ok(())
 }
 
 /// Checks if directory exists and is not empty
