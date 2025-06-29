@@ -1,6 +1,6 @@
 use super::{Config, ExportPaths, Session};
-use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir, try_symlink};
-use crate::{info, measure_time, warn};
+use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir};
+use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
@@ -10,37 +10,50 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
 
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
+    let data = config.get_data_path();
+    let dot_regolith = PathBuf::from(".regolith");
 
     let profile = config.get_profile(profile_name)?;
     let (target_bp, target_rp) = profile
         .export
         .get_paths(config.get_name(), profile_name)
         .context("Failed to get export paths")?;
+    let target_data = dot_regolith.join("data");
 
-    let temp = PathBuf::from(".regolith").join("tmp");
+    let temp = dot_regolith.join("tmp");
     let temp_bp = temp.join("BP");
     let temp_rp = temp.join("RP");
     let temp_data = temp.join("data");
 
     measure_time!("Setup temp", {
+        empty_dir(&temp)?;
         if cached {
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
+            sync_dir(&data, &target_data)?;
         } else {
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
+            rimraf(&target_data)?;
             copy_dir(bp, &target_bp)?;
             copy_dir(rp, &target_rp)?;
+            copy_dir(&data, &target_data)?;
         }
-        empty_dir(&temp)?;
         symlink(&target_bp, temp_bp)?;
         symlink(&target_rp, temp_rp)?;
-        try_symlink(config.get_data_path(), temp_data)?;
+        symlink(&target_data, &temp_data)?;
     });
 
     measure_time!(profile_name, {
         info!("Running <b>{profile_name}</> profile");
-        profile.run(&config, &temp, profile_name)?;
+        let export_data_names = profile.run(&config, &temp, profile_name)?;
+        for name in export_data_names {
+            let filter_data = temp_data.join(&name);
+            if filter_data.is_dir() {
+                debug!("Exporting data for filter <b>{name}</>");
+                sync_dir(filter_data, data.join(name))?;
+            }
+        }
     });
 
     info!(

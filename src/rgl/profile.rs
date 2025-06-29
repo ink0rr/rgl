@@ -4,7 +4,7 @@ use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::Path;
+use std::{collections::HashSet, path::Path};
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
@@ -32,7 +32,8 @@ pub enum FilterRunner {
 }
 
 impl Profile {
-    pub fn run(&self, config: &Config, temp: &Path, root_profile: &str) -> Result<()> {
+    pub fn run(&self, config: &Config, temp: &Path, root_profile: &str) -> Result<HashSet<String>> {
+        let mut export_data_names = HashSet::new();
         for entry in self.filters.iter() {
             match entry {
                 FilterRunner::Filter {
@@ -66,6 +67,9 @@ impl Profile {
                         filter
                             .run(&context, temp, &run_args)
                             .context(format!("Failed running filter <b>{filter_name}</>"))?;
+                        if context.remote_config.is_some_and(|cfg| cfg.export_data) {
+                            export_data_names.insert(filter_name.to_owned());
+                        }
                     });
                 }
                 FilterRunner::ProfileFilter { profile_name } => {
@@ -75,10 +79,10 @@ impl Profile {
                     let profile = config.get_profile(profile_name)?;
 
                     info!("Running <b>{profile_name}</> nested profile");
-                    profile.run(config, temp, root_profile)?;
+                    export_data_names.extend(profile.run(config, temp, root_profile)?);
                 }
             }
         }
-        Ok(())
+        Ok(export_data_names)
     }
 }
