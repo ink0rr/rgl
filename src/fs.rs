@@ -1,12 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
 use dunce::canonicalize;
 use rayon::prelude::*;
-use std::{
-    fs,
-    io::{self, BufRead, BufReader},
-    path::Path,
-    time::SystemTime,
-};
+use std::{fs, io, path::Path, time::SystemTime};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
@@ -249,7 +244,7 @@ fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
             if target.is_dir() {
                 rimraf(&target)?;
             }
-            if !diff(&source, &target)? {
+            if !compare_files(&source, &target)? {
                 fs::copy(source, target)?;
             }
             Ok(())
@@ -282,31 +277,10 @@ fn cleanup(source: &Path, target: &Path) -> Result<()> {
         })
 }
 
-/// Compare two file contents. Return true if they are identical.
-fn diff(a: &Path, b: &Path) -> Result<bool> {
-    let a = fs::File::open(a);
-    let b = fs::File::open(b);
-    if a.is_err() || b.is_err() {
-        return Ok(false);
+/// Compare two files by size and modified time. Returns true if both are equal.
+fn compare_files(a: &Path, b: &Path) -> Result<bool> {
+    if let (Ok(a), Ok(b)) = (a.metadata(), b.metadata()) {
+        return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
     }
-    let mut a_reader = BufReader::new(a.unwrap());
-    let mut b_reader = BufReader::new(b.unwrap());
-    if a_reader.capacity() != b_reader.capacity() {
-        return Ok(false);
-    }
-    loop {
-        let len = {
-            let a_buf = a_reader.fill_buf()?;
-            let b_buf = b_reader.fill_buf()?;
-            if a_buf.is_empty() && b_buf.is_empty() {
-                return Ok(true);
-            }
-            if a_buf != b_buf {
-                return Ok(false);
-            }
-            a_buf.len()
-        };
-        a_reader.consume(len);
-        b_reader.consume(len);
-    }
+    Ok(false)
 }
