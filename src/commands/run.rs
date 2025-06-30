@@ -11,11 +11,14 @@ pub struct Run {
     /// Removes previous run output before running
     #[arg(long)]
     clean: bool,
+    /// Enable this if filters are not working correctly
+    #[arg(long)]
+    compat: bool,
 }
 
 impl Command for Run {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(&self.profile, false, self.clean)
+        run_or_watch(&self.profile, false, self.clean, self.compat)
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)

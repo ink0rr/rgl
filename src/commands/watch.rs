@@ -11,12 +11,15 @@ pub struct Watch {
     /// Removes previous run output before running
     #[arg(long)]
     clean: bool,
+    /// Enable this if filters are not working correctly
+    #[arg(long)]
+    compat: bool,
 }
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         loop {
-            run_or_watch(&self.profile, true, self.clean)?;
+            run_or_watch(&self.profile, true, self.clean, self.compat)?;
         }
     }
     fn error_context(&self) -> String {

@@ -2,9 +2,10 @@ use super::{Config, ExportPaths, Session};
 use crate::fs::{empty_dir, rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
+use std::fs;
 use std::path::PathBuf;
 
-pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool) -> Result<()> {
+pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) -> Result<()> {
     let config = Config::load()?;
     let mut session = Session::lock()?;
 
@@ -26,18 +27,37 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool) -> Result<()> 
     let temp_data = temp.join("data");
 
     measure_time!("Setup temp", {
-        empty_dir(&temp)?;
+        if !data.exists() {
+            fs::create_dir_all(&data)?;
+        }
         if clean {
+            rimraf(&temp)?;
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
             rimraf(&target_data)?;
         }
-        sync_dir(bp, &target_bp)?;
-        sync_dir(rp, &target_rp)?;
-        sync_dir(&data, &target_data)?;
-        symlink(&target_bp, temp_bp)?;
-        symlink(&target_rp, temp_rp)?;
-        symlink(&target_data, &temp_data)?;
+        if compat {
+            if temp_bp.is_symlink() {
+                rimraf(&temp_bp)?;
+            }
+            if temp_rp.is_symlink() {
+                rimraf(&temp_rp)?;
+            }
+            if temp_data.is_symlink() {
+                rimraf(&temp_data)?;
+            }
+            sync_dir(bp, &temp_bp)?;
+            sync_dir(rp, &temp_rp)?;
+            sync_dir(&data, &temp_data)?;
+        } else {
+            sync_dir(bp, &target_bp)?;
+            sync_dir(rp, &target_rp)?;
+            sync_dir(&data, &target_data)?;
+            empty_dir(&temp)?;
+            symlink(&target_bp, &temp_bp)?;
+            symlink(&target_rp, &temp_rp)?;
+            symlink(&target_data, &temp_data)?;
+        }
     });
 
     measure_time!(profile_name, {
@@ -49,6 +69,13 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool) -> Result<()> 
                 debug!("Exporting data for filter <b>{name}</>");
                 sync_dir(filter_data, data.join(name))?;
             }
+        }
+    });
+
+    measure_time!("Export project", {
+        if compat {
+            sync_dir(&temp_bp, &target_bp)?;
+            sync_dir(&temp_rp, &target_rp)?;
         }
     });
 
