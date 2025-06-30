@@ -1,10 +1,10 @@
 use super::{Config, ExportPaths, Session};
-use crate::fs::{copy_dir, empty_dir, rimraf, symlink, sync_dir};
+use crate::fs::{empty_dir, rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()> {
+pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool) -> Result<()> {
     let config = Config::load()?;
     let mut session = Session::lock()?;
 
@@ -27,18 +27,14 @@ pub fn run_or_watch(profile_name: &str, watch: bool, cached: bool) -> Result<()>
 
     measure_time!("Setup temp", {
         empty_dir(&temp)?;
-        if cached {
-            sync_dir(bp, &target_bp)?;
-            sync_dir(rp, &target_rp)?;
-            sync_dir(&data, &target_data)?;
-        } else {
+        if clean {
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
             rimraf(&target_data)?;
-            copy_dir(bp, &target_bp)?;
-            copy_dir(rp, &target_rp)?;
-            copy_dir(&data, &target_data)?;
         }
+        sync_dir(bp, &target_bp)?;
+        sync_dir(rp, &target_rp)?;
+        sync_dir(&data, &target_data)?;
         symlink(&target_bp, temp_bp)?;
         symlink(&target_rp, temp_rp)?;
         symlink(&target_data, &temp_data)?;

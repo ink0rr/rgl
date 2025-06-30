@@ -8,14 +8,14 @@ use clap::Args;
 pub struct Run {
     #[arg(default_value = "default")]
     profile: String,
-    /// Use previous run output as cache
+    /// Removes previous run output before running
     #[arg(long)]
-    cached: bool,
+    clean: bool,
 }
 
 impl Command for Run {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(&self.profile, false, self.cached)
+        run_or_watch(&self.profile, false, self.clean)
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)
