@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::run_or_watch;
+use crate::rgl::{run_or_watch, UserConfig};
 use anyhow::Result;
 use clap::Args;
 
@@ -19,7 +19,12 @@ pub struct Watch {
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         loop {
-            run_or_watch(&self.profile, true, self.clean, self.compat)?;
+            run_or_watch(
+                &self.profile,
+                true,
+                self.clean,
+                self.compat || UserConfig::force_compat(),
+            )?;
         }
     }
     fn error_context(&self) -> String {

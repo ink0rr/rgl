@@ -12,6 +12,8 @@ pub struct UserConfig {
     pub resolvers: Vec<String>,
     #[serde(default = "default_resolver_update_interval")]
     pub resolver_update_interval: u64,
+    #[serde(default)]
+    pub force_compat: bool,
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
@@ -24,6 +26,7 @@ impl UserConfig {
             username: default_username(),
             resolvers: default_resolvers(),
             resolver_update_interval: default_resolver_update_interval(),
+            force_compat: false,
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
@@ -41,6 +44,10 @@ impl UserConfig {
 
     pub fn resolver_update_interval() -> u64 {
         get_user_config().resolver_update_interval
+    }
+
+    pub fn force_compat() -> bool {
+        get_user_config().force_compat
     }
 
     pub fn mojang_dir() -> Option<String> {
