@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail, Context, Result};
 use dunce::canonicalize;
+use jsonc_parser::ParseOptions;
 use rayon::prelude::*;
 use std::{fs, io, path::Path, time::SystemTime};
 
@@ -51,14 +52,18 @@ pub fn read_json<T>(path: impl AsRef<Path>) -> Result<T>
 where
     T: serde::de::DeserializeOwned,
 {
+    let path = path.as_ref();
     let inner = || -> Result<T> {
-        let data = fs::read_to_string(&path)?;
-        let json = serde_json::from_str(&data)?;
+        let data = fs::read_to_string(path)?;
+        let value = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?
+            .unwrap_or_default();
+        let json = serde_json::from_value(value)?;
         Ok(json)
     };
     inner().context(format!(
-        "Failed to read JSON file {}",
-        path.as_ref().display()
+        "Failed to read JSON file\n\
+         <yellow> >></> Path: {}",
+        path.display()
     ))
 }
 
