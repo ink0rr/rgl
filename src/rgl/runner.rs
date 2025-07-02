@@ -1,5 +1,5 @@
 use super::{Config, ExportPaths, Session};
-use crate::fs::{empty_dir, rimraf, symlink, sync_dir};
+use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time, warn};
 use anyhow::{Context, Result};
 use std::fs;
@@ -19,7 +19,6 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
         .export
         .get_paths(config.get_name(), profile_name)
         .context("Failed to get export paths")?;
-    let target_data = dot_regolith.join("data");
 
     let temp = dot_regolith.join("tmp");
     let temp_bp = temp.join("BP");
@@ -34,7 +33,6 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
             rimraf(&temp)?;
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
-            rimraf(&target_data)?;
         }
         if compat {
             if temp_bp.is_symlink() {
@@ -52,11 +50,11 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
         } else {
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
-            sync_dir(&data, &target_data)?;
-            empty_dir(&temp)?;
+            sync_dir(&data, &temp_data)?;
+            rimraf(&temp_bp)?;
+            rimraf(&temp_rp)?;
             symlink(&target_bp, &temp_bp)?;
             symlink(&target_rp, &temp_rp)?;
-            symlink(&target_data, &temp_data)?;
         }
     });
 
