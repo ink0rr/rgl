@@ -38,9 +38,9 @@ impl Subprocess {
         self
     }
 
-    pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> Result<&mut Self> {
+    pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> &mut Self {
         self.command.env("FILTER_DIR", filter_dir.as_ref());
-        Ok(self)
+        self
     }
 
     pub fn run(&mut self) -> Result<process::Output> {

@@ -20,9 +20,11 @@ impl Filter for FilterPython {
             false => UserConfig::python_command().into(),
         });
         subprocess
+            .arg("-u")
             .arg(script)
             .args(run_args)
             .current_dir(temp)
+            .setup_env(&context.filter_dir)
             .run()?;
         Ok(())
     }
