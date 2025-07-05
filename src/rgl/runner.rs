@@ -48,11 +48,14 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
             sync_dir(rp, &temp_rp)?;
             sync_dir(&data, &temp_data)?;
         } else {
+            rimraf(&temp_bp)?;
+            rimraf(&temp_rp)?;
+            if temp_data.is_symlink() {
+                rimraf(&temp_data)?;
+            }
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
             sync_dir(&data, &temp_data)?;
-            rimraf(&temp_bp)?;
-            rimraf(&temp_rp)?;
             symlink(&target_bp, &temp_bp)?;
             symlink(&target_rp, &temp_rp)?;
         }
