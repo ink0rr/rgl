@@ -100,30 +100,31 @@ impl RemoteFilter {
         if force {
             rimraf(&filter_dir)?;
         }
+        let https_url = format!("https://{url}");
         if is_dir_empty(&filter_dir)? {
             let repo_dir = get_repo_cache_dir()?.join(url);
             if is_dir_empty(&repo_dir)? {
                 empty_dir(&repo_dir)?;
-                let https_url = format!("https://{url}");
                 debug!("Cloning repo: {https_url}");
                 Subprocess::new("git")
-                    .args(vec!["clone", &https_url, "."])
+                    .args(["clone", &https_url, "."])
                     .current_dir(&repo_dir)
                     .run_silent()
                     .context(format!("Failed to clone `{https_url}`"))?;
             } else {
                 debug!("Fetching tags...");
                 Subprocess::new("git")
-                    .args(vec!["fetch", "--all"])
+                    .args(["fetch", "--all"])
                     .current_dir(&repo_dir)
-                    .run_silent()?;
+                    .run_silent()
+                    .context(format!("Failed to fetch latest tags from `{https_url}`"))?;
             }
             let git_ref = Version::parse(version)
                 .map(|_| format!("{name}-{version}"))
                 .unwrap_or(version.to_owned());
             debug!("Checkout ref: {git_ref}");
             Subprocess::new("git")
-                .args(vec!["checkout", &git_ref])
+                .args(["checkout", &git_ref])
                 .current_dir(&repo_dir)
                 .run_silent()
                 .context(format!("Failed to checkout `{git_ref}`"))?;
