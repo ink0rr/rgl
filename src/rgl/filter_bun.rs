@@ -16,7 +16,7 @@ impl Filter for FilterBun {
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)?
+            .setup_env(&context.filter_dir)
             .run()?;
         Ok(())
     }
@@ -26,7 +26,7 @@ impl Filter for FilterBun {
         Subprocess::new("bun")
             .arg("i")
             .current_dir(filter_dir)
-            .run_silent()?;
+            .run()?;
         Ok(())
     }
 }

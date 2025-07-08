@@ -16,18 +16,20 @@ impl Filter for FilterNodejs {
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)?
+            .setup_env(&context.filter_dir)
             .run()?;
         Ok(())
     }
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let package_manager = UserConfig::nodejs_package_manager();
         let filter_dir = context.filter_dir(&self.script);
-        Subprocess::new(package_manager)
-            .arg("i")
-            .current_dir(filter_dir)
-            .run_silent()?;
+        if filter_dir.join("package.json").exists() {
+            let package_manager = UserConfig::nodejs_package_manager();
+            Subprocess::new(package_manager)
+                .arg("i")
+                .current_dir(filter_dir)
+                .run()?;
+        }
         Ok(())
     }
 }

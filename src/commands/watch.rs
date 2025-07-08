@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::run_or_watch;
+use crate::rgl::{run_or_watch, UserConfig};
 use anyhow::Result;
 use clap::Args;
 
@@ -8,15 +8,23 @@ use clap::Args;
 pub struct Watch {
     #[arg(default_value = "default")]
     profile: String,
-    /// Do not use previous run output as cache
+    /// Removes previous run output before running
     #[arg(long)]
-    no_cache: bool,
+    clean: bool,
+    /// Enable this if filters are not working correctly
+    #[arg(long)]
+    compat: bool,
 }
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         loop {
-            run_or_watch(&self.profile, true, !self.no_cache)?;
+            run_or_watch(
+                &self.profile,
+                true,
+                self.clean,
+                self.compat || UserConfig::force_compat(),
+            )?;
         }
     }
     fn error_context(&self) -> String {

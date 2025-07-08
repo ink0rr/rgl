@@ -1,18 +1,14 @@
 use anyhow::{anyhow, bail, Context, Result};
 use dunce::canonicalize;
+use jsonc_parser::ParseOptions;
 use rayon::prelude::*;
-use std::{
-    fs,
-    io::{self, BufRead, BufReader},
-    path::Path,
-    time::SystemTime,
-};
+use std::{fs, io, path::Path, time::SystemTime};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
     fs::read_dir(from)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let path = entry.path();
             let to = to.join(entry.file_name());
@@ -23,7 +19,6 @@ fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect()
 }
 
 pub fn copy_dir(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
@@ -57,60 +52,83 @@ pub fn read_json<T>(path: impl AsRef<Path>) -> Result<T>
 where
     T: serde::de::DeserializeOwned,
 {
+    let path = path.as_ref();
     let inner = || -> Result<T> {
-        let data = fs::read_to_string(&path)?;
-        let json = serde_json::from_str(&data)?;
+        let data = fs::read_to_string(path)?;
+        let value = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?
+            .unwrap_or_default();
+        let json = serde_json::from_value(value)?;
         Ok(json)
     };
     inner().context(format!(
-        "Failed to read JSON file {}",
-        path.as_ref().display()
+        "Failed to read JSON file\n\
+         <yellow> >></> Path: {}",
+        path.display()
     ))
 }
 
-fn rimraf_impl(path: &Path) -> Result<()> {
-    fs::read_dir(path)?
-        .par_bridge()
-        .map(|entry| -> Result<()> {
-            let entry = entry?;
-            let path = entry.path();
-            let metadata = entry.metadata()?;
-            if metadata.is_dir() {
-                return rimraf_impl(&path);
-            }
-            let rm = if cfg!(windows) && metadata.is_symlink() {
-                fs::remove_dir
-            } else {
-                fs::remove_file
-            };
-            if let Err(err) = rm(&path) {
-                match err.kind() {
-                    io::ErrorKind::PermissionDenied => {
-                        let mut perm = metadata.permissions();
-                        perm.set_readonly(false);
-                        fs::set_permissions(&path, perm)?;
-                        rm(&path)?;
-                    }
-                    _ => bail!(err),
-                }
-            }
-            Ok(())
-        })
-        .collect::<Result<()>>()?;
-    fs::remove_dir(path)?;
-    Ok(())
-}
-
 pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
+    fn remove_entry(path: &Path, metadata: &fs::Metadata) -> Result<()> {
+        let rm = if cfg!(windows) && metadata.is_symlink() {
+            fs::remove_dir
+        } else {
+            fs::remove_file
+        };
+        if let Err(e) = rm(&path) {
+            match e.kind() {
+                io::ErrorKind::PermissionDenied => {
+                    let mut perm = metadata.permissions();
+                    perm.set_readonly(false);
+                    fs::set_permissions(path, perm)?;
+                    rm(&path)?;
+                }
+                _ => bail!(e),
+            }
+        }
+        Ok(())
+    }
+
+    fn rimraf_impl(path: &Path) -> Result<()> {
+        fs::read_dir(path)?
+            .par_bridge()
+            .try_for_each(|entry| -> Result<()> {
+                let entry = entry?;
+                let path = entry.path();
+                let metadata = entry.metadata()?;
+                if metadata.is_dir() {
+                    rimraf_impl(&path)
+                } else {
+                    remove_entry(&path, &metadata)
+                }
+            })?;
+        fs::remove_dir(path)?;
+        Ok(())
+    }
+
     let path = path.as_ref();
-    if path.is_dir() {
+    let metadata = match path.symlink_metadata() {
+        Ok(val) => val,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => bail!(e),
+    };
+    if metadata.is_dir() {
         rimraf_impl(path).context(format!(
             "Failed to remove directory\n\
              <yellow> >></> Path: {}",
             path.display()
-        ))?;
+        ))
+    } else {
+        remove_entry(path, &metadata).context(format!(
+            "Failed to remove\n\
+             <yellow> >></> Path: {}",
+            path.display()
+        ))
     }
-    Ok(())
+}
+
+/// Checks if directory exists and is not empty
+pub fn is_dir_empty(path: &Path) -> Result<bool> {
+    Ok(!path.is_dir() || path.read_dir()?.next().is_none())
 }
 
 pub fn set_modified_time(path: impl AsRef<Path>, time: SystemTime) -> Result<()> {
@@ -137,8 +155,7 @@ fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
 fn symlink_impl(from: &Path, to: &Path) -> io::Result<()> {
     use std::os::windows;
     windows::fs::symlink_dir(canonicalize(from)?, to).map_err(|e| match e.raw_os_error() {
-        Some(1314) => io::Error::new(
-            io::ErrorKind::Other,
+        Some(1314) => io::Error::other(
             "A required privilege is not held by the client. (os error 1314)\n\
              <blue>[?]</> Try enabling developer mode in Windows settings or run the terminal as an administrator",
         ),
@@ -219,7 +236,7 @@ fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
     fs::create_dir_all(target)?;
     fs::read_dir(source)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let source = entry.path();
             let target = target.join(entry.file_name());
@@ -232,19 +249,18 @@ fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
             if target.is_dir() {
                 rimraf(&target)?;
             }
-            if !diff(&source, &target)? {
+            if !compare_files(&source, &target)? {
                 fs::copy(source, target)?;
             }
             Ok(())
         })
-        .collect()
 }
 
 /// Remove files that are not present in the source directory.
 fn cleanup(source: &Path, target: &Path) -> Result<()> {
     fs::read_dir(target)?
         .par_bridge()
-        .map(|entry| -> Result<()> {
+        .try_for_each(|entry| -> Result<()> {
             let entry = entry?;
             let source = source.join(entry.file_name());
             let target = entry.path();
@@ -264,34 +280,12 @@ fn cleanup(source: &Path, target: &Path) -> Result<()> {
             }
             Ok(())
         })
-        .collect()
 }
 
-/// Compare two file contents. Return true if they are identical.
-fn diff(a: &Path, b: &Path) -> Result<bool> {
-    let a = fs::File::open(a);
-    let b = fs::File::open(b);
-    if a.is_err() || b.is_err() {
-        return Ok(false);
+/// Compare two files by size and modified time. Returns true if both are equal.
+fn compare_files(a: &Path, b: &Path) -> Result<bool> {
+    if let (Ok(a), Ok(b)) = (a.metadata(), b.metadata()) {
+        return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
     }
-    let mut a_reader = BufReader::new(a.unwrap());
-    let mut b_reader = BufReader::new(b.unwrap());
-    if a_reader.capacity() != b_reader.capacity() {
-        return Ok(false);
-    }
-    loop {
-        let len = {
-            let a_buf = a_reader.fill_buf()?;
-            let b_buf = b_reader.fill_buf()?;
-            if a_buf.is_empty() && b_buf.is_empty() {
-                return Ok(true);
-            }
-            if a_buf != b_buf {
-                return Ok(false);
-            }
-            a_buf.len()
-        };
-        a_reader.consume(len);
-        b_reader.consume(len);
-    }
+    Ok(false)
 }

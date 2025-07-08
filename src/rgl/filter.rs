@@ -1,9 +1,10 @@
 use super::{
     get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
-    FilterNodejs, FilterPython, FilterShell, RemoteFilter,
+    FilterNodejs, FilterPython, FilterShell, RemoteFilter, RemoteFilterConfig,
 };
+use crate::fs::{is_dir_empty, read_json};
 use crate::info;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -50,31 +51,36 @@ pub enum LocalFilter {
 pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
-    pub is_remote: bool,
+    pub remote_config: Option<RemoteFilterConfig>,
 }
 
 impl FilterContext {
     pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
-        let filter_dir = match &filter {
+        match filter {
+            FilterDefinition::Local(_) => Ok(Self {
+                name: name.to_owned(),
+                filter_dir: get_current_dir()?,
+                remote_config: None,
+            }),
             FilterDefinition::Remote(remote) => {
-                let dir = get_filter_cache_dir(name, remote)?;
-                if !dir.exists() {
+                let filter_dir = get_filter_cache_dir(name, remote)?;
+                if is_dir_empty(&filter_dir)? {
                     info!("Filter {name} is not installed, installing...");
                     remote.install(name, None, false)?;
                 }
-                dir
+                let remote_config = read_json(filter_dir.join("filter.json"))
+                    .context(format!("Failed to load config for filter <b>{}</>", name))?;
+                Ok(Self {
+                    name: name.to_owned(),
+                    filter_dir,
+                    remote_config,
+                })
             }
-            _ => get_current_dir()?,
-        };
-        Ok(Self {
-            name: name.to_owned(),
-            filter_dir,
-            is_remote: matches!(filter, FilterDefinition::Remote(_)),
-        })
+        }
     }
 
     pub fn filter_dir(&self, path: &str) -> PathBuf {
-        if self.is_remote {
+        if self.remote_config.is_some() {
             self.filter_dir.to_owned()
         } else {
             let mut dir = PathBuf::from(path);

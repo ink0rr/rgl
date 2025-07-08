@@ -2,7 +2,7 @@ use super::{
     get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
     Subprocess,
 };
-use crate::fs::{copy_dir, empty_dir, read_json, rimraf};
+use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
 use crate::{debug, info, warn};
 use anyhow::{bail, Context, Result};
 use semver::Version;
@@ -17,8 +17,8 @@ pub struct RemoteFilter {
 
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let config = RemoteFilterConfig::load(context)?;
-        for entry in config.filters {
+        let config = context.remote_config.as_ref().unwrap();
+        for entry in &config.filters {
             if let Some(expression) = &entry.expression {
                 let name = &context.name;
                 let eval = Eval::new(name, &context.filter_dir, &None);
@@ -32,8 +32,10 @@ impl Filter for RemoteFilter {
             }
             // This behavior is different from Regolith. It might break some filters
             // that need the arguments to be passed in a specific order.
+            // Regolith: [settings, remote_args, parent_args]
+            // rgl: [settings, parent_args, remote_args]
             let mut run_args = run_args.to_vec();
-            if let Some(arguments) = entry.arguments {
+            if let Some(arguments) = entry.arguments.to_owned() {
                 run_args.extend(arguments);
             };
             entry.filter.run(context, temp, &run_args)?;
@@ -41,9 +43,9 @@ impl Filter for RemoteFilter {
         Ok(())
     }
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let config = RemoteFilterConfig::load(context)?;
-        for data in config.filters {
-            data.filter.install_dependencies(context)?;
+        let config = context.remote_config.as_ref().unwrap();
+        for entry in &config.filters {
+            entry.filter.install_dependencies(context)?;
         }
         Ok(())
     }
@@ -51,6 +53,8 @@ impl Filter for RemoteFilter {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterConfig {
+    #[serde(default, rename = "exportData")]
+    pub export_data: bool,
     pub filters: Vec<RemoteFilterEntry>,
 }
 
@@ -61,15 +65,6 @@ pub struct RemoteFilterEntry {
     pub expression: Option<String>,
     #[serde(flatten)]
     pub filter: LocalFilter,
-}
-
-impl RemoteFilterConfig {
-    fn load(context: &FilterContext) -> Result<Self> {
-        read_json(context.filter_dir.join("filter.json")).context(format!(
-            "Failed to load config for filter <b>{}</>",
-            context.name
-        ))
-    }
 }
 
 impl RemoteFilter {
@@ -105,26 +100,31 @@ impl RemoteFilter {
         if force {
             rimraf(&filter_dir)?;
         }
-        if !filter_dir.exists() {
+        let https_url = format!("https://{url}");
+        if is_dir_empty(&filter_dir)? {
             let repo_dir = get_repo_cache_dir()?.join(url);
-            if repo_dir.exists() {
-                Subprocess::new("git")
-                    .args(vec!["fetch", "--all"])
-                    .current_dir(&repo_dir)
-                    .run_silent()?;
-            } else {
+            if is_dir_empty(&repo_dir)? {
                 empty_dir(&repo_dir)?;
+                debug!("Cloning repo: {https_url}");
                 Subprocess::new("git")
-                    .args(vec!["clone", &format!("https://{url}"), "."])
+                    .args(["clone", &https_url, "."])
                     .current_dir(&repo_dir)
                     .run_silent()
-                    .context(format!("Failed to clone `{url}`"))?;
+                    .context(format!("Failed to clone `{https_url}`"))?;
+            } else {
+                debug!("Fetching tags...");
+                Subprocess::new("git")
+                    .args(["fetch", "--all"])
+                    .current_dir(&repo_dir)
+                    .run_silent()
+                    .context(format!("Failed to fetch latest tags from `{https_url}`"))?;
             }
             let git_ref = Version::parse(version)
                 .map(|_| format!("{name}-{version}"))
                 .unwrap_or(version.to_owned());
+            debug!("Checkout ref: {git_ref}");
             Subprocess::new("git")
-                .args(vec!["checkout", &git_ref])
+                .args(["checkout", &git_ref])
                 .current_dir(&repo_dir)
                 .run_silent()
                 .context(format!("Failed to checkout `{git_ref}`"))?;

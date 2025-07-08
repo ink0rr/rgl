@@ -14,7 +14,7 @@ impl Filter for FilterExe {
         Subprocess::new(exe)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)?
+            .setup_env(&context.filter_dir)
             .run()?;
         Ok(())
     }

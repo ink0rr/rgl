@@ -1,6 +1,6 @@
 use super::{get_resolver_cache_dir, Subprocess, UserConfig};
 use crate::debug;
-use crate::fs::{empty_dir, read_json, set_modified_time};
+use crate::fs::{empty_dir, is_dir_empty, read_json, set_modified_time};
 use anyhow::{bail, Context, Result};
 use once_cell::sync::OnceCell;
 use semver::Version;
@@ -123,21 +123,24 @@ fn get_resolver() -> Result<&'static Resolver> {
                 .context(format!("Failed to parse url `{resolver_url}`",))?;
             let resolver_dir = get_resolver_cache_dir()?.join(&url);
             let resolver_file = resolver_dir.join(&path);
-            if resolver_dir.is_dir() {
+            let https_url = format!("https://{url}");
+            if is_dir_empty(&resolver_dir)? {
+                empty_dir(&resolver_dir)?;
+                Subprocess::new("git")
+                    .args(["clone", &https_url, "."])
+                    .current_dir(&resolver_dir)
+                    .run_silent()
+                    .context(format!("Failed to clone `{https_url}`"))?;
+            } else {
                 let last_modified = resolver_file.metadata()?.modified()?.elapsed()?.as_secs();
                 if last_modified > UserConfig::resolver_update_interval() {
                     Subprocess::new("git")
                         .args(["pull"])
                         .current_dir(&resolver_dir)
-                        .run_silent()?;
+                        .run_silent()
+                        .context(format!("Failed to pull `{https_url}`"))?;
                     set_modified_time(&resolver_file, SystemTime::now())?;
                 }
-            } else {
-                empty_dir(&resolver_dir)?;
-                Subprocess::new("git")
-                    .args(["clone", &format!("https://{url}"), "."])
-                    .current_dir(&resolver_dir)
-                    .run_silent()?;
             }
             let data = read_json::<Resolver>(resolver_file)?;
             resolver.filters.extend(data.filters)

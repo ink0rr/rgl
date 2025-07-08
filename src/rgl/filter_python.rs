@@ -20,9 +20,11 @@ impl Filter for FilterPython {
             false => UserConfig::python_command().into(),
         });
         subprocess
+            .arg("-u")
             .arg(script)
             .args(run_args)
             .current_dir(temp)
+            .setup_env(&context.filter_dir)
             .run()?;
         Ok(())
     }
@@ -35,7 +37,7 @@ impl Filter for FilterPython {
             Subprocess::new(py)
                 .args(vec!["-m", "venv", ".venv"])
                 .current_dir(&filter_dir)
-                .run_silent()?;
+                .run()?;
 
             let venv_dir = filter_dir.join(".venv");
             let pip = match cfg!(windows) {
@@ -45,7 +47,7 @@ impl Filter for FilterPython {
             Subprocess::new(pip)
                 .args(vec!["install", "-r", "requirements.txt"])
                 .current_dir(filter_dir)
-                .run_silent()?;
+                .run()?;
         }
         Ok(())
     }
