@@ -1,14 +1,11 @@
-use super::{Config, ExportPaths, Session};
+use super::{Config, ExportPaths};
 use crate::fs::{rimraf, symlink, sync_dir};
-use crate::{debug, info, measure_time, warn};
+use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 
-pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) -> Result<()> {
-    let config = Config::load()?;
-    let mut session = Session::lock()?;
-
+pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) -> Result<()> {
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
     let data = config.get_data_path();
@@ -63,7 +60,7 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
 
     measure_time!(profile_name, {
         info!("Running <b>{profile_name}</> profile");
-        let export_data_names = profile.run(&config, &temp, profile_name)?;
+        let export_data_names = profile.run(config, &temp, profile_name)?;
         for name in export_data_names {
             let filter_data = temp_data.join(&name);
             if filter_data.is_dir() {
@@ -89,11 +86,5 @@ pub fn run_or_watch(profile_name: &str, watch: bool, clean: bool, compat: bool) 
     );
 
     info!("Successfully ran the <b>{profile_name}</> profile");
-    if watch {
-        info!("Watching for changes...");
-        info!("Press Ctrl+C to stop watching");
-        config.watch_project_files()?;
-        warn!("Changes detected, restarting...");
-    }
-    session.unlock()
+    Ok(())
 }

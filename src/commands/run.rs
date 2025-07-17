@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{run_or_watch, UserConfig};
+use crate::rgl::{runner, Config, Session, UserConfig};
 use anyhow::Result;
 use clap::Args;
 
@@ -18,12 +18,17 @@ pub struct Run {
 
 impl Command for Run {
     fn dispatch(&self) -> Result<()> {
-        run_or_watch(
+        let config = Config::load()?;
+        let mut session = Session::lock()?;
+
+        runner(
+            &config,
             &self.profile,
-            false,
             self.clean,
             self.compat || UserConfig::force_compat(),
-        )
+        )?;
+
+        session.unlock()
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)

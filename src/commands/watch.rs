@@ -1,5 +1,6 @@
 use super::Command;
-use crate::rgl::{run_or_watch, UserConfig};
+use crate::rgl::{runner, Config, Session, UserConfig};
+use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
 
@@ -19,12 +20,21 @@ pub struct Watch {
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         loop {
-            run_or_watch(
+            let config = Config::load()?;
+            let mut session = Session::lock()?;
+
+            runner(
+                &config,
                 &self.profile,
-                true,
                 self.clean,
                 self.compat || UserConfig::force_compat(),
             )?;
+
+            info!("Watching for changes...");
+            info!("Press Ctrl+C to stop watching");
+            config.watch_project_files()?;
+            warn!("Changes detected, restarting...");
+            session.unlock()?;
         }
     }
     fn error_context(&self) -> String {
