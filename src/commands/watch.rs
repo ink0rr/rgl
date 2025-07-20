@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{runner, Config, Session, UserConfig};
+use crate::rgl::{runner, Config, MinecraftServer, Session, UserConfig};
 use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
@@ -15,27 +15,45 @@ pub struct Watch {
     /// Enable this if filters are not working correctly
     #[arg(long)]
     compat: bool,
+    /// Automatically reload scripts via WebSocket
+    #[arg(long)]
+    ws: bool,
 }
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
-        loop {
-            let config = Config::load()?;
-            let mut session = Session::lock()?;
+        let compat = self.compat || UserConfig::force_compat();
+        let server = if self.ws {
+            Some(MinecraftServer::bind_and_accept(
+                UserConfig::websocket_port(),
+            )?)
+        } else {
+            None
+        };
 
-            runner(
-                &config,
-                &self.profile,
-                self.clean,
-                self.compat || UserConfig::force_compat(),
-            )?;
+        smol::block_on(async {
+            loop {
+                let config = Config::load()?;
+                let mut session = Session::lock()?;
 
-            info!("Watching for changes...");
-            info!("Press Ctrl+C to stop watching");
-            config.watch_project_files()?;
-            warn!("Changes detected, restarting...");
-            session.unlock()?;
-        }
+                runner(&config, &self.profile, self.clean, compat)?;
+
+                if let Some(server) = &server {
+                    server.run_command("reload").await;
+                    server
+                        .run_command(
+                            r#"tellraw @s {"rawtext": [{"translate": "commands.reload.success"}]}"#,
+                        )
+                        .await;
+                }
+
+                info!("Watching for changes...");
+                info!("Press Ctrl+C to stop watching");
+                config.watch_project_files()?;
+                warn!("Changes detected, restarting...");
+                session.unlock()?;
+            }
+        })
     }
     fn error_context(&self) -> String {
         format!("Error running <b>{}</> profile", self.profile)

@@ -8,7 +8,9 @@ name = "rgl"
 
 [dependencies]
 anyhow = "1.0.98"
+async-tungstenite = "0.30.0"
 clap = { version = "4.5.37", features = ["cargo", "derive"] }
+dashmap = "6.1.0"
 dialoguer = "0.11.0"
 dunce = "1.0.5"
 enum_dispatch = "0.3.13"
@@ -24,6 +26,7 @@ rayon = "1.10.0"
 semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+smol = "2.0.2"
 strum = { version = "0.27.1", features = ["derive"] }
 tempfile = "3.19.1"
 ureq = "2.12.1"

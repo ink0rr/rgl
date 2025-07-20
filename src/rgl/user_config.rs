@@ -12,6 +12,8 @@ pub struct UserConfig {
     pub resolvers: Vec<String>,
     #[serde(default = "default_resolver_update_interval")]
     pub resolver_update_interval: u64,
+    #[serde(default = "default_websocket_port")]
+    pub websocket_port: u16,
     #[serde(default)]
     pub force_compat: bool,
     pub mojang_dir: Option<String>,
@@ -26,6 +28,7 @@ impl UserConfig {
             username: default_username(),
             resolvers: default_resolvers(),
             resolver_update_interval: default_resolver_update_interval(),
+            websocket_port: default_websocket_port(),
             force_compat: false,
             mojang_dir: None,
             nodejs_runtime: None,
@@ -44,6 +47,10 @@ impl UserConfig {
 
     pub fn resolver_update_interval() -> u64 {
         get_user_config().resolver_update_interval
+    }
+
+    pub fn websocket_port() -> u16 {
+        get_user_config().websocket_port
     }
 
     pub fn force_compat() -> bool {
@@ -89,6 +96,10 @@ fn default_resolvers() -> Vec<String> {
 
 fn default_resolver_update_interval() -> u64 {
     300
+}
+
+fn default_websocket_port() -> u16 {
+    80
 }
 
 fn get_user_config() -> &'static UserConfig {
