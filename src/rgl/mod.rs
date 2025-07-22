@@ -19,6 +19,7 @@ mod runner;
 mod server;
 mod session;
 mod subprocess;
+mod temp;
 mod user_config;
 mod version_check;
 
@@ -43,5 +44,6 @@ pub use self::runner::*;
 pub use self::server::*;
 pub use self::session::*;
 pub use self::subprocess::*;
+pub use self::temp::*;
 pub use self::user_config::*;
 pub use self::version_check::*;

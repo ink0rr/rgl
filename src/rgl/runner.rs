@@ -1,15 +1,13 @@
-use super::{Config, ExportPaths};
+use super::{Config, ExportPaths, Temp};
 use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::PathBuf;
 
 pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) -> Result<()> {
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
     let data = config.get_data_path();
-    let dot_regolith = PathBuf::from(".regolith");
 
     let profile = config.get_profile(profile_name)?;
     let (target_bp, target_rp) = profile
@@ -17,52 +15,49 @@ pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) ->
         .get_paths(config.get_name(), profile_name)
         .context("Failed to get export paths")?;
 
-    let temp = dot_regolith.join("tmp");
-    let temp_bp = temp.join("BP");
-    let temp_rp = temp.join("RP");
-    let temp_data = temp.join("data");
+    let temp = Temp::from_dot_regolith();
 
     measure_time!("Setup temp", {
         if !data.exists() {
             fs::create_dir_all(&data)?;
         }
         if clean {
-            rimraf(&temp)?;
+            rimraf(&temp.root)?;
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
         }
         if compat {
-            if temp_bp.is_symlink() {
-                rimraf(&temp_bp)?;
+            if temp.bp.is_symlink() {
+                rimraf(&temp.bp)?;
             }
-            if temp_rp.is_symlink() {
-                rimraf(&temp_rp)?;
+            if temp.rp.is_symlink() {
+                rimraf(&temp.rp)?;
             }
-            if temp_data.is_symlink() {
-                rimraf(&temp_data)?;
+            if temp.data.is_symlink() {
+                rimraf(&temp.data)?;
             }
-            sync_dir(bp, &temp_bp)?;
-            sync_dir(rp, &temp_rp)?;
-            sync_dir(&data, &temp_data)?;
+            sync_dir(bp, &temp.bp)?;
+            sync_dir(rp, &temp.rp)?;
+            sync_dir(&data, &temp.data)?;
         } else {
-            rimraf(&temp_bp)?;
-            rimraf(&temp_rp)?;
-            if temp_data.is_symlink() {
-                rimraf(&temp_data)?;
+            rimraf(&temp.bp)?;
+            rimraf(&temp.rp)?;
+            if temp.data.is_symlink() {
+                rimraf(&temp.data)?;
             }
             sync_dir(bp, &target_bp)?;
             sync_dir(rp, &target_rp)?;
-            sync_dir(&data, &temp_data)?;
-            symlink(&target_bp, &temp_bp)?;
-            symlink(&target_rp, &temp_rp)?;
+            sync_dir(&data, &temp.data)?;
+            symlink(&target_bp, &temp.bp)?;
+            symlink(&target_rp, &temp.rp)?;
         }
     });
 
     measure_time!(profile_name, {
         info!("Running <b>{profile_name}</> profile");
-        let export_data_names = profile.run(config, &temp, profile_name)?;
+        let export_data_names = profile.run(config, &temp.root, profile_name)?;
         for name in export_data_names {
-            let filter_data = temp_data.join(&name);
+            let filter_data = temp.data.join(&name);
             if filter_data.is_dir() {
                 debug!("Exporting data for filter <b>{name}</>");
                 sync_dir(filter_data, data.join(name))?;
@@ -72,8 +67,8 @@ pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) ->
 
     measure_time!("Export project", {
         if compat {
-            sync_dir(&temp_bp, &target_bp)?;
-            sync_dir(&temp_rp, &target_rp)?;
+            sync_dir(&temp.bp, &target_bp)?;
+            sync_dir(&temp.rp, &target_rp)?;
         }
     });
 

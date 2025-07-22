@@ -1,10 +1,9 @@
 use super::Command;
-use crate::fs::{copy_dir, empty_dir, sync_dir, try_symlink};
-use crate::rgl::{Config, Session};
-use crate::{info, measure_time};
+use crate::fs::{copy_dir, empty_dir, sync_dir};
+use crate::info;
+use crate::rgl::{Config, Session, Temp};
 use anyhow::Result;
 use clap::Args;
-use std::path::PathBuf;
 
 /// Runs a profile and apply changes to the current project
 #[derive(Args)]
@@ -19,21 +18,19 @@ impl Command for Apply {
 
         let bp = config.get_behavior_pack();
         let rp = config.get_resource_pack();
-
-        let temp = PathBuf::from(".regolith").join("tmp");
-        let temp_bp = temp.join("BP");
-        let temp_rp = temp.join("RP");
-
-        empty_dir(&temp)?;
-        copy_dir(&bp, &temp_bp)?;
-        copy_dir(&rp, &temp_rp)?;
-        try_symlink(config.get_data_path(), temp.join("data"))?;
+        let data = config.get_data_path();
 
         let profile = config.get_profile(&self.profile)?;
-        measure_time!(self.profile, {
-            info!("Running <b>{}</> profile", self.profile);
-            profile.run(&config, &temp, &self.profile)?;
-        });
+
+        let temp = Temp::from_dot_regolith();
+
+        empty_dir(&temp.root)?;
+        copy_dir(&bp, &temp.bp)?;
+        copy_dir(&rp, &temp.rp)?;
+        copy_dir(&data, &temp.data)?;
+
+        info!("Running <b>{}</> profile", self.profile);
+        profile.run(&config, &temp.root, &self.profile)?;
 
         info!(
             "Applying changes to source directory: \n\
@@ -42,8 +39,9 @@ impl Command for Apply {
             bp.display(),
             rp.display()
         );
-        sync_dir(temp_bp, bp)?;
-        sync_dir(temp_rp, rp)?;
+        sync_dir(temp.bp, bp)?;
+        sync_dir(temp.rp, rp)?;
+        sync_dir(temp.data, data)?;
 
         info!("Successfully applied profile <b>{}</>", self.profile);
         session.unlock()
