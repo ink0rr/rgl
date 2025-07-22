@@ -1,6 +1,6 @@
 use super::Command;
 use crate::rgl::{runner, Config, MinecraftServer, Session, UserConfig};
-use crate::{info, warn};
+use crate::{error, info, log, warn};
 use anyhow::Result;
 use clap::Args;
 
@@ -36,7 +36,10 @@ impl Command for Watch {
                 let config = Config::load()?;
                 let mut session = Session::lock()?;
 
-                runner(&config, &self.profile, self.clean, compat)?;
+                if let Err(e) = runner(&config, &self.profile, self.clean, compat) {
+                    error!("{}", self.error_context());
+                    e.chain().for_each(|e| log!("<red>[+]</> {e}"));
+                }
 
                 if let Some(server) = &server {
                     server.run_command("reload").await;
