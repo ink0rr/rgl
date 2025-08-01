@@ -1,4 +1,4 @@
-use super::{Config, ExportPaths, Temp};
+use super::{Config, Export, ExportPaths, Temp};
 use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
@@ -14,6 +14,7 @@ pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) ->
         .export
         .get_paths(config.get_name(), profile_name)
         .context("Failed to get export paths")?;
+    let is_none_export = matches!(profile.export, Export::None(_));
 
     let temp = Temp::from_dot_regolith();
 
@@ -26,7 +27,7 @@ pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) ->
             rimraf(&target_bp)?;
             rimraf(&target_rp)?;
         }
-        if compat {
+        if compat || is_none_export {
             if temp.bp.is_symlink() {
                 rimraf(&temp.bp)?;
             }
@@ -66,7 +67,7 @@ pub fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) ->
     });
 
     measure_time!("Export project", {
-        if compat {
+        if compat && !is_none_export {
             sync_dir(&temp.bp, &target_bp)?;
             sync_dir(&temp.rp, &target_rp)?;
         }
