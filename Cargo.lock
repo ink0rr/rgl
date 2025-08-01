@@ -1434,9 +1434,9 @@ dependencies = [
 
 [[package]]
 name = "oxide_eval"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e44a8833038ef5a47400ca00ad11b8e6966be3933623d1564aae104160840541"
+checksum = "384160b2229fefee198169b35086596e8ec7a1348dfdbebe6b699457807eeddd"
 dependencies = [
  "anyhow",
  "oxc",
