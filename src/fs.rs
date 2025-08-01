@@ -203,10 +203,68 @@ where
 
 /// Sync target directory with source directory.
 pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()> {
+    /// Compare two files by size and modified time. Returns true if both are equal.
+    fn compare_files(a: &Path, b: &Path) -> Result<bool> {
+        if let (Ok(a), Ok(b)) = (a.metadata(), b.metadata()) {
+            return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
+        }
+        Ok(false)
+    }
+
+    fn sync(source: &Path, target: &Path) -> Result<()> {
+        fs::create_dir_all(target)?;
+        fs::read_dir(source)?
+            .par_bridge()
+            .try_for_each(|entry| -> Result<()> {
+                let entry = entry?;
+                let source = entry.path();
+                let target = target.join(entry.file_name());
+                if source.is_dir() {
+                    if target.is_file() {
+                        fs::remove_file(&target)?;
+                    }
+                    return sync(&source, &target);
+                }
+                if target.is_dir() {
+                    rimraf(&target)?;
+                }
+                if !compare_files(&source, &target)? {
+                    fs::copy(source, target)?;
+                }
+                Ok(())
+            })
+    }
+
+    /// Remove files that are not present in the source directory.
+    fn cleanup(source: &Path, target: &Path) -> Result<()> {
+        fs::read_dir(target)?
+            .par_bridge()
+            .try_for_each(|entry| -> Result<()> {
+                let entry = entry?;
+                let source = source.join(entry.file_name());
+                let target = entry.path();
+                let is_dir = target.is_dir();
+                if !source.exists() {
+                    if is_dir {
+                        rimraf(target)?;
+                    } else {
+                        fs::remove_file(&target).context(format!(
+                            "Failed to remove file\n\
+                         <yellow> >></> Path: {}",
+                            target.display(),
+                        ))?;
+                    }
+                } else if is_dir {
+                    cleanup(&source, &target)?;
+                }
+                Ok(())
+            })
+    }
+
     let source = source.as_ref();
     let target = target.as_ref();
     if target.is_dir() {
-        sync_dir_impl(source, target).context(format!(
+        sync(source, target).context(format!(
             "Failed to copy directory\n\
              <yellow> >></> From: {}\n\
              <yellow> >></> To: {}",
@@ -217,62 +275,4 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
     } else {
         copy_dir(source, target)
     }
-}
-
-fn sync_dir_impl(source: &Path, target: &Path) -> Result<()> {
-    fs::create_dir_all(target)?;
-    fs::read_dir(source)?
-        .par_bridge()
-        .try_for_each(|entry| -> Result<()> {
-            let entry = entry?;
-            let source = entry.path();
-            let target = target.join(entry.file_name());
-            if source.is_dir() {
-                if target.is_file() {
-                    fs::remove_file(&target)?;
-                }
-                return sync_dir_impl(&source, &target);
-            }
-            if target.is_dir() {
-                rimraf(&target)?;
-            }
-            if !compare_files(&source, &target)? {
-                fs::copy(source, target)?;
-            }
-            Ok(())
-        })
-}
-
-/// Remove files that are not present in the source directory.
-fn cleanup(source: &Path, target: &Path) -> Result<()> {
-    fs::read_dir(target)?
-        .par_bridge()
-        .try_for_each(|entry| -> Result<()> {
-            let entry = entry?;
-            let source = source.join(entry.file_name());
-            let target = entry.path();
-            let is_dir = target.is_dir();
-            if !source.exists() {
-                if is_dir {
-                    rimraf(target)?;
-                } else {
-                    fs::remove_file(&target).context(format!(
-                        "Failed to remove file\n\
-                         <yellow> >></> Path: {}",
-                        target.display(),
-                    ))?;
-                }
-            } else if is_dir {
-                cleanup(&source, &target)?;
-            }
-            Ok(())
-        })
-}
-
-/// Compare two files by size and modified time. Returns true if both are equal.
-fn compare_files(a: &Path, b: &Path) -> Result<bool> {
-    if let (Ok(a), Ok(b)) = (a.metadata(), b.metadata()) {
-        return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
-    }
-    Ok(false)
 }
