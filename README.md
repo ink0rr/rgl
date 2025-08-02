@@ -10,19 +10,19 @@ Benchmark result on the [bedrock-samples](https://github.com/Mojang/bedrock-samp
 $ hyperfine --warmup 2 --runs 10 --setup 'rgl clean' 'regolith run --experiments=size_time_check' 'rgl run'
 
 Benchmark 1: regolith run --experiments=size_time_check
-  Time (mean ± σ):      2.512 s ±  0.018 s    [User: 0.481 s, System: 2.053 s]
-  Range (min … max):    2.487 s …  2.544 s    10 runs
+  Time (mean ± σ):      2.447 s ±  0.013 s    [User: 0.502 s, System: 1.992 s]
+  Range (min … max):    2.430 s …  2.477 s    10 runs
 
 Benchmark 2: rgl run
-  Time (mean ± σ):     333.6 ms ±  10.1 ms    [User: 753.1 ms, System: 2103.4 ms]
-  Range (min … max):   325.5 ms … 358.8 ms    10 runs
+  Time (mean ± σ):     151.7 ms ±   3.2 ms    [User: 512.5 ms, System: 624.4 ms]
+  Range (min … max):   148.7 ms … 157.0 ms    10 runs
 
 Summary
   rgl run ran
-    7.53 ± 0.23 times faster than regolith run --experiments=size_time_check
+   16.13 ± 0.35 times faster than regolith run --experiments=size_time_check
 ```
 
-Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 7x faster than Regolith with size_time_check experiment enabled.
+Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 16x faster than Regolith with `size_time_check` experiment enabled.
 
 ### Install
 
