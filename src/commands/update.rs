@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{Config, FilterDefinition, Session};
+use crate::rgl::{Config, ConfigCst, FilterDefinition, Session};
 use crate::{info, warn};
 use anyhow::{Context, Result};
 use clap::Args;
@@ -14,35 +14,37 @@ pub struct Update {
 
 impl Command for Update {
     fn dispatch(&self) -> Result<()> {
-        let mut config = Config::load()?;
+        let config = Config::load()?;
+        let config_cst = ConfigCst::load()?;
         let mut session = Session::lock()?;
         let data_path = config.get_data_path();
 
         info!("Updating filters...");
         if self.filters.is_empty() {
-            for (name, filter) in config.get_filters()? {
-                if let FilterDefinition::Remote(mut remote) = filter {
+            for (name, definition) in config.get_filters()? {
+                if let FilterDefinition::Remote(mut remote) = definition {
                     remote
                         .update(&name, Some(&data_path), self.force)
                         .context(format!("Failed to update filter {name}"))?;
-                    config.add_filter(&name, &remote.into())?;
+                    config_cst.add_filter(&name, remote);
                 }
             }
         } else {
             for name in &self.filters {
-                let filter = config.get_filter(name)?;
-                if let FilterDefinition::Remote(mut remote) = filter {
+                let definition = config.get_filter(name)?;
+                if let FilterDefinition::Remote(mut remote) = definition {
                     remote
                         .update(name, Some(&data_path), self.force)
                         .context(format!("Failed to update filter {name}"))?;
-                    config.add_filter(name, &remote.into())?;
+                    config_cst.add_filter(name, remote);
                 } else {
                     warn!("Filter <b>{name}</> is not a remote filter, skipping...");
                 }
             }
         }
+
         info!("Filters successfully updated");
-        config.save()?;
+        config_cst.save()?;
         session.unlock()
     }
     fn error_context(&self) -> String {

@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{Config, RemoteFilter, Session};
+use crate::rgl::{Config, ConfigCst, RemoteFilter, Session};
 use crate::{info, warn};
 use anyhow::Result;
 use clap::Args;
@@ -17,24 +17,29 @@ pub struct Add {
 
 impl Command for Add {
     fn dispatch(&self) -> Result<()> {
-        let mut config = Config::load()?;
+        let config = Config::load()?;
+        let config_cst = ConfigCst::load()?;
         let mut session = Session::lock()?;
         let data_path = config.get_data_path();
+
         for arg in &self.filters {
             info!("Adding filter <b>{}</>...", arg);
-            let (name, remote) = RemoteFilter::parse(arg)?;
-            remote.install(&name, Some(&data_path), self.force)?;
+            let (filter_name, remote) = RemoteFilter::parse(arg)?;
+            remote.install(&filter_name, Some(&data_path), self.force)?;
+
             for profile_name in &self.profile {
-                if config.add_filter_to_profile(&name, profile_name) {
-                    info!("Added filter <b>{name}</> to <b>{profile_name}</> profile");
+                if config_cst.add_filter_to_profile(&filter_name, profile_name) {
+                    info!("Added filter <b>{filter_name}</> to <b>{profile_name}</> profile");
                 } else {
-                    warn!("Profile <b>{profile_name}</> not found, skipping...");
+                    warn!("Profile <b>{profile_name}</> not found, skipping...")
                 }
             }
-            config.add_filter(&name, &remote.into())?;
-            info!("Filter <b>{name}</> successfully added");
+
+            config_cst.add_filter(&filter_name, remote);
+            info!("Filter <b>{filter_name}</> successfully added");
         }
-        config.save()?;
+
+        config_cst.save()?;
         session.unlock()
     }
     fn error_context(&self) -> String {
