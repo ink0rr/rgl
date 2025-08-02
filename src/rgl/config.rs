@@ -1,10 +1,13 @@
 use super::{
-    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, UserConfig,
+    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, RemoteFilter,
+    UserConfig,
 };
-use crate::fs::{read_json, write_json};
+use crate::fs::{read_json, write_file, write_json};
 use crate::watcher::Watcher;
 use anyhow::{anyhow, Context, Result};
 use indexmap::IndexMap;
+use jsonc_parser::cst::{CstObject, CstRootNode};
+use jsonc_parser::{json, ParseOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::BTreeMap, path::PathBuf};
@@ -135,38 +138,6 @@ impl Config {
         Ok(filters)
     }
 
-    pub fn add_filter(&mut self, name: &str, filter: &FilterDefinition) -> Result<()> {
-        self.regolith
-            .filter_definitions
-            .insert(name.to_owned(), serde_json::to_value(filter)?);
-        Ok(())
-    }
-
-    pub fn remove_filter(&mut self, name: &str) -> Option<Value> {
-        for profile in self.regolith.profiles.values_mut() {
-            profile.filters.retain(|filter| match filter {
-                FilterRunner::Filter { filter_name, .. } => filter_name != name,
-                _ => true,
-            });
-        }
-        self.regolith.filter_definitions.remove(name)
-    }
-
-    pub fn add_filter_to_profile(&mut self, filter_name: &str, profile_name: &str) -> bool {
-        match self.regolith.profiles.get_mut(profile_name) {
-            Some(profile) => {
-                profile.filters.push(FilterRunner::Filter {
-                    filter_name: filter_name.to_owned(),
-                    arguments: None,
-                    settings: None,
-                    expression: None,
-                });
-                true
-            }
-            None => false,
-        }
-    }
-
     pub fn watch_project_files(&self) -> Result<()> {
         let mut watcher = Watcher::new()?;
 
@@ -178,5 +149,75 @@ impl Config {
         watcher.wait_changes();
 
         Ok(())
+    }
+}
+
+pub struct ConfigCst {
+    root: CstRootNode,
+    filter_definitions: CstObject,
+    profiles: CstObject,
+}
+
+impl ConfigCst {
+    pub fn load() -> Result<Self> {
+        let data = std::fs::read_to_string("./config.json")?;
+        let root = CstRootNode::parse(&data, &ParseOptions::default())?;
+        let regolith = root.object_value_or_set().object_value_or_set("regolith");
+        let filter_definitions = regolith.object_value_or_set("filterDefinitions");
+        let profiles = regolith.object_value_or_set("profiles");
+        Ok(Self {
+            root,
+            filter_definitions,
+            profiles,
+        })
+    }
+
+    pub fn save(&self) -> Result<()> {
+        write_file("./config.json", self.root.to_string())?;
+        Ok(())
+    }
+
+    pub fn add_filter(&self, filter_name: &str, remote: RemoteFilter) {
+        let url = remote.url;
+        let version = remote.version;
+        let value = json!({ "url": url, "version": version });
+        if let Some(definition) = self.filter_definitions.get(filter_name) {
+            definition.set_value(value);
+        } else {
+            let index = self
+                .filter_definitions
+                .properties()
+                .into_iter()
+                .take_while(
+                    |prop| match prop.name().and_then(|v| v.decoded_value().ok()) {
+                        Some(prop) => filter_name.cmp(&prop) == std::cmp::Ordering::Greater,
+                        None => false,
+                    },
+                )
+                .count();
+            self.filter_definitions.insert(index, filter_name, value);
+        }
+    }
+
+    pub fn add_filter_to_profile(&self, filter_name: &str, profile_name: &str) -> bool {
+        match self.profiles.object_value(profile_name) {
+            Some(profile) => {
+                let filters = profile.array_value_or_set("filters");
+                let name = filter_name.to_owned();
+                filters.append(json!({ "filter": name }));
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub fn remove_filter(&self, filter_name: &str) -> bool {
+        match self.filter_definitions.get(filter_name) {
+            Some(definition) => {
+                definition.remove();
+                true
+            }
+            None => false,
+        }
     }
 }

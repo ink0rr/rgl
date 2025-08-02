@@ -1,7 +1,7 @@
 use super::Command;
 use crate::fs::{empty_dir, write_file, write_json};
 use crate::info;
-use crate::rgl::{Config, Manifest, PackType};
+use crate::rgl::Config;
 use anyhow::{bail, Context, Result};
 use clap::Args;
 use dialoguer::{theme::ColorfulTheme, Input};
@@ -46,7 +46,7 @@ impl Command for Init {
 
         let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Minimum engine version")
-            .default("1.21.20".to_owned())
+            .default("1.21.90".to_owned())
             .validate_with(|input: &String| -> Result<(), String> {
                 if Version::parse(input).is_ok() {
                     Ok(())
@@ -68,7 +68,7 @@ impl Command for Init {
 
         write_json(
             format!("{bp}/manifest.json"),
-            &Manifest::new(
+            &create_manifest(
                 PackType::Behavior,
                 &bp_header,
                 &rp_header,
@@ -77,7 +77,7 @@ impl Command for Init {
         )?;
         write_json(
             format!("{rp}/manifest.json"),
-            &Manifest::new(
+            &create_manifest(
                 PackType::Resource,
                 &rp_header,
                 &bp_header,
@@ -105,6 +105,44 @@ impl Command for Init {
     fn error_context(&self) -> String {
         "Error initializing project".to_owned()
     }
+}
+
+enum PackType {
+    Behavior,
+    Resource,
+}
+
+fn create_manifest(
+    pack_type: PackType,
+    header_uuid: &str,
+    deps_uuid: &str,
+    min_engine_version: &str,
+) -> serde_json::Value {
+    json!({
+        "format_version": 2,
+        "header": {
+            "name": "pack.name",
+            "description": "pack.description",
+            "uuid": header_uuid,
+            "version": [1, 0, 0],
+            "min_engine_version": min_engine_version
+                .split('.')
+                .map(|s| s.parse().unwrap())
+                .collect::<Vec<i32>>(),
+        },
+        "modules": [{
+            "type": match pack_type {
+                PackType::Behavior => "data",
+                PackType::Resource => "resources",
+            },
+            "uuid": Uuid::new_v4().to_string(),
+            "version": [1, 0, 0],
+        }],
+        "dependencies": [{
+            "uuid": deps_uuid,
+            "version": [1, 0, 0],
+        }],
+    })
 }
 
 fn create_lang(pack_type: PackType, name: &str) -> String {

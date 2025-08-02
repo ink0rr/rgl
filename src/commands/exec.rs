@@ -1,10 +1,9 @@
 use super::Command;
-use crate::fs::{copy_dir, empty_dir, sync_dir, try_symlink};
+use crate::fs::{copy_dir, empty_dir, sync_dir};
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, GlobalFilters, Session};
+use crate::rgl::{Config, Filter, FilterContext, GlobalFilters, Session, Temp};
 use anyhow::Result;
 use clap::Args;
-use std::path::PathBuf;
 
 /// Executes a filter and apply changes to the current project
 #[derive(Args)]
@@ -21,26 +20,25 @@ impl Command for Exec {
 
         let bp = config.get_behavior_pack();
         let rp = config.get_resource_pack();
+        let data = config.get_data_path();
 
-        let temp = PathBuf::from(".regolith").join("tmp");
-        let temp_bp = temp.join("BP");
-        let temp_rp = temp.join("RP");
+        let temp = Temp::from_dot_regolith();
 
-        empty_dir(&temp)?;
-        copy_dir(&bp, &temp_bp)?;
-        copy_dir(&rp, &temp_rp)?;
-        try_symlink(config.get_data_path(), temp.join("data"))?;
+        empty_dir(&temp.root)?;
+        copy_dir(&bp, &temp.bp)?;
+        copy_dir(&rp, &temp.rp)?;
+        copy_dir(&data, &temp.data)?;
 
         if let Ok(filter) = config.get_filter(&self.filter) {
             info!("Running filter <b>{}</>", self.filter);
             let context = FilterContext::new(&self.filter, &filter)?;
-            filter.run(&context, &temp, &self.run_args)?;
+            filter.run(&context, &temp.root, &self.run_args)?;
         } else {
             let global_filters = GlobalFilters::load()?;
             let filter = global_filters.get(&self.filter)?.into();
             info!("Running global filter <b>{}</>", self.filter);
             let context = FilterContext::new(&self.filter, &filter)?;
-            filter.run(&context, &temp, &self.run_args)?;
+            filter.run(&context, &temp.root, &self.run_args)?;
         }
 
         info!(
@@ -50,8 +48,9 @@ impl Command for Exec {
             bp.display(),
             rp.display()
         );
-        sync_dir(temp_bp, bp)?;
-        sync_dir(temp_rp, rp)?;
+        sync_dir(temp.bp, bp)?;
+        sync_dir(temp.rp, rp)?;
+        sync_dir(temp.data, data)?;
 
         info!("Successfully executed filter <b>{}</>", self.filter);
         session.unlock()
