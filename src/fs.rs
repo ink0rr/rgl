@@ -1,8 +1,14 @@
 use anyhow::{anyhow, bail, Context, Result};
+use dashmap::DashMap;
 use dunce::canonicalize;
 use jsonc_parser::ParseOptions;
 use rayon::prelude::*;
-use std::{fs, io, path::Path, time::SystemTime};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    sync::LazyLock,
+    time::SystemTime,
+};
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
@@ -202,30 +208,49 @@ where
 }
 
 /// Sync target directory with source directory.
+///
+/// **Not thread-safe!** Uses a global cache internally. Do NOT call in parallel or from async code.
 pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()> {
+    static METADATA_CACHE: LazyLock<DashMap<PathBuf, Option<fs::Metadata>>> =
+        LazyLock::new(DashMap::new);
+
+    fn get_metadata(path: impl AsRef<Path>) -> Option<fs::Metadata> {
+        let path = path.as_ref();
+
+        if let Some(entry) = METADATA_CACHE.get(path) {
+            return entry.value().clone();
+        }
+
+        let metadata = path.metadata().ok();
+        METADATA_CACHE.insert(path.to_owned(), metadata.clone());
+        metadata
+    }
+
     /// Compare two files by size and modified time. Returns true if both are equal.
     fn compare_files(a: &Path, b: &Path) -> Result<bool> {
-        if let (Ok(a), Ok(b)) = (a.metadata(), b.metadata()) {
+        if let (Some(a), Some(b)) = (get_metadata(a), get_metadata(b)) {
             return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
         }
         Ok(false)
     }
 
     fn sync(source: &Path, target: &Path) -> Result<()> {
-        fs::create_dir_all(target)?;
+        if get_metadata(target).is_none() {
+            fs::create_dir_all(target)?;
+        }
         fs::read_dir(source)?
             .par_bridge()
             .try_for_each(|entry| -> Result<()> {
                 let entry = entry?;
                 let source = entry.path();
                 let target = target.join(entry.file_name());
-                if source.is_dir() {
-                    if target.is_file() {
+                if get_metadata(&source).is_some_and(|m| m.is_dir()) {
+                    if get_metadata(&target).is_some_and(|m| m.is_file()) {
                         fs::remove_file(&target)?;
                     }
                     return sync(&source, &target);
                 }
-                if target.is_dir() {
+                if get_metadata(&target).is_some_and(|m| m.is_dir()) {
                     rimraf(&target)?;
                 }
                 if !compare_files(&source, &target)? {
@@ -243,8 +268,8 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                 let entry = entry?;
                 let source = source.join(entry.file_name());
                 let target = entry.path();
-                let is_dir = target.is_dir();
-                if !source.exists() {
+                let is_dir = get_metadata(&target).is_some_and(|m| m.is_dir());
+                if get_metadata(&source).is_none() {
                     if is_dir {
                         rimraf(target)?;
                     } else {
@@ -263,7 +288,7 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
 
     let source = source.as_ref();
     let target = target.as_ref();
-    if target.is_dir() {
+    if get_metadata(target).is_some_and(|m| m.is_dir()) {
         sync(source, target).context(format!(
             "Failed to copy directory\n\
              <yellow> >></> From: {}\n\
@@ -271,8 +296,10 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
             source.display(),
             target.display(),
         ))?;
-        cleanup(source, target)
+        cleanup(source, target)?;
     } else {
-        copy_dir(source, target)
+        copy_dir(source, target)?;
     }
+    METADATA_CACHE.clear();
+    Ok(())
 }
