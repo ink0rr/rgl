@@ -9,15 +9,15 @@ name = "rgl"
 [dependencies]
 anyhow = "1.0.98"
 async-tungstenite = "0.30.0"
-clap = { version = "4.5.37", features = ["cargo", "derive"] }
+clap = { version = "4.5.42", features = ["cargo", "derive"] }
 dashmap = "6.1.0"
 dialoguer = "0.11.0"
 dunce = "1.0.5"
 enum_dispatch = "0.3.13"
 fslock = "0.2.1"
-indexmap = { version = "2.9.0", features = ["serde"] }
+indexmap = { version = "2.10.0", features = ["serde"] }
 jsonc-parser = { version = "0.26.3", features = ["cst", "serde"] }
-notify = "8.0.0"
+notify = "8.1.0"
 notify-debouncer-mini = "0.6.0"
 once_cell = "1.21.3"
 oxide_eval = { version = "0.1.2", features = ["math", "string", "semver-support"] }
@@ -25,11 +25,11 @@ paris = { version = "1.5.15", features = ["macros"] }
 rayon = "1.10.0"
 semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
+serde_json = "1.0.142"
 smol = "2.0.2"
-strum = { version = "0.27.1", features = ["derive"] }
-tempfile = "3.19.1"
+strum = { version = "0.27.2", features = ["derive"] }
+tempfile = "3.20.0"
 ureq = "2.12.1"
-uuid = { version = "1.16.0", features = ["v4"] }
+uuid = { version = "1.17.0", features = ["v4"] }
 walkdir = "2.5.0"
 zip = "0.6.6"
