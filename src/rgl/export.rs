@@ -53,7 +53,7 @@ impl ExportPaths for DevelopmentExport {
         if !mojang_dir.exists() {
             bail!("Failed to find com.mojang directory")
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, &None);
+        let eval = Eval::new(profile_name, &get_current_dir()?, None);
         let bp = {
             let dir = mojang_dir.join("development_behavior_packs");
             if let Some(bp_name) = &self.bp_name {
@@ -89,7 +89,7 @@ impl ExportPaths for LocalExport {
         if !build.exists() {
             fs::create_dir(&build)?;
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, &None);
+        let eval = Eval::new(profile_name, &get_current_dir()?, None);
         let bp = if let Some(bp_name) = &self.bp_name {
             build.join(eval.string(bp_name)?)
         } else {

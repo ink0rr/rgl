@@ -13,7 +13,7 @@ impl Eval {
     pub fn new(
         profile: &str,
         filter_location: &Path,
-        settings: &Option<IndexMap<String, Value>>,
+        settings: Option<IndexMap<String, Value>>,
     ) -> Self {
         let mut context: HashMap<String, ContextEntry> = vec![
             ("os", OS.to_string()),
@@ -28,7 +28,7 @@ impl Eval {
         if let Some(settings) = settings {
             context.insert(
                 "settings".to_string(),
-                ContextEntry::Variable(settings.clone().into_iter().collect()),
+                ContextEntry::Variable(settings.into_iter().collect()),
             );
         } else {
             context.insert("settings".to_string(), ContextEntry::Variable(Value::Null));

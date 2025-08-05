@@ -21,7 +21,7 @@ impl Filter for RemoteFilter {
         for entry in &config.filters {
             if let Some(expression) = &entry.expression {
                 let name = &context.name;
-                let eval = Eval::new(name, &context.filter_dir, &None);
+                let eval = Eval::new(name, &context.filter_dir, None);
                 debug!("Evaluating expression <b>{expression}</>");
                 if !eval
                     .bool(expression)

@@ -54,7 +54,8 @@ impl Profile {
                     measure_time!(filter_name, {
                         let context = FilterContext::new(filter_name, &filter)?;
                         if let Some(expression) = expression {
-                            let eval = Eval::new(root_profile, &context.filter_dir, settings);
+                            let eval =
+                                Eval::new(root_profile, &context.filter_dir, settings.clone());
                             debug!("Evaluating expression <b>{expression}</>");
                             if !eval.bool(expression).with_context(|| {
                                 format!("Failed running evaluator for <b>{filter_name}</>")
