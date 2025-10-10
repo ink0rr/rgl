@@ -32,6 +32,12 @@ fn mojang_dir() -> Result<PathBuf> {
     }
     #[cfg(target_os = "windows")]
     {
+        let appdata = env::var("AppData")?;
+        let gdk =
+            PathBuf::from(appdata).join("Minecraft Bedrock\\Users\\Shared\\games\\com.mojang");
+        if gdk.exists() {
+            return Ok(gdk);
+        }
         let localappdata = env::var("LocalAppData")?;
         Ok(PathBuf::from(localappdata)
             .join("Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState\\games\\com.mojang"))
@@ -59,6 +65,12 @@ fn find_preview_mojang_dir() -> Result<PathBuf> {
     }
     #[cfg(windows)]
     {
+        let appdata = env::var("AppData")?;
+        let gdk = PathBuf::from(appdata)
+            .join("Minecraft Bedrock Preview\\Users\\Shared\\games\\com.mojang");
+        if gdk.exists() {
+            return Ok(gdk);
+        }
         let localappdata = env::var("LocalAppData")?;
         Ok(PathBuf::from(localappdata).join(
             "Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe\\LocalState\\games\\com.mojang",
