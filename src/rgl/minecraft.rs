@@ -17,8 +17,13 @@ pub enum MinecraftBuild {
 fn mojang_dir() -> Result<PathBuf> {
     #[cfg(target_os = "linux")]
     {
-        let home = env::var("HOME")?;
-        Ok(PathBuf::from(home).join(".local/share/mcpelauncher/games/com.mojang"))
+        let home = PathBuf::from(env::var("HOME")?);
+        let flatpak =
+            home.join(".var/app/io.mrarm.mcpelauncher/data/mcpelauncher/games/com.mojang");
+        if flatpak.exists() {
+            return Ok(flatpak);
+        }
+        Ok(home.join(".local/share/mcpelauncher/games/com.mojang"))
     }
     #[cfg(target_os = "macos")]
     {
