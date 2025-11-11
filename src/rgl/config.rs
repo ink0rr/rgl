@@ -36,6 +36,8 @@ struct Packs {
 #[serde(rename_all = "camelCase")]
 struct Regolith {
     data_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    watch_paths: Option<Vec<String>>,
     filter_definitions: BTreeMap<String, Value>,
     profiles: IndexMap<String, Profile>,
 }
@@ -72,6 +74,7 @@ impl Config {
             },
             regolith: Regolith {
                 data_path: "./data".to_owned(),
+                watch_paths: None,
                 filter_definitions: BTreeMap::<String, Value>::new(),
                 profiles,
             },
@@ -155,6 +158,11 @@ impl Config {
             watcher.add_path(rp)?;
         }
         watcher.add_path(self.get_data_path())?;
+        if let Some(watch_paths) = &self.regolith.watch_paths {
+            for path in watch_paths {
+                watcher.add_path(path)?;
+            }
+        }
 
         Ok(watcher)
     }
