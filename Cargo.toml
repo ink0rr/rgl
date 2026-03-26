@@ -30,6 +30,7 @@ smol = "2.0.2"
 strum = { version = "0.27.2", features = ["derive"] }
 tempfile = "3.21.0"
 ureq = "2.12.1"
+url = "2.5.7"
 uuid = { version = "1.18.0", features = ["v4"] }
 walkdir = "2.5.0"
 zip = "0.6.6"

@@ -3,6 +3,7 @@ use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
 use std::{fs, time::Instant};
+use url::Url;
 
 pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) -> Result<()> {
     let start = Instant::now();
@@ -79,13 +80,23 @@ pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bo
         info!("Exporting project to target location:");
         let export = compat && !is_none_export;
         if bp.is_some() {
-            println!("\tBP: {}", target_bp.display());
+            if target_bp.is_absolute() {
+                let uri = Url::from_file_path(&target_bp).unwrap();
+                println!("\tBP: {}", uri.as_str());
+            } else {
+                println!("\tBP: {}", target_bp.display());
+            }
             if export {
                 sync_dir(&temp.bp, &target_bp)?;
             }
         }
         if rp.is_some() {
-            println!("\tRP: {}", target_rp.display());
+            if target_rp.is_absolute() {
+                let uri = Url::from_file_path(&target_rp).unwrap();
+                println!("\tRP: {}", uri.as_str());
+            } else {
+                println!("\tRP: {}", target_rp.display());
+            }
             if export {
                 sync_dir(&temp.rp, &target_rp)?;
             }

@@ -1712,6 +1712,7 @@ dependencies = [
  "strum",
  "tempfile",
  "ureq",
+ "url",
  "uuid",
  "walkdir",
  "zip",
