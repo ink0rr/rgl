@@ -1,6 +1,6 @@
 use super::{
-    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, RemoteFilter,
-    UserConfig,
+    DevelopmentExport, Export, FilterDefinition, FilterRunner, LocalExport, Profile, ProfileEntry,
+    RemoteFilter, UserConfig,
 };
 use crate::file_watcher::FileWatcher;
 use crate::fs::{read_json, write_file, write_json};
@@ -56,9 +56,9 @@ impl Config {
             "build".to_owned(),
             Profile {
                 export: Export::Local(LocalExport::default()),
-                filters: vec![FilterRunner::ProfileFilter {
+                filters: vec![ProfileEntry::Filter(FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
-                }],
+                })],
             },
         );
         Self {
