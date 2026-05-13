@@ -92,5 +92,6 @@ pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bo
     });
 
     info!("Successfully ran the <profile>{profile_name}</> profile");
+    info!("<green>Finished</>");
     Ok(())
 }

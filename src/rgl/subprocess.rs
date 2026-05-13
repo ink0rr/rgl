@@ -1,6 +1,12 @@
 use super::get_current_dir;
 use anyhow::{anyhow, bail, Context, Result};
-use std::{ffi::OsStr, io, path::Path, process};
+use std::{
+    ffi::OsStr,
+    io::{self, BufRead, BufReader},
+    path::Path,
+    process,
+    thread,
+};
 
 pub struct Subprocess {
     command: process::Command,
@@ -59,6 +65,53 @@ impl Subprocess {
             bail!("Process exited with non-zero status code");
         }
         Ok(output)
+    }
+
+    pub fn run_with_prefix(&mut self, prefix: &str) -> Result<process::Output> {
+        let mut child = self
+            .command
+            .env("ROOT_DIR", get_current_dir()?)
+            .stdout(process::Stdio::piped())
+            .stderr(process::Stdio::piped())
+            .spawn()
+            .map_err(|err| match err.kind() {
+                io::ErrorKind::NotFound => self.program_not_found_error(),
+                _ => anyhow!(err),
+            })
+            .context("Failed spawning subprocess")?;
+
+        let stdout = child.stdout.take().expect("stdout piped");
+        let stderr = child.stderr.take().expect("stderr piped");
+        let prefix_out = prefix.to_owned();
+        let prefix_err = prefix.to_owned();
+
+        let stdout_thread = thread::spawn(move || {
+            BufReader::new(stdout).lines().for_each(|line| {
+                if let Ok(line) = line {
+                    crate::logger::Logger::info(format!("[{prefix_out}] {line}"));
+                }
+            });
+        });
+        let stderr_thread = thread::spawn(move || {
+            BufReader::new(stderr).lines().for_each(|line| {
+                if let Ok(line) = line {
+                    crate::logger::Logger::info(format!("[{prefix_err}] {line}"));
+                }
+            });
+        });
+
+        let status = child.wait().context("Failed running subprocess")?;
+        stdout_thread.join().ok();
+        stderr_thread.join().ok();
+
+        if !status.success() {
+            bail!("Process exited with non-zero status code");
+        }
+        Ok(process::Output {
+            status,
+            stdout: vec![],
+            stderr: vec![],
+        })
     }
 
     pub fn run_silent(&mut self) -> Result<process::Output> {

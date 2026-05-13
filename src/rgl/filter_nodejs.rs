@@ -17,7 +17,7 @@ impl Filter for FilterNodejs {
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.filter_dir)
-            .run()?;
+            .run_with_prefix(&context.name)?;
         Ok(())
     }
 
