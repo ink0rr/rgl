@@ -69,7 +69,7 @@ impl Command for Watch {
                     watcher.wait_debounced(Duration::from_millis(100)).await;
                 }
 
-                warn!("Changes detected, restarting...");
+                info!("Changes detected, restarting...");
                 session.unlock()?;
             }
         })
