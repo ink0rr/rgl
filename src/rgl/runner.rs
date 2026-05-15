@@ -2,9 +2,10 @@ use super::{Config, Export, ExportPaths, Temp};
 use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
-use std::fs;
+use std::{fs, time::Instant};
 
 pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool, sub_process_logging: bool) -> Result<()> {
+    let start = Instant::now();
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
     let data = config.get_data_path();
@@ -92,6 +93,6 @@ pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bo
     });
 
     info!("Successfully ran the <profile>{profile_name}</> profile");
-    info!("<green>Finished</>");
+    info!("<green>Finished</> in {}ms", start.elapsed().as_millis());
     Ok(())
 }
