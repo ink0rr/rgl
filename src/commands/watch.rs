@@ -1,6 +1,6 @@
 use super::Command;
 use crate::rgl::{runner, Config, MinecraftServer, Session, UserConfig};
-use crate::{error, info, log};
+use crate::{error, info, log, warn};
 use anyhow::Result;
 use clap::Args;
 use std::time::Duration;
@@ -72,7 +72,7 @@ impl Command for Watch {
                     watcher.wait_debounced(Duration::from_millis(100)).await;
                 }
 
-                info!("Changes detected, restarting...");
+                warn!("Changes detected, restarting...");
                 session.unlock()?;
             }
         })
