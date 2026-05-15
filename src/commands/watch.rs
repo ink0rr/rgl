@@ -1,6 +1,6 @@
 use super::Command;
 use crate::rgl::{runner, Config, MinecraftServer, Session, UserConfig};
-use crate::{error, info, log, warn};
+use crate::{error, info, log};
 use anyhow::Result;
 use clap::Args;
 use std::time::Duration;
