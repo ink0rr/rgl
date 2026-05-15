@@ -35,13 +35,13 @@ impl Command for Exec {
 
         if let Ok(filter) = config.get_filter(&self.filter) {
             info!("Running filter <filter>{}</>", self.filter);
-            let context = FilterContext::new(&self.filter, &filter)?;
+            let context = FilterContext::new(&self.filter, &filter, false)?;
             filter.run(&context, &temp.root, &self.run_args)?;
         } else {
             let global_filters = GlobalFilters::load()?;
             let filter = global_filters.get(&self.filter)?.into();
             info!("Running global filter <filter>{}</>", self.filter);
-            let context = FilterContext::new(&self.filter, &filter)?;
+            let context = FilterContext::new(&self.filter, &filter, false)?;
             filter.run(&context, &temp.root, &self.run_args)?;
         }
 

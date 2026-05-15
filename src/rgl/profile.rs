@@ -39,6 +39,7 @@ impl Profile {
         config: &Config,
         temp: &Path,
         root_profile: &str,
+        sub_process_logging: bool,
     ) -> Result<HashSet<String>> {
         let mut export_data_names = HashSet::new();
         for entry in self.filters.iter() {
@@ -59,7 +60,7 @@ impl Profile {
                     }
 
                     measure_time!(filter_name, {
-                        let context = FilterContext::new(filter_name, &filter)?;
+                        let context = FilterContext::new(filter_name, &filter, sub_process_logging)?;
                         if let Some(expression) = expression {
                             let eval =
                                 Eval::new(root_profile, &context.filter_dir, settings.clone());
@@ -87,7 +88,7 @@ impl Profile {
                     let profile = config.get_profile(profile_name)?;
 
                     info!("Running <profile>{profile_name}</> nested profile");
-                    export_data_names.extend(profile.run(config, temp, root_profile).await?);
+                    export_data_names.extend(profile.run(config, temp, root_profile, sub_process_logging).await?);
                 }
             }
             for _ in 0..5 {

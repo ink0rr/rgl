@@ -34,7 +34,7 @@ impl Command for Apply {
         copy_dir(&data, &temp.data)?;
 
         info!("Running <profile>{}</> profile", self.profile);
-        smol::block_on(profile.run(&config, &temp.root, &self.profile))?;
+        smol::block_on(profile.run(&config, &temp.root, &self.profile, false))?;
 
         info!("Applying changes to source directory:");
         if let Some(bp) = bp {

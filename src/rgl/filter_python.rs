@@ -24,8 +24,12 @@ impl Filter for FilterPython {
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run_with_prefix(&context.name)?;
+            .setup_env(&context.filter_dir);
+        if context.sub_process_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 

@@ -4,7 +4,7 @@ use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
 use std::fs;
 
-pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool) -> Result<()> {
+pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bool, sub_process_logging: bool) -> Result<()> {
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
     let data = config.get_data_path();
@@ -64,7 +64,7 @@ pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bo
 
     measure_time!(profile_name, {
         info!("Running <profile>{profile_name}</> profile");
-        let export_data_names = profile.run(config, &temp.root, profile_name).await?;
+        let export_data_names = profile.run(config, &temp.root, profile_name, sub_process_logging).await?;
         for name in export_data_names {
             let filter_data = temp.data.join(&name);
             if filter_data.is_dir() {

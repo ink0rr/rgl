@@ -11,13 +11,18 @@ pub struct FilterShell {
 impl Filter for FilterShell {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let shell = if cfg!(windows) { "powershell" } else { "sh" };
-        Subprocess::new(shell)
+        let mut subprocess = Subprocess::new(shell);
+        subprocess
             .arg("-c")
             .arg(&self.command)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run_with_prefix(&context.name)?;
+            .setup_env(&context.filter_dir);
+        if context.sub_process_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 }

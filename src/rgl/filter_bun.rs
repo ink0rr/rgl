@@ -11,13 +11,18 @@ pub struct FilterBun {
 impl Filter for FilterBun {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
-        Subprocess::new("bun")
+        let mut subprocess = Subprocess::new("bun");
+        subprocess
             .arg("run")
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run_with_prefix(&context.name)?;
+            .setup_env(&context.filter_dir);
+        if context.sub_process_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 

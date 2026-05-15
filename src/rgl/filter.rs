@@ -52,15 +52,17 @@ pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
     pub remote_config: Option<RemoteFilterConfig>,
+    pub sub_process_logging: bool,
 }
 
 impl FilterContext {
-    pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
+    pub fn new(name: &str, filter: &FilterDefinition, sub_process_logging: bool) -> Result<Self> {
         match filter {
             FilterDefinition::Local(_) => Ok(Self {
                 name: name.to_owned(),
                 filter_dir: get_current_dir()?,
                 remote_config: None,
+                sub_process_logging,
             }),
             FilterDefinition::Remote(remote) => {
                 let filter_dir = get_filter_cache_dir(name, remote)?;
@@ -76,6 +78,7 @@ impl FilterContext {
                     name: name.to_owned(),
                     filter_dir,
                     remote_config,
+                    sub_process_logging,
                 })
             }
         }
