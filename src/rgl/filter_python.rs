@@ -25,7 +25,7 @@ impl Filter for FilterPython {
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.filter_dir);
-        if context.subprocess_logging {
+        if UserConfig::subprocess_logging() {
             subprocess.run_with_prefix(&context.name)?;
         } else {
             subprocess.run()?;

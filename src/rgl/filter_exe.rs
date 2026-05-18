@@ -1,4 +1,4 @@
-use super::{Filter, FilterContext, Subprocess};
+use super::{Filter, FilterContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -16,7 +16,7 @@ impl Filter for FilterExe {
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.filter_dir);
-        if context.subprocess_logging {
+        if UserConfig::subprocess_logging() {
             subprocess.run_with_prefix(&context.name)?;
         } else {
             subprocess.run()?;
