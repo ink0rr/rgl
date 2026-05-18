@@ -63,7 +63,7 @@ impl Config {
         );
         Self {
             schema: Some(
-                "https://raw.githubusercontent.com/ink0rr/rgl-schemas/main/config/v1.1.json"
+                "https://raw.githubusercontent.com/ink0rr/rgl-schemas/main/config/v1.json"
                     .to_owned(),
             ),
             author: Some(UserConfig::username()),
