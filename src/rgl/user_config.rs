@@ -16,6 +16,8 @@ pub struct UserConfig {
     pub websocket_port: u16,
     #[serde(default)]
     pub force_compat: bool,
+    #[serde(default)]
+    pub subprocess_logging: bool,
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
@@ -30,6 +32,7 @@ impl UserConfig {
             resolver_update_interval: default_resolver_update_interval(),
             websocket_port: default_websocket_port(),
             force_compat: false,
+            subprocess_logging: false,
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
@@ -55,6 +58,10 @@ impl UserConfig {
 
     pub fn force_compat() -> bool {
         get_user_config().force_compat
+    }
+
+    pub fn subprocess_logging() -> bool {
+        get_user_config().subprocess_logging
     }
 
     pub fn mojang_dir() -> Option<String> {

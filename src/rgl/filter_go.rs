@@ -30,11 +30,16 @@ impl Filter for FilterGo {
                 .run()?;
         }
 
-        Subprocess::new(output)
+        let mut subprocess = Subprocess::new(output);
+        subprocess
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run()?;
+            .setup_env(&context.filter_dir);
+        if context.subprocess_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 

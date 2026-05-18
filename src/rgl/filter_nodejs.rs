@@ -12,12 +12,17 @@ impl Filter for FilterNodejs {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let runtime = UserConfig::nodejs_runtime();
         let script = context.filter_dir.join(&self.script);
-        Subprocess::new(runtime)
+        let mut subprocess = Subprocess::new(runtime);
+        subprocess
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run()?;
+            .setup_env(&context.filter_dir);
+        if context.subprocess_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 

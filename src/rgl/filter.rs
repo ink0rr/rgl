@@ -1,6 +1,6 @@
 use super::{
     get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
-    FilterNodejs, FilterPython, FilterShell, RemoteFilter, RemoteFilterConfig,
+    FilterNodejs, FilterPython, FilterShell, RemoteFilter, RemoteFilterConfig, UserConfig,
 };
 use crate::fs::{is_dir_empty, read_json};
 use crate::info;
@@ -52,15 +52,18 @@ pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
     pub remote_config: Option<RemoteFilterConfig>,
+    pub subprocess_logging: bool,
 }
 
 impl FilterContext {
     pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
+        let subprocess_logging = UserConfig::subprocess_logging();
         match filter {
             FilterDefinition::Local(_) => Ok(Self {
                 name: name.to_owned(),
                 filter_dir: get_current_dir()?,
                 remote_config: None,
+                subprocess_logging,
             }),
             FilterDefinition::Remote(remote) => {
                 let filter_dir = get_filter_cache_dir(name, remote)?;
@@ -76,6 +79,7 @@ impl FilterContext {
                     name: name.to_owned(),
                     filter_dir,
                     remote_config,
+                    subprocess_logging,
                 })
             }
         }

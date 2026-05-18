@@ -11,13 +11,18 @@ pub struct FilterDeno {
 impl Filter for FilterDeno {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
-        Subprocess::new("deno")
+        let mut subprocess = Subprocess::new("deno");
+        subprocess
             .args(vec!["run", "-A", "--no-lock"])
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir)
-            .run()?;
+            .setup_env(&context.filter_dir);
+        if context.subprocess_logging {
+            subprocess.run_with_prefix(&context.name)?;
+        } else {
+            subprocess.run()?;
+        }
         Ok(())
     }
 }
