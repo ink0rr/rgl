@@ -19,9 +19,6 @@ pub struct Watch {
     /// Automatically reload scripts via WebSocket
     #[arg(long)]
     ws: bool,
-    /// Print subprocess output from filters to the console
-    #[arg(long)]
-    sub_process_logging: bool,
 }
 
 impl Command for Watch {
@@ -43,7 +40,7 @@ impl Command for Watch {
 
                 let is_interrupted = smol::future::or(
                     async {
-                        if let Err(e) = runner(&config, &self.profile, self.clean, compat, self.sub_process_logging).await {
+                        if let Err(e) = runner(&config, &self.profile, self.clean, compat).await {
                             error!("{}", self.error_context());
                             e.chain().for_each(|e| log!("<red>[+]</> {e}"));
                         }

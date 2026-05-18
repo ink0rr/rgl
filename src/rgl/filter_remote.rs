@@ -140,7 +140,7 @@ impl RemoteFilter {
         }
 
         let filter = self.to_owned().into();
-        let context = FilterContext::new(name, &filter, false)?;
+        let context = FilterContext::new(name, &filter)?;
         info!("Installing dependencies for <filter>{name}</>...");
         filter.install_dependencies(&context)
     }

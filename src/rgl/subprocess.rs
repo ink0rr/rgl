@@ -4,8 +4,7 @@ use std::{
     ffi::OsStr,
     io::{self, BufRead, BufReader},
     path::Path,
-    process,
-    thread,
+    process, thread,
 };
 
 pub struct Subprocess {

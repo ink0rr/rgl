@@ -18,7 +18,7 @@ impl Filter for FilterNodejs {
             .args(run_args)
             .current_dir(temp)
             .setup_env(&context.filter_dir);
-        if context.sub_process_logging {
+        if context.subprocess_logging {
             subprocess.run_with_prefix(&context.name)?;
         } else {
             subprocess.run()?;

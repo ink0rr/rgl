@@ -14,9 +14,6 @@ pub struct Run {
     /// Enable this if filters are not working correctly
     #[arg(long)]
     compat: bool,
-    /// Print subprocess output from filters to the console
-    #[arg(long)]
-    sub_process_logging: bool,
 }
 
 impl Command for Run {
@@ -29,7 +26,6 @@ impl Command for Run {
             &self.profile,
             self.clean,
             self.compat || UserConfig::force_compat(),
-            self.sub_process_logging,
         ))?;
 
         session.unlock()

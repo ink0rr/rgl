@@ -24,7 +24,7 @@ impl Command for Get {
                 }
                 filter => {
                     info!("Installing dependencies for <filter>{name}</>...");
-                    let context = FilterContext::new(&name, &filter, false)?;
+                    let context = FilterContext::new(&name, &filter)?;
                     filter.install_dependencies(&context)?;
                 }
             };
