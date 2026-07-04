@@ -31,16 +31,22 @@ pub enum FilterRunner {
     Filter {
         #[serde(rename = "filter")]
         filter_name: String,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        disabled: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         arguments: Option<Vec<String>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         settings: Option<IndexMap<String, Value>>,
         #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
         expression: Option<String>,
+        #[serde(rename = "extraArguments", skip_serializing_if = "Option::is_none")]
+        extra_arguments_mode: Option<String>,
     },
     ProfileFilter {
         #[serde(rename = "profile")]
         profile_name: String,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        disabled: bool,
     },
 }
 
@@ -48,7 +54,7 @@ impl FilterRunner {
     fn get_name(&self) -> &str {
         match self {
             FilterRunner::Filter { filter_name, .. } => filter_name,
-            FilterRunner::ProfileFilter { profile_name } => profile_name,
+            FilterRunner::ProfileFilter { profile_name, .. } => profile_name,
         }
     }
 
@@ -57,23 +63,38 @@ impl FilterRunner {
         config: &Config,
         temp: &Path,
         root_profile: &str,
+        extra_args: &[String],
     ) -> Result<DashSet<String>> {
         let export_data_names = DashSet::new();
         match self {
             FilterRunner::Filter {
                 filter_name,
+                disabled,
                 arguments,
                 settings,
                 expression,
+                extra_arguments_mode,
             } => {
+                if *disabled {
+                    info!("Filter <filter>{filter_name}</> is disabled, skipping.");
+                    return Ok(export_data_names);
+                }
                 let filter = config.get_filter(filter_name)?;
                 let mut run_args: Vec<String> = vec![];
                 if let Some(settings) = settings {
                     run_args = vec![serde_json::to_string(settings)?]
                 }
-                if let Some(args) = arguments {
-                    run_args.extend(args.iter().map(|x| x.to_owned()));
+                let mut filter_arguments = arguments.to_owned().unwrap_or_default();
+                match extra_arguments_mode.as_deref() {
+                    None | Some("") | Some("ignore") => {}
+                    Some("override") => filter_arguments = extra_args.to_vec(),
+                    Some("append") => filter_arguments.extend(extra_args.iter().cloned()),
+                    Some(mode) => bail!(
+                        "The extraArguments property of a filter is invalid: {mode}\n\
+                         Valid values: ignore, override, append"
+                    ),
                 }
+                run_args.extend(filter_arguments);
 
                 let context = FilterContext::new(filter_name, &filter)?;
                 if let Some(expression) = expression {
@@ -95,13 +116,22 @@ impl FilterRunner {
                 }
                 Ok(export_data_names)
             }
-            FilterRunner::ProfileFilter { profile_name } => {
+            FilterRunner::ProfileFilter {
+                profile_name,
+                disabled,
+            } => {
+                if *disabled {
+                    info!("Filter <profile>{profile_name}</> is disabled, skipping.");
+                    return Ok(export_data_names);
+                }
                 if profile_name == root_profile {
                     bail!("Found circular profile reference in <profile>{profile_name}</>");
                 }
                 let profile = config.get_profile(profile_name)?;
                 info!("Running <profile>{profile_name}</> nested profile");
-                profile.run(config, temp, root_profile).await
+                // Extra CLI arguments are not forwarded into nested profiles,
+                // matching Regolith's behavior.
+                profile.run(config, temp, root_profile, &[]).await
             }
         }
     }
@@ -114,19 +144,23 @@ impl Profile {
         config: &Config,
         temp: &Path,
         root_profile: &str,
+        extra_args: &[String],
     ) -> Result<DashSet<String>> {
         let mut export_data_names = DashSet::new();
         for entry in self.filters.iter() {
             match entry {
                 ProfileEntry::Filter(filter) => {
                     measure_time!(filter.get_name(), {
-                        export_data_names.extend(filter.run(config, temp, root_profile).await?);
+                        export_data_names
+                            .extend(filter.run(config, temp, root_profile, extra_args).await?);
                     });
                 }
                 ProfileEntry::AsyncFilter { async_filters } => {
                     let results: Vec<Result<DashSet<String>>> = async_filters
                         .par_iter()
-                        .map(|entry| smol::block_on(entry.run(config, temp, root_profile)))
+                        .map(|entry| {
+                            smol::block_on(entry.run(config, temp, root_profile, extra_args))
+                        })
                         .collect();
 
                     for result in results {

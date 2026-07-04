@@ -14,6 +14,8 @@ pub struct Run {
     /// Enable this if filters are not working correctly
     #[arg(long)]
     compat: bool,
+    /// Extra arguments to forward to every filter in the profile
+    filter_args: Vec<String>,
 }
 
 impl Command for Run {
@@ -26,6 +28,7 @@ impl Command for Run {
             &self.profile,
             self.clean,
             self.compat || UserConfig::force_compat(),
+            &self.filter_args,
         ))?;
 
         session.unlock()

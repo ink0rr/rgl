@@ -19,6 +19,8 @@ pub struct Watch {
     /// Automatically reload scripts via WebSocket
     #[arg(long)]
     ws: bool,
+    /// Extra arguments to forward to every filter in the profile
+    filter_args: Vec<String>,
 }
 
 impl Command for Watch {
@@ -40,7 +42,15 @@ impl Command for Watch {
 
                 let is_interrupted = smol::future::or(
                     async {
-                        if let Err(e) = runner(&config, &self.profile, self.clean, compat).await {
+                        if let Err(e) = runner(
+                            &config,
+                            &self.profile,
+                            self.clean,
+                            compat,
+                            &self.filter_args,
+                        )
+                        .await
+                        {
                             error!("{}", self.error_context());
                             e.chain().for_each(|e| log!("<red>[+]</> {e}"));
                         }

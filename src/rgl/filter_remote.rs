@@ -18,7 +18,15 @@ pub struct RemoteFilter {
 impl Filter for RemoteFilter {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let config = context.remote_config.as_ref().unwrap();
-        for entry in &config.filters {
+        for (i, entry) in config.filters.iter().enumerate() {
+            if entry.disabled {
+                debug!(
+                    "The {} subfilter of <filter>{}</> filter is disabled, skipping.",
+                    ordinal(i),
+                    context.name
+                );
+                continue;
+            }
             if let Some(expression) = &entry.expression {
                 let name = &context.name;
                 let eval = Eval::new(name, &context.filter_dir, None);
@@ -60,6 +68,8 @@ pub struct RemoteFilterConfig {
 
 #[derive(Serialize, Deserialize)]
 pub struct RemoteFilterEntry {
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub disabled: bool,
     pub arguments: Option<Vec<String>>,
     #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
     pub expression: Option<String>,
@@ -161,6 +171,22 @@ impl RemoteFilter {
         self.version = latest_version.to_owned();
         self.install(name, data_path, force)?;
         Ok(())
+    }
+}
+
+/// Returns the ordinal numeral of a 0-based index. For example: `ordinal(0)`
+/// returns "1st", `ordinal(1)` returns "2nd", etc. Mirrors Regolith's `nth`.
+fn ordinal(i: usize) -> String {
+    let i = i + 1;
+    let j = i % 100;
+    if j > 10 && j < 20 {
+        return format!("{i}th");
+    }
+    match j % 10 {
+        1 => format!("{i}st"),
+        2 => format!("{i}nd"),
+        3 => format!("{i}rd"),
+        _ => format!("{i}th"),
     }
 }
 
