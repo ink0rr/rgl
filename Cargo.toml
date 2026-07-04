@@ -13,6 +13,7 @@ async-tungstenite = "0.30.0"
 clap = { version = "4.6.1", features = ["cargo", "derive"] }
 dashmap = "6.2.1"
 dialoguer = "0.12.0"
+dotenvy = "0.15.7"
 dunce = "1.0.5"
 enum_dispatch = "0.3.13"
 fslock = "0.2.1"

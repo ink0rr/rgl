@@ -9,16 +9,40 @@ use clap::{crate_name, Parser, Subcommand};
 use commands::*;
 use enum_dispatch::enum_dispatch;
 use logger::Logger;
+use std::path::Path;
 use std::thread;
 
 fn main() {
     let cli = Cli::parse();
     Logger::set_debug(cli.debug);
+    if let Err(e) = load_env_file(cli.env.as_deref()) {
+        error!("{e}");
+        e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
+        std::process::exit(1);
+    }
     if let Err(e) = run_command(cli) {
         error!("{e}");
         e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
         std::process::exit(1);
     }
+}
+
+/// Loads environment variables from a `.env` file, mirroring Regolith's behavior.
+///
+/// If `env` is `None`, defaults to `.env` in the current directory. Variables already
+/// present in the process environment are not overwritten. If the file does not exist,
+/// this is not an error and the function silently does nothing.
+fn load_env_file(env: Option<&str>) -> Result<()> {
+    let path = Path::new(env.filter(|e| !e.is_empty()).unwrap_or(".env"));
+    if !path.exists() {
+        return Ok(());
+    }
+    dotenvy::from_path(path).with_context(|| {
+        format!(
+            "Failed to load environment variables from file: {}",
+            path.display()
+        )
+    })
 }
 
 fn run_command(cli: Cli) -> Result<()> {
@@ -61,6 +85,9 @@ struct Cli {
     /// Print debug messages
     #[arg(long, global = true)]
     debug: bool,
+    /// Path to a custom .env file to load
+    #[arg(long, global = true)]
+    env: Option<String>,
 }
 
 #[derive(Subcommand)]
