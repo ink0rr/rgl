@@ -140,8 +140,12 @@ impl Subprocess {
         let install_link = match program.to_str() {
             Some("bun") => Some("https://bun.sh/docs/installation"),
             Some("deno") => Some("https://docs.deno.com/runtime/#install-deno"),
+            Some("dotnet") => Some("https://dotnet.microsoft.com/download"),
             Some("git") => Some("https://git-scm.com/downloads"),
             Some("go") => Some("https://go.dev/doc/install"),
+            Some("java") => Some("https://adoptopenjdk.net/"),
+            Some("nim") => Some("https://nim-lang.org/"),
+            Some("nimble") => Some("https://nim-lang.org/"),
             Some("node") => Some("https://nodejs.org/en/download/prebuilt-installer"),
             Some("python") => Some("https://www.python.org/downloads"),
             _ => None,
