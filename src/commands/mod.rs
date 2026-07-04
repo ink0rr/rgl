@@ -11,6 +11,7 @@ mod remove;
 mod run;
 mod uninstall;
 mod update;
+mod update_resolvers;
 mod upgrade;
 mod watch;
 
@@ -27,6 +28,7 @@ pub use self::remove::*;
 pub use self::run::*;
 pub use self::uninstall::*;
 pub use self::update::*;
+pub use self::update_resolvers::*;
 pub use self::upgrade::*;
 pub use self::watch::*;
 

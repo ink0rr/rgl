@@ -12,6 +12,9 @@ pub struct Install {
     filters: Vec<String>,
     #[arg(short, long)]
     force: bool,
+    /// Force resolvers refresh
+    #[arg(long)]
+    force_resolver_refresh: bool,
 }
 
 impl Command for Install {
@@ -19,7 +22,7 @@ impl Command for Install {
         let mut global_filters = GlobalFilters::load()?;
         for arg in &self.filters {
             info!("Installing filter <filter>{arg}</>...");
-            let (name, remote) = RemoteFilter::parse(arg)?;
+            let (name, remote) = RemoteFilter::parse(arg, self.force_resolver_refresh)?;
             remote.install(&name, None, self.force)?;
 
             info!("Filter <filter>{name}</> successfully installed");

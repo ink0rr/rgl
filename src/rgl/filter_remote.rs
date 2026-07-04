@@ -69,7 +69,7 @@ pub struct RemoteFilterEntry {
 
 impl RemoteFilter {
     /// Parse RemoteFilter from string argument
-    pub fn parse(arg: &str) -> Result<(String, Self)> {
+    pub fn parse(arg: &str, force_refresh_resolvers: bool) -> Result<(String, Self)> {
         // Extract version argument if present
         let parts: Vec<_> = arg.split('@').collect();
         let (arg, version_arg) = match parts.len() {
@@ -81,7 +81,10 @@ impl RemoteFilter {
         // Resolve filter name and URL
         let url_parts: Vec<_> = arg.split('/').collect();
         let (name, url) = match url_parts.len() {
-            1 => (arg.to_owned(), Resolver::resolve_url(arg)?),
+            1 => (
+                arg.to_owned(),
+                Resolver::resolve_url(arg, force_refresh_resolvers)?,
+            ),
             4 => (url_parts[3].to_owned(), url_parts[..3].join("/")),
             _ => bail!("Incorrect URL format. Expected: `github.com/<user>/<repo>/<filter-name>`"),
         };

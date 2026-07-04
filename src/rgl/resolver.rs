@@ -20,22 +20,28 @@ struct ResolverData {
 }
 
 impl Resolver {
-    fn get(name: &str) -> Result<&ResolverData> {
-        get_resolver()
+    fn get(name: &str, force_refresh: bool) -> Result<&ResolverData> {
+        get_resolver(force_refresh)
             .context("Failed to load filter resolver")?
             .filters
             .get(name)
             .with_context(|| format!("Failed to resolve filter <filter>{name}</>"))
     }
 
-    pub fn resolve_url(name: &str) -> Result<String> {
-        Self::get(name).map(|data| data.url.to_owned())
+    pub fn resolve_url(name: &str, force_refresh: bool) -> Result<String> {
+        Self::get(name, force_refresh).map(|data| data.url.to_owned())
+    }
+
+    /// Forces a refresh of the resolver cache, bypassing the update cooldown.
+    pub fn refresh() -> Result<()> {
+        get_resolver(true)?;
+        Ok(())
     }
 
     pub fn resolve_version(name: &str, url: &str, version_arg: Option<String>) -> Result<String> {
         // Try to get version from resolver
         let get_version = || -> Option<String> {
-            let data = Self::get(name).ok()?;
+            let data = Self::get(name, false).ok()?;
             if data.url != url || data.versions.is_none() {
                 return None;
             };
@@ -114,7 +120,7 @@ impl Resolver {
     }
 }
 
-fn get_resolver() -> Result<&'static Resolver> {
+fn get_resolver(force_refresh: bool) -> Result<&'static Resolver> {
     static RESOLVER: OnceCell<Resolver> = OnceCell::new();
     RESOLVER.get_or_try_init(|| {
         let mut resolver = Resolver::default();
@@ -133,7 +139,7 @@ fn get_resolver() -> Result<&'static Resolver> {
                     .with_context(|| format!("Failed to clone `{https_url}`"))?;
             } else {
                 let last_modified = resolver_file.metadata()?.modified()?.elapsed()?.as_secs();
-                if last_modified > UserConfig::resolver_update_interval() {
+                if force_refresh || last_modified > UserConfig::resolver_update_interval() {
                     Subprocess::new("git")
                         .args(["pull"])
                         .current_dir(&resolver_dir)
