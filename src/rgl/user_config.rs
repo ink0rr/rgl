@@ -12,16 +12,21 @@ pub struct UserConfig {
     pub resolvers: Vec<String>,
     #[serde(default = "default_resolver_update_interval")]
     pub resolver_update_interval: u64,
+    #[serde(default = "default_filter_cache_update_cooldown")]
+    pub filter_cache_update_cooldown: u64,
     #[serde(default = "default_websocket_port")]
     pub websocket_port: u16,
     #[serde(default)]
     pub force_compat: bool,
     #[serde(default)]
     pub subprocess_logging: bool,
+    #[serde(default)]
+    pub use_project_app_data_storage: bool,
     pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
     pub python_command: Option<String>,
+    pub tmp_dir: Option<String>,
 }
 
 impl UserConfig {
@@ -30,13 +35,16 @@ impl UserConfig {
             username: default_username(),
             resolvers: default_resolvers(),
             resolver_update_interval: default_resolver_update_interval(),
+            filter_cache_update_cooldown: default_filter_cache_update_cooldown(),
             websocket_port: default_websocket_port(),
             force_compat: false,
             subprocess_logging: false,
+            use_project_app_data_storage: false,
             mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
             python_command: None,
+            tmp_dir: None,
         }
     }
 
@@ -52,6 +60,10 @@ impl UserConfig {
         get_user_config().resolver_update_interval
     }
 
+    pub fn filter_cache_update_cooldown() -> u64 {
+        get_user_config().filter_cache_update_cooldown
+    }
+
     pub fn websocket_port() -> u16 {
         get_user_config().websocket_port
     }
@@ -64,8 +76,16 @@ impl UserConfig {
         get_user_config().subprocess_logging
     }
 
+    pub fn use_project_app_data_storage() -> bool {
+        get_user_config().use_project_app_data_storage
+    }
+
     pub fn mojang_dir() -> Option<String> {
         get_user_config().mojang_dir.to_owned()
+    }
+
+    pub fn tmp_dir() -> Option<String> {
+        get_user_config().tmp_dir.to_owned()
     }
 
     pub fn nodejs_runtime() -> String {
@@ -102,6 +122,10 @@ fn default_resolvers() -> Vec<String> {
 }
 
 fn default_resolver_update_interval() -> u64 {
+    300
+}
+
+fn default_filter_cache_update_cooldown() -> u64 {
     300
 }
 

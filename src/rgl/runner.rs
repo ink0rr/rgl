@@ -18,7 +18,7 @@ pub async fn runner(config: &Config, profile_name: &str, clean: bool, compat: bo
         .context("Failed to get export paths")?;
     let is_none_export = matches!(profile.export, Export::None(_));
 
-    let temp = Temp::from_dot_regolith();
+    let temp = Temp::from_dot_regolith()?;
 
     measure_time!("Setup temp", {
         if clean {

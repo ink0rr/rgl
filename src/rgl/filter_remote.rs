@@ -1,6 +1,6 @@
 use super::{
     get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
-    Subprocess,
+    Subprocess, UserConfig,
 };
 use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
 use crate::{debug, info, warn};
@@ -114,13 +114,15 @@ impl RemoteFilter {
                     .current_dir(&repo_dir)
                     .run_silent()
                     .with_context(|| format!("Failed to clone `{https_url}`"))?;
-            } else {
+            } else if force || repo_fetch_cooldown_elapsed(&repo_dir) {
                 debug!("Fetching tags...");
                 Subprocess::new("git")
                     .args(["fetch", "--all"])
                     .current_dir(&repo_dir)
                     .run_silent()
                     .with_context(|| format!("Failed to fetch latest tags from `{https_url}`"))?;
+            } else {
+                debug!("Skipping repo fetch, still within the filter cache update cooldown");
             }
             let git_ref = Version::parse(version)
                 .map(|_| format!("{name}-{version}"))
@@ -159,5 +161,22 @@ impl RemoteFilter {
         self.version = latest_version.to_owned();
         self.install(name, data_path, force)?;
         Ok(())
+    }
+}
+
+/// Checks whether enough time has passed since the last `git fetch` of a
+/// cached filter repository, based on the `filter_cache_update_cooldown`
+/// user config setting. Mirrors Regolith's cooldown check in
+/// `downloadFilterRepository`.
+fn repo_fetch_cooldown_elapsed(repo_dir: &Path) -> bool {
+    let fetch_head = repo_dir.join(".git").join("FETCH_HEAD");
+    let elapsed = fetch_head
+        .metadata()
+        .and_then(|metadata| metadata.modified())
+        .and_then(|modified| modified.elapsed().map_err(std::io::Error::other));
+    match elapsed {
+        Ok(elapsed) => elapsed.as_secs() > UserConfig::filter_cache_update_cooldown(),
+        // No FETCH_HEAD yet (e.g. right after a fresh clone), treat the cooldown as elapsed.
+        Err(_) => true,
     }
 }

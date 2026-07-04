@@ -1,7 +1,7 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{get_dot_regolith_dir, Filter, FilterContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::{env, path::Path};
+use std::path::Path;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Serialize, Deserialize)]
@@ -12,8 +12,7 @@ pub struct FilterGo {
 impl Filter for FilterGo {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
-        let mut output = env::current_dir()?
-            .join(".regolith")
+        let mut output = get_dot_regolith_dir()?
             .join("cache")
             .join("go")
             .join(&context.name);

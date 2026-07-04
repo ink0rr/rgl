@@ -1,3 +1,4 @@
+use super::get_dot_regolith_dir;
 use anyhow::{bail, Result};
 use fslock::LockFile;
 use std::fs;
@@ -8,8 +9,9 @@ pub struct Session {
 
 impl Session {
     pub fn lock() -> Result<Self> {
-        let _ = fs::create_dir(".regolith");
-        let mut file = LockFile::open(".regolith/session_lock")?;
+        let dot_regolith = get_dot_regolith_dir()?;
+        let _ = fs::create_dir_all(&dot_regolith);
+        let mut file = LockFile::open(&dot_regolith.join("session_lock"))?;
         file.try_lock_with_pid()?;
         if !file.owns_lock() {
             bail!(

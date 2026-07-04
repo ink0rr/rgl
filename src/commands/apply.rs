@@ -22,7 +22,7 @@ impl Command for Apply {
 
         let profile = config.get_profile(&self.profile)?;
 
-        let temp = Temp::from_dot_regolith();
+        let temp = Temp::from_dot_regolith()?;
 
         empty_dir(&temp.root)?;
         if let Some(bp) = &bp {

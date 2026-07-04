@@ -1,4 +1,6 @@
-use super::{find_mojang_dir, find_world_dir, get_current_dir, Eval, MinecraftBuild};
+use super::{
+    find_mojang_dir, find_world_dir, get_current_dir, get_dot_regolith_dir, Eval, MinecraftBuild,
+};
 use anyhow::{anyhow, bail, Result};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
@@ -150,8 +152,7 @@ pub struct NoneExport {}
 impl ExportPaths for NoneExport {
     fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
         // Set the export target to temp just to not mess up the log messages
-        let dot_regolith = PathBuf::from(".regolith");
-        let temp = dot_regolith.join("tmp");
+        let temp = get_dot_regolith_dir()?.join("tmp");
         Ok((temp.join("BP"), temp.join("RP")))
     }
 }
