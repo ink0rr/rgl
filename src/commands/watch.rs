@@ -37,6 +37,11 @@ impl Command for Watch {
             None
         };
 
+        // Mirrors Go's `RunContext.Initial`: true only for the very first
+        // profile run of the watch session, then false for every rerun
+        // triggered by file changes, for the rest of the process' lifetime.
+        let mut initial = true;
+
         smol::block_on(async {
             loop {
                 let config = Config::load()?;
@@ -52,12 +57,15 @@ impl Command for Watch {
                             compat,
                             self.unsafe_mode,
                             &self.filter_args,
+                            "watch",
+                            initial,
                         )
                         .await
                         {
                             error!("{}", self.error_context());
                             e.chain().for_each(|e| log!("<red>[+]</> {e}"));
                         }
+                        initial = false;
                         false
                     },
                     async {

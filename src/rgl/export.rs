@@ -1,5 +1,6 @@
 use super::{
-    find_mojang_dir, find_world_dir, get_current_dir, get_dot_regolith_dir, Eval, MinecraftBuild,
+    find_mojang_dir, find_world_dir, get_current_dir, get_dot_regolith_dir, get_run_initial, Eval,
+    MinecraftBuild,
 };
 use anyhow::{anyhow, bail, Result};
 use enum_dispatch::enum_dispatch;
@@ -241,7 +242,13 @@ impl ExportPaths for DevelopmentExport {
         if !mojang_dir.exists() {
             bail!("Failed to find com.mojang directory")
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(
+            profile_name,
+            &get_current_dir()?,
+            None,
+            false,
+            get_run_initial(),
+        );
         let bp = {
             let dir = mojang_dir.join("development_behavior_packs");
             if let Some(bp_name) = &self.bp_name {
@@ -284,7 +291,13 @@ impl ExportPaths for LocalExport {
         if !build.exists() {
             fs::create_dir(&build)?;
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(
+            profile_name,
+            &get_current_dir()?,
+            None,
+            false,
+            get_run_initial(),
+        );
         let bp = if let Some(bp_name) = &self.bp_name {
             build.join(eval.string(bp_name)?)
         } else {
@@ -415,7 +428,13 @@ impl ExportPaths for WorldExport {
                 "The `world` export target requires either a `worldName` or `worldPath property`"
             ),
         };
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(
+            profile_name,
+            &get_current_dir()?,
+            None,
+            false,
+            get_run_initial(),
+        );
         let bp = {
             let dir = world_dir.join("behavior_packs");
             if let Some(bp_name) = &self.bp_name {

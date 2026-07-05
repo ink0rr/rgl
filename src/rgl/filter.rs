@@ -56,15 +56,26 @@ pub struct FilterContext {
     pub name: String,
     pub filter_dir: PathBuf,
     pub remote_config: Option<RemoteFilterConfig>,
+    /// Whether this filter belongs to a profile reached through a nested
+    /// `profile` filter, rather than the profile requested directly on the
+    /// command line. Threaded into `when`/name-template evaluation. Mirrors
+    /// Go's `prepareScope`'s `nested: ctx.Parent != nil`.
+    pub nested: bool,
+    /// Whether this filter belongs to the first profile run of the process.
+    /// Always `false` when `nested` is `true`, matching Go's `RunContext`
+    /// for nested profiles (see [`crate::rgl::Eval::new`]).
+    pub initial: bool,
 }
 
 impl FilterContext {
-    pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
+    pub fn new(name: &str, filter: &FilterDefinition, nested: bool, initial: bool) -> Result<Self> {
         match filter {
             FilterDefinition::Local(_) => Ok(Self {
                 name: name.to_owned(),
                 filter_dir: get_current_dir()?,
                 remote_config: None,
+                nested,
+                initial,
             }),
             FilterDefinition::Remote(remote) => {
                 let filter_dir = get_filter_cache_dir(name, remote)?;
@@ -80,6 +91,8 @@ impl FilterContext {
                     name: name.to_owned(),
                     filter_dir,
                     remote_config,
+                    nested,
+                    initial,
                 })
             }
         }

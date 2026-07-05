@@ -64,6 +64,8 @@ impl FilterRunner {
         temp: &Path,
         root_profile: &str,
         extra_args: &[String],
+        nested: bool,
+        initial: bool,
     ) -> Result<DashSet<String>> {
         let export_data_names = DashSet::new();
         match self {
@@ -96,9 +98,15 @@ impl FilterRunner {
                 }
                 run_args.extend(filter_arguments);
 
-                let context = FilterContext::new(filter_name, &filter)?;
+                let context = FilterContext::new(filter_name, &filter, nested, initial)?;
                 if let Some(expression) = expression {
-                    let eval = Eval::new(root_profile, &context.filter_dir, settings.clone());
+                    let eval = Eval::new(
+                        root_profile,
+                        &context.filter_dir,
+                        settings.clone(),
+                        nested,
+                        initial,
+                    );
                     debug!("Evaluating expression: <d>{expression}</>");
                     if !eval.bool(expression).with_context(|| {
                         format!("Failed running evaluator for <filter>{filter_name}</>")
@@ -130,8 +138,14 @@ impl FilterRunner {
                 let profile = config.get_profile(profile_name)?;
                 info!("Running <profile>{profile_name}</> nested profile");
                 // Extra CLI arguments are not forwarded into nested profiles,
-                // matching Regolith's behavior.
-                profile.run(config, temp, root_profile, &[]).await
+                // matching Regolith's behavior. `initial` is always `false`
+                // here: Go's `ProfileFilter.Run` builds a fresh `RunContext`
+                // for the nested profile without copying `Initial` over, so
+                // it defaults to `false` regardless of the enclosing run's
+                // value.
+                profile
+                    .run(config, temp, root_profile, &[], true, false)
+                    .await
             }
         }
     }
@@ -145,21 +159,33 @@ impl Profile {
         temp: &Path,
         root_profile: &str,
         extra_args: &[String],
+        nested: bool,
+        initial: bool,
     ) -> Result<DashSet<String>> {
         let mut export_data_names = DashSet::new();
         for entry in self.filters.iter() {
             match entry {
                 ProfileEntry::Filter(filter) => {
                     measure_time!(filter.get_name(), {
-                        export_data_names
-                            .extend(filter.run(config, temp, root_profile, extra_args).await?);
+                        export_data_names.extend(
+                            filter
+                                .run(config, temp, root_profile, extra_args, nested, initial)
+                                .await?,
+                        );
                     });
                 }
                 ProfileEntry::AsyncFilter { async_filters } => {
                     let results: Vec<Result<DashSet<String>>> = async_filters
                         .par_iter()
                         .map(|entry| {
-                            smol::block_on(entry.run(config, temp, root_profile, extra_args))
+                            smol::block_on(entry.run(
+                                config,
+                                temp,
+                                root_profile,
+                                extra_args,
+                                nested,
+                                initial,
+                            ))
                         })
                         .collect();
 

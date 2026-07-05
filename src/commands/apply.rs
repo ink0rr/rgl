@@ -1,7 +1,7 @@
 use super::Command;
 use crate::fs::{copy_dir, empty_dir, sync_dir};
 use crate::info;
-use crate::rgl::{Config, Session, Temp};
+use crate::rgl::{set_project_info, set_run_initial, set_run_mode, Config, Session, Temp};
 use anyhow::Result;
 use clap::Args;
 
@@ -33,8 +33,12 @@ impl Command for Apply {
         }
         copy_dir(&data, &temp.data)?;
 
+        set_run_mode("run");
+        set_run_initial(true);
+        set_project_info(config.get_name(), config.get_author());
+
         info!("Running <profile>{}</> profile", self.profile);
-        smol::block_on(profile.run(&config, &temp.root, &self.profile, &[]))?;
+        smol::block_on(profile.run(&config, &temp.root, &self.profile, &[], false, true))?;
 
         info!("Applying changes to source directory:");
         if let Some(bp) = bp {

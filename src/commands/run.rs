@@ -33,6 +33,8 @@ impl Command for Run {
             self.compat || UserConfig::force_compat(),
             self.unsafe_mode,
             &self.filter_args,
+            "run",
+            true,
         ))?;
 
         session.unlock()

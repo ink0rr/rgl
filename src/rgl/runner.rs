@@ -1,4 +1,7 @@
-use super::{check_export_path_collision, Config, EditedFiles, ExportPaths, Temp};
+use super::{
+    check_export_path_collision, set_project_info, set_run_initial, set_run_mode, Config,
+    EditedFiles, ExportPaths, Temp,
+};
 use crate::fs::{rimraf, set_readonly_recursive, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
@@ -9,6 +12,13 @@ use std::{
 };
 use url::Url;
 
+/// Runs a profile and exports the result. `mode` and `initial` set the
+/// `mode`/`initial` values exposed to `when`/name-template expressions
+/// (mirrors Go's `prepareScope`): `mode` is `"run"` for `rgl run`/`rgl
+/// apply` or `"watch"` for `rgl watch`, and `initial` marks whether this is
+/// the first profile run of the process (always `true` for `rgl run`, and
+/// `true` only for the first iteration of a `rgl watch` session).
+#[allow(clippy::too_many_arguments)]
 pub async fn runner(
     config: &Config,
     profile_name: &str,
@@ -16,7 +26,12 @@ pub async fn runner(
     compat: bool,
     unsafe_mode: bool,
     extra_args: &[String],
+    mode: &str,
+    initial: bool,
 ) -> Result<()> {
+    set_run_mode(mode);
+    set_run_initial(initial);
+    set_project_info(config.get_name(), config.get_author());
     let start = Instant::now();
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
@@ -168,7 +183,7 @@ pub async fn runner(
     measure_time!(profile_name, {
         info!("Running <profile>{profile_name}</> profile");
         let export_data_names = profile
-            .run(config, &temp.root, profile_name, extra_args)
+            .run(config, &temp.root, profile_name, extra_args, false, initial)
             .await?;
         for name in export_data_names {
             let filter_data = temp.data.join(&name);

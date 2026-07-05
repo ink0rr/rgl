@@ -29,7 +29,13 @@ impl Filter for RemoteFilter {
             }
             if let Some(expression) = &entry.expression {
                 let name = &context.name;
-                let eval = Eval::new(name, &context.filter_dir, None);
+                let eval = Eval::new(
+                    name,
+                    &context.filter_dir,
+                    None,
+                    context.nested,
+                    context.initial,
+                );
                 debug!("Evaluating expression: <d>{expression}</>");
                 if !eval
                     .bool(expression)
@@ -155,7 +161,7 @@ impl RemoteFilter {
         }
 
         let filter = self.to_owned().into();
-        let context = FilterContext::new(name, &filter)?;
+        let context = FilterContext::new(name, &filter, false, false)?;
         info!("Installing dependencies for <filter>{name}</>...");
         filter.install_dependencies(&context)
     }

@@ -137,6 +137,13 @@ impl Config {
         &self.name
     }
 
+    /// The project's `author` field, if set. Used to populate the `project`
+    /// object exposed to `when`/name-template expressions (mirrors Go's
+    /// `prepareScope`, which exposes `project.name`/`project.author`).
+    pub fn get_author(&self) -> Option<&str> {
+        self.author.as_deref()
+    }
+
     /// The project's `regolith.formatVersion`, or [`DEFAULT_FORMAT_VERSION`]
     /// when it's absent from the config.
     pub fn get_format_version(&self) -> &str {
