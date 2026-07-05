@@ -1,4 +1,4 @@
-use super::{Config, Eval, Export, Filter, FilterContext};
+use super::{Config, Eval, ExportTargets, Filter, FilterContext};
 use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use async_recursion::async_recursion;
@@ -11,7 +11,7 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
-    pub export: Export,
+    pub export: ExportTargets,
     pub filters: Vec<ProfileEntry>,
 }
 

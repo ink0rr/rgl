@@ -48,14 +48,14 @@ impl Config {
         profiles.insert(
             "default".to_owned(),
             Profile {
-                export: Export::Development(DevelopmentExport::default()),
+                export: Export::Development(DevelopmentExport::default()).into(),
                 filters: vec![],
             },
         );
         profiles.insert(
             "build".to_owned(),
             Profile {
-                export: Export::Local(LocalExport::default()),
+                export: Export::Local(LocalExport::default()).into(),
                 filters: vec![ProfileEntry::Filter(FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
                     disabled: false,
