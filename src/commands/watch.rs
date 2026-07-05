@@ -19,6 +19,9 @@ pub struct Watch {
     /// Automatically reload scripts via WebSocket
     #[arg(long)]
     ws: bool,
+    /// Disables file protection safety checks for faster exports
+    #[arg(long = "unsafe")]
+    unsafe_mode: bool,
     /// Extra arguments to forward to every filter in the profile
     filter_args: Vec<String>,
 }
@@ -47,6 +50,7 @@ impl Command for Watch {
                             &self.profile,
                             self.clean,
                             compat,
+                            self.unsafe_mode,
                             &self.filter_args,
                         )
                         .await

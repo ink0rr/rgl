@@ -1,6 +1,7 @@
 mod config;
 mod eval;
 mod export;
+mod file_protection;
 mod filter;
 mod filter_bun;
 mod filter_deno;
@@ -29,6 +30,7 @@ mod version_check;
 pub use self::config::*;
 pub use self::eval::*;
 pub use self::export::*;
+pub use self::file_protection::*;
 pub use self::filter::*;
 pub use self::filter_bun::*;
 pub use self::filter_deno::*;

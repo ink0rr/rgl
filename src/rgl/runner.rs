@@ -1,4 +1,4 @@
-use super::{check_export_path_collision, Config, ExportPaths, Temp};
+use super::{check_export_path_collision, Config, EditedFiles, ExportPaths, Temp};
 use crate::fs::{rimraf, set_readonly_recursive, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
@@ -14,6 +14,7 @@ pub async fn runner(
     profile_name: &str,
     clean: bool,
     compat: bool,
+    unsafe_mode: bool,
     extra_args: &[String],
 ) -> Result<()> {
     let start = Instant::now();
@@ -70,6 +71,35 @@ pub async fn runner(
 
     let temp = Temp::from_dot_regolith()?;
 
+    // Before touching any export target, make sure every file currently in
+    // it is one rgl previously created there. This mirrors Go's
+    // `EditedFiles.CheckDeletionSafety`, run from `ExportProject` before any
+    // target is exported to. Unlike Go (which skips this for the symlinked
+    // target, having already checked it earlier during symlink setup), rgl
+    // checks every active target uniformly here, before the "Setup temp"
+    // step below does its own destructive work (the `--clean` rimraf, and
+    // the symlink branch's `sync_dir` straight into the target).
+    let mut edited_files = EditedFiles::load();
+    if !unsafe_mode {
+        measure_time!("Check deletion safety", {
+            for (target_bp, target_rp, _) in &resolved {
+                edited_files
+                    .check_deletion_safety(target_rp, target_bp)
+                    .with_context(|| {
+                        format!(
+                            "Safety mechanism stopped rgl to protect unexpected files from your export targets.\n\
+                             Did you edit the exported files manually?\n\
+                             Please clear your export paths and try again, or pass `--unsafe` to skip this check.\n\
+                             <yellow> >></> Resource pack export path: {}\n\
+                             <yellow> >></> Behavior pack export path: {}",
+                            target_rp.display(),
+                            target_bp.display()
+                        )
+                    })?;
+            }
+        });
+    }
+
     measure_time!("Setup temp", {
         if clean {
             rimraf(&temp.root)?;
@@ -112,6 +142,25 @@ pub async fn runner(
                 symlink(&primary_rp, &temp.rp)?;
             }
             sync_dir(&data, &temp.data)?;
+
+            // In symlink mode the export target is reseeded with the raw
+            // (unfiltered) source straight above, every run, before the
+            // filters even get a chance to fail. Record that reseeded state
+            // as "ours" right away: otherwise, if a filter fails below, the
+            // symlinked target is left holding freshly-copied files that
+            // never got recorded (the "Update edited files" step is skipped
+            // on failure), and the next run's deletion-safety check would
+            // then mistake rgl's own reseed for foreign files and refuse to
+            // run at all. Doing this update unconditionally (not just on the
+            // very first symlink creation, unlike Go) keeps this run's
+            // eventual final update simply overwriting it once filters
+            // finish successfully. This runs regardless of `--unsafe`
+            // (matching Go, where `UnsafeMode` only gates the check, never
+            // the bookkeeping).
+            edited_files.update_from_paths(&primary_rp, &primary_bp)?;
+            edited_files.dump().context(
+                "Failed to update the list of files edited by rgl. This may cause the next run to fail.",
+            )?;
         }
     });
     smol::future::yield_now().await;
@@ -180,6 +229,17 @@ pub async fn runner(
             }
         }
     });
+
+    if !is_none_export {
+        measure_time!("Update edited files", {
+            for (target_bp, target_rp, _) in &resolved {
+                edited_files.update_from_paths(target_rp, target_bp)?;
+            }
+            edited_files
+                .dump()
+                .context("Failed to update the list of files edited by rgl. This may cause the next run to fail.")?;
+        });
+    }
 
     info!("Successfully ran the <profile>{profile_name}</> profile");
     info!("<green>Finished</> in {}ms", start.elapsed().as_millis());

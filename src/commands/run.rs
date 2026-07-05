@@ -14,6 +14,9 @@ pub struct Run {
     /// Enable this if filters are not working correctly
     #[arg(long)]
     compat: bool,
+    /// Disables file protection safety checks for faster exports
+    #[arg(long = "unsafe")]
+    unsafe_mode: bool,
     /// Extra arguments to forward to every filter in the profile
     filter_args: Vec<String>,
 }
@@ -28,6 +31,7 @@ impl Command for Run {
             &self.profile,
             self.clean,
             self.compat || UserConfig::force_compat(),
+            self.unsafe_mode,
             &self.filter_args,
         ))?;
 
