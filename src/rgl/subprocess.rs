@@ -45,6 +45,11 @@ impl Subprocess {
 
     pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> &mut Self {
         self.command.env("FILTER_DIR", filter_dir.as_ref());
+        // Mirrors Go's CreateEnvironmentVariables, which sets
+        // DEBUG=%t (fmt.Sprintf boolean, i.e. "true"/"false") based on the
+        // --debug flag state.
+        self.command
+            .env("DEBUG", crate::logger::Logger::get_debug().to_string());
         self
     }
 
