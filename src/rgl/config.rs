@@ -4,13 +4,24 @@ use super::{
 };
 use crate::file_watcher::FileWatcher;
 use crate::fs::{read_json, write_file, write_json};
+use crate::warn;
 use anyhow::{anyhow, bail, Context, Result};
 use indexmap::IndexMap;
 use jsonc_parser::cst::{CstObject, CstRootNode};
 use jsonc_parser::{json, ParseOptions};
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::BTreeMap, path::PathBuf};
+
+/// The `formatVersion` assumed when a config doesn't declare one. Mirrors
+/// Go's `RegolithProjectFromObject`, which defaults to `"1.2.0"` and logs a
+/// warning.
+const DEFAULT_FORMAT_VERSION: &str = "1.2.0";
+
+/// The newest `formatVersion` this version of rgl understands. Mirrors Go's
+/// `latestCompatibleVersion` and is what `rgl init` writes into new configs.
+pub const LATEST_FORMAT_VERSION: &str = "1.8.0";
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -35,11 +46,34 @@ struct Packs {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Regolith {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    format_version: Option<String>,
     data_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     watch_paths: Option<Vec<String>>,
     filter_definitions: BTreeMap<String, Value>,
     profiles: IndexMap<String, Profile>,
+}
+
+/// Validates a `formatVersion` string the same way Go's
+/// `RegolithProjectFromObject` does: it must be a valid semver version, and
+/// it must not be newer than [`LATEST_FORMAT_VERSION`].
+fn validate_format_version(format_version: &str) -> Result<()> {
+    let version = Version::parse(format_version).map_err(|_| {
+        anyhow!(
+            "Invalid value of formatVersion. The formatVersion must be a semver version\n\
+             <yellow> >></> Current value: {format_version}"
+        )
+    })?;
+    let latest = Version::parse(LATEST_FORMAT_VERSION).unwrap();
+    if version > latest {
+        bail!(
+            "Incompatible formatVersion\n\
+             <yellow> >></> Version in config: {format_version}\n\
+             <yellow> >></> Latest compatible version: {LATEST_FORMAT_VERSION}"
+        )
+    }
+    Ok(())
 }
 
 impl Config {
@@ -74,6 +108,7 @@ impl Config {
                 resource_pack: Some("./packs/RP".to_owned()),
             },
             regolith: Regolith {
+                format_version: Some(LATEST_FORMAT_VERSION.to_owned()),
                 data_path: "./data".to_owned(),
                 watch_paths: None,
                 filter_definitions: BTreeMap::<String, Value>::new(),
@@ -87,6 +122,10 @@ impl Config {
         if config.packs.behavior_pack.is_none() && config.packs.resource_pack.is_none() {
             bail!("Must specify at least one of `behaviorPack` or `resourcePack` in 'packs'")
         }
+        match &config.regolith.format_version {
+            Some(format_version) => validate_format_version(format_version)?,
+            None => warn!("Format version is missing. Defaulting to {DEFAULT_FORMAT_VERSION}"),
+        }
         Ok(config)
     }
 
@@ -96,6 +135,15 @@ impl Config {
 
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    /// The project's `regolith.formatVersion`, or [`DEFAULT_FORMAT_VERSION`]
+    /// when it's absent from the config.
+    pub fn get_format_version(&self) -> &str {
+        self.regolith
+            .format_version
+            .as_deref()
+            .unwrap_or(DEFAULT_FORMAT_VERSION)
     }
 
     pub fn get_behavior_pack(&self) -> Option<PathBuf> {

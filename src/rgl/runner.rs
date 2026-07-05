@@ -32,7 +32,7 @@ pub async fn runner(
     let mut seen_paths: Vec<(PathBuf, String)> = Vec::new();
     for (i, target) in profile.export.active() {
         let (target_bp, target_rp) = target
-            .get_paths(config.get_name(), profile_name)
+            .get_paths(config.get_name(), profile_name, config.get_format_version())
             .with_context(|| {
                 format!(
                     "Failed to get export paths for export target {} ({})",
@@ -63,7 +63,9 @@ pub async fn runner(
     // the historical single-export behavior.
     let (primary_bp, primary_rp) = match resolved.first() {
         Some((bp, rp, _)) => (bp.clone(), rp.clone()),
-        None => targets[0].get_paths(config.get_name(), profile_name)?,
+        None => {
+            targets[0].get_paths(config.get_name(), profile_name, config.get_format_version())?
+        }
     };
 
     let temp = Temp::from_dot_regolith()?;

@@ -3,11 +3,28 @@ use super::{
 };
 use anyhow::{anyhow, bail, Result};
 use enum_dispatch::enum_dispatch;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{
     env, fs,
     path::{Component, Path, PathBuf},
 };
+
+/// Before `formatVersion` 1.4.0, Regolith always resolved the "development"
+/// and "world" export targets against the standard `com.mojang` directory,
+/// ignoring any `build` override (Preview/Education support for those
+/// targets only exists via a `build` field starting in 1.4.0). Mirrors the
+/// difference between Go's `getExportPathsV1_2_0` and `getExportPathsV1_4_0`.
+fn build_for_version<'a>(
+    build: Option<&'a MinecraftBuild>,
+    format_version: &str,
+) -> Option<&'a MinecraftBuild> {
+    let unversioned = Version::parse("1.4.0").unwrap();
+    match Version::parse(format_version) {
+        Ok(version) if version < unversioned => None,
+        _ => build,
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase", tag = "target")]
@@ -22,7 +39,12 @@ pub enum Export {
 
 #[enum_dispatch(Export)]
 pub trait ExportPaths {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)>;
+    fn get_paths(
+        &self,
+        project_name: &str,
+        profile_name: &str,
+        format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)>;
 }
 
 impl Export {
@@ -208,8 +230,14 @@ pub struct DevelopmentExport {
 }
 
 impl ExportPaths for DevelopmentExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
-        let mojang_dir = find_mojang_dir(self.build.as_ref())?;
+    fn get_paths(
+        &self,
+        project_name: &str,
+        profile_name: &str,
+        format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)> {
+        let build = build_for_version(self.build.as_ref(), format_version);
+        let mojang_dir = find_mojang_dir(build)?;
         if !mojang_dir.exists() {
             bail!("Failed to find com.mojang directory")
         }
@@ -246,7 +274,12 @@ pub struct LocalExport {
 }
 
 impl ExportPaths for LocalExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(
+        &self,
+        project_name: &str,
+        profile_name: &str,
+        _format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)> {
         let build = PathBuf::from("build");
         if !build.exists() {
             fs::create_dir(&build)?;
@@ -276,7 +309,12 @@ pub struct ExactExport {
 }
 
 impl ExportPaths for ExactExport {
-    fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(
+        &self,
+        _project_name: &str,
+        _profile_name: &str,
+        _format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)> {
         let bp = resolve_path(&self.bp_path)?;
         let rp = resolve_path(&self.rp_path)?;
         if bp == rp {
@@ -332,7 +370,12 @@ pub struct NoneExport {
 }
 
 impl ExportPaths for NoneExport {
-    fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(
+        &self,
+        _project_name: &str,
+        _profile_name: &str,
+        _format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)> {
         // Set the export target to temp just to not mess up the log messages
         let temp = get_dot_regolith_dir()?.join("tmp");
         Ok((temp.join("BP"), temp.join("RP")))
@@ -357,9 +400,15 @@ pub struct WorldExport {
 }
 
 impl ExportPaths for WorldExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(
+        &self,
+        project_name: &str,
+        profile_name: &str,
+        format_version: &str,
+    ) -> Result<(PathBuf, PathBuf)> {
+        let build = build_for_version(self.build.as_ref(), format_version);
         let world_dir = match (&self.world_name, &self.world_path) {
-            (Some(world_name), None) => find_world_dir(self.build.as_ref(), world_name)?,
+            (Some(world_name), None) => find_world_dir(build, world_name)?,
             (None, Some(world_path)) => resolve_path(world_path)?,
             (Some(_), Some(_)) => bail!("Using both `worldName` and `worldPath` is not allowed"),
             (None, None) => bail!(
