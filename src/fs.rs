@@ -90,7 +90,21 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
             match e.kind() {
                 io::ErrorKind::PermissionDenied => {
                     let mut perm = metadata.permissions();
-                    perm.set_readonly(false);
+                    // `Permissions::set_readonly(false)` on Unix clears the
+                    // whole mode down to world-writable (0o777) instead of
+                    // just clearing the read-only bit, so grant just the
+                    // owner-write bit there and use `set_readonly` (which
+                    // toggles the OS-level read-only attribute correctly)
+                    // everywhere else.
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        perm.set_mode(perm.mode() | 0o200);
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        perm.set_readonly(false);
+                    }
                     fs::set_permissions(path, perm)?;
                     rm(&path)?;
                 }
