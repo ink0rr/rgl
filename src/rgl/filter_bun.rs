@@ -11,7 +11,7 @@ pub struct FilterBun {
 impl Filter for FilterBun {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let script = context.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new("bun");
+        let mut subprocess = Subprocess::new(UserConfig::bun_runner());
         subprocess
             .arg("run")
             .arg(script)
@@ -28,7 +28,7 @@ impl Filter for FilterBun {
 
     fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
         let filter_dir = context.filter_dir(&self.script);
-        Subprocess::new("bun")
+        Subprocess::new(UserConfig::bun_runner())
             .arg("i")
             .current_dir(filter_dir)
             .run()?;

@@ -1,6 +1,7 @@
 use super::get_user_config_path;
 use crate::fs::{read_json, write_json};
 use crate::warn;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
@@ -27,6 +28,25 @@ pub struct UserConfig {
     pub nodejs_package_manager: Option<String>,
     pub python_command: Option<String>,
     pub tmp_dir: Option<String>,
+    /// Overrides which JS runtime family (`bun`, `deno` or `node`) executes
+    /// `nodejs` filters, keyed by filter name, with `"*"` matching every
+    /// `nodejs` filter that doesn't have its own entry. Mirrors Go's
+    /// `UserConfig.NodeRunnerOverride`.
+    pub node_runner_override: Option<IndexMap<String, String>>,
+    /// Explicit path/binary overrides for each filter runner, matching Go's
+    /// `UserConfig.*Runner` fields. Unlike `nodejs_runtime`/`python_command`
+    /// (which additionally act as informal runtime switches), these only
+    /// override the executable used to run/install a filter of the matching
+    /// kind.
+    pub bun_runner: Option<String>,
+    pub deno_runner: Option<String>,
+    pub dotnet_runner: Option<String>,
+    pub java_runner: Option<String>,
+    pub nim_runner: Option<String>,
+    pub nimble_runner: Option<String>,
+    pub node_runner: Option<String>,
+    pub npm_runner: Option<String>,
+    pub python_runner: Option<String>,
 }
 
 impl UserConfig {
@@ -45,6 +65,16 @@ impl UserConfig {
             nodejs_package_manager: None,
             python_command: None,
             tmp_dir: None,
+            node_runner_override: None,
+            bun_runner: None,
+            deno_runner: None,
+            dotnet_runner: None,
+            java_runner: None,
+            nim_runner: None,
+            nimble_runner: None,
+            node_runner: None,
+            npm_runner: None,
+            python_runner: None,
         }
     }
 
@@ -110,6 +140,90 @@ impl UserConfig {
             .python_command
             .to_owned()
             .unwrap_or("python".to_owned())
+    }
+
+    /// The JS runtime family override (`"bun"`, `"deno"` or `"node"`) for a
+    /// `nodejs` filter, looked up by filter name and falling back to the
+    /// `"*"` entry. Mirrors Go's `NodeRunnerOverride` lookup in
+    /// `FilterInstallerFromObject`, where a filter-specific entry takes
+    /// precedence over `"*"`.
+    pub fn node_runner_override(filter_name: &str) -> Option<String> {
+        let map = get_user_config().node_runner_override.as_ref()?;
+        map.get(filter_name).or_else(|| map.get("*")).cloned()
+    }
+
+    pub fn bun_runner() -> String {
+        get_user_config()
+            .bun_runner
+            .to_owned()
+            .unwrap_or("bun".to_owned())
+    }
+
+    pub fn deno_runner() -> String {
+        get_user_config()
+            .deno_runner
+            .to_owned()
+            .unwrap_or("deno".to_owned())
+    }
+
+    pub fn dotnet_runner() -> String {
+        get_user_config()
+            .dotnet_runner
+            .to_owned()
+            .unwrap_or("dotnet".to_owned())
+    }
+
+    pub fn java_runner() -> String {
+        get_user_config()
+            .java_runner
+            .to_owned()
+            .unwrap_or("java".to_owned())
+    }
+
+    pub fn nim_runner() -> String {
+        get_user_config()
+            .nim_runner
+            .to_owned()
+            .unwrap_or("nim".to_owned())
+    }
+
+    pub fn nimble_runner() -> String {
+        get_user_config()
+            .nimble_runner
+            .to_owned()
+            .unwrap_or("nimble".to_owned())
+    }
+
+    /// The binary used to run `nodejs` filters whose resolved runtime
+    /// family is `node` (i.e. no `node_runner_override` applies). Prefers
+    /// the explicit `node_runner` path, falling back to the legacy
+    /// `nodejs_runtime` field (which historically also doubled as an
+    /// informal runtime switch), then `"node"`.
+    pub fn node_runner() -> String {
+        get_user_config()
+            .node_runner
+            .to_owned()
+            .unwrap_or_else(Self::nodejs_runtime)
+    }
+
+    /// The binary used to install dependencies for `nodejs` filters whose
+    /// resolved runtime family is `node`. Prefers the explicit `npm_runner`
+    /// path, falling back to `nodejs_package_manager`.
+    pub fn npm_runner() -> String {
+        get_user_config()
+            .npm_runner
+            .to_owned()
+            .unwrap_or_else(Self::nodejs_package_manager)
+    }
+
+    /// The binary used to run `python` filters. Prefers the explicit
+    /// `python_runner` path, falling back to the legacy `python_command`
+    /// field, then `"python"`.
+    pub fn python_runner() -> String {
+        get_user_config()
+            .python_runner
+            .to_owned()
+            .unwrap_or_else(Self::python_command)
     }
 }
 

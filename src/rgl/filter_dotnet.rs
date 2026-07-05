@@ -11,7 +11,7 @@ pub struct FilterDotnet {
 impl Filter for FilterDotnet {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let path = context.filter_dir.join(&self.path);
-        let mut subprocess = Subprocess::new("dotnet");
+        let mut subprocess = Subprocess::new(UserConfig::dotnet_runner());
         subprocess
             .arg(path)
             .args(run_args)

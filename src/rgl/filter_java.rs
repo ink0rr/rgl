@@ -11,7 +11,7 @@ pub struct FilterJava {
 impl Filter for FilterJava {
     fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
         let path = context.filter_dir.join(&self.path);
-        let mut subprocess = Subprocess::new("java");
+        let mut subprocess = Subprocess::new(UserConfig::java_runner());
         subprocess
             .arg("-jar")
             .arg(path)
