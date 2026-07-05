@@ -83,9 +83,15 @@ pub fn get_global_filters_path() -> Result<PathBuf> {
     Ok(get_cache_dir()?.join("global_filters.json"))
 }
 
+/// Root directory (inside the shared cache dir) that holds all installed
+/// filter caches, keyed by remote URL, filter name and version. Mirrors the
+/// tree Regolith's `CleanFilterCache` wipes wholesale.
+pub fn get_filters_cache_dir() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("filters"))
+}
+
 pub fn get_filter_cache_dir(name: &str, remote: &RemoteFilter) -> Result<PathBuf> {
-    Ok(get_cache_dir()?
-        .join("filters")
+    Ok(get_filters_cache_dir()?
         .join(&remote.url)
         .join(name)
         .join(&remote.version))

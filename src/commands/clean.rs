@@ -2,8 +2,8 @@ use super::Command;
 use crate::fs::rimraf;
 use crate::info;
 use crate::rgl::{
-    get_app_data_dot_regolith_dir, get_current_dir, get_project_cache_dir, get_repo_cache_dir,
-    Config, Session,
+    get_app_data_dot_regolith_dir, get_current_dir, get_filters_cache_dir, get_project_cache_dir,
+    get_repo_cache_dir, Config, Session,
 };
 use anyhow::Result;
 use clap::Args;
@@ -40,6 +40,14 @@ impl Command for Clean {
             info!(
                 "Cleared filter repository cache in <b>{}</>",
                 repo_cache_dir.display()
+            );
+            // Also clear the cache of already-installed filters, mirroring Go's
+            // CleanFilterCache which wipes its whole filter cache tree.
+            let filters_cache_dir = get_filters_cache_dir()?;
+            rimraf(&filters_cache_dir)?;
+            info!(
+                "Cleared installed filter cache in <b>{}</>",
+                filters_cache_dir.display()
             );
             return Ok(());
         }
