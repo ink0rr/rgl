@@ -1,5 +1,5 @@
 use super::{check_export_path_collision, Config, ExportPaths, Temp};
-use crate::fs::{rimraf, symlink, sync_dir};
+use crate::fs::{rimraf, set_readonly_recursive, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
 use std::{
@@ -28,7 +28,7 @@ pub async fn runner(
     // touching the filesystem, and reject the run if any two targets would
     // collide (resolve to the same, or an overlapping, destination). This
     // mirrors Go's `checkExportPathCollision`.
-    let mut resolved: Vec<(PathBuf, PathBuf)> = Vec::new();
+    let mut resolved: Vec<(PathBuf, PathBuf, bool)> = Vec::new();
     let mut seen_paths: Vec<(PathBuf, String)> = Vec::new();
     for (i, target) in profile.export.active() {
         let (target_bp, target_rp) = target
@@ -51,7 +51,7 @@ pub async fn runner(
             &target_rp,
             &format!("{label} resource pack: {}", target_rp.display()),
         )?;
-        resolved.push((target_bp, target_rp));
+        resolved.push((target_bp, target_rp, target.read_only()));
     }
     let is_none_export = resolved.is_empty();
     // Symlinking straight into the export target only makes sense when
@@ -62,7 +62,7 @@ pub async fn runner(
     // fall back to the first (necessarily "none") target's paths, same as
     // the historical single-export behavior.
     let (primary_bp, primary_rp) = match resolved.first() {
-        Some(pair) => pair.clone(),
+        Some((bp, rp, _)) => (bp.clone(), rp.clone()),
         None => targets[0].get_paths(config.get_name(), profile_name)?,
     };
 
@@ -71,7 +71,7 @@ pub async fn runner(
     measure_time!("Setup temp", {
         if clean {
             rimraf(&temp.root)?;
-            for (target_bp, target_rp) in &resolved {
+            for (target_bp, target_rp, _) in &resolved {
                 rimraf(target_bp)?;
                 rimraf(target_rp)?;
             }
@@ -139,7 +139,14 @@ pub async fn runner(
             }
         } else {
             let multiple = resolved.len() > 1;
-            for (i, (target_bp, target_rp)) in resolved.iter().enumerate() {
+            // In symlink mode the export dir *is* the working directory the
+            // filters just ran in (temp.bp/temp.rp symlink straight into
+            // it), so `readOnly` is not applied there: doing so would leave
+            // read-only files behind for the filters to write into on the
+            // next run. This mirrors Go's `ExportProject`, which skips the
+            // whole export step (`setPathReadOnly` included) for the
+            // symlinked target.
+            for (i, (target_bp, target_rp, read_only)) in resolved.iter().enumerate() {
                 let bp_label = if multiple {
                     format!("BP (target {})", i + 1)
                 } else {
@@ -154,12 +161,18 @@ pub async fn runner(
                     print_export_line(&bp_label, target_bp);
                     if !use_symlink {
                         sync_dir(&temp.bp, target_bp)?;
+                        if *read_only {
+                            set_readonly_recursive(target_bp)?;
+                        }
                     }
                 }
                 if rp.is_some() {
                     print_export_line(&rp_label, target_rp);
                     if !use_symlink {
                         sync_dir(&temp.rp, target_rp)?;
+                        if *read_only {
+                            set_readonly_recursive(target_rp)?;
+                        }
                     }
                 }
             }

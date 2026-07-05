@@ -142,6 +142,33 @@ pub fn rimraf(path: impl AsRef<Path>) -> Result<()> {
     }
 }
 
+/// Recursively marks every file under `path` as read-only. Directories keep
+/// their normal permissions so their contents can still be removed (mirrors
+/// Go's `setPathReadOnly`, which only chmods non-directory entries).
+pub fn set_readonly_recursive(path: impl AsRef<Path>) -> Result<()> {
+    fn set_readonly_impl(path: &Path) -> Result<()> {
+        let metadata = fs::symlink_metadata(path)?;
+        if metadata.is_dir() {
+            fs::read_dir(path)?
+                .par_bridge()
+                .try_for_each(|entry| -> Result<()> { set_readonly_impl(&entry?.path()) })?;
+        } else if !metadata.is_symlink() {
+            let mut perm = metadata.permissions();
+            perm.set_readonly(true);
+            fs::set_permissions(path, perm)?;
+        }
+        Ok(())
+    }
+    let path = path.as_ref();
+    set_readonly_impl(path).with_context(|| {
+        format!(
+            "Failed to change access of the output path to read-only\n\
+             <yellow> >></> Path: {}",
+            path.display()
+        )
+    })
+}
+
 /// Checks if directory exists and is not empty
 pub fn is_dir_empty(path: &Path) -> Result<bool> {
     Ok(!path.is_dir() || path.read_dir()?.next().is_none())
@@ -264,7 +291,7 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                 let target = target.join(entry.file_name());
                 if get_metadata(&source).is_some_and(|m| m.is_dir()) {
                     if get_metadata(&target).is_some_and(|m| m.is_file()) {
-                        fs::remove_file(&target)?;
+                        rimraf(&target)?;
                     }
                     return sync(&source, &target);
                 }
@@ -272,6 +299,13 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                     rimraf(&target)?;
                 }
                 if !compare_files(&source, &target)? {
+                    // Remove the previous file first (rather than letting
+                    // `fs::copy` overwrite it in place) so re-exporting over
+                    // a file marked read-only by a previous `readOnly`
+                    // export doesn't fail.
+                    if get_metadata(&target).is_some() {
+                        rimraf(&target)?;
+                    }
                     fs::copy(source, target)?;
                 }
                 Ok(())
@@ -288,17 +322,13 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                 let target = entry.path();
                 let is_dir = get_metadata(&target).is_some_and(|m| m.is_dir());
                 if get_metadata(&source).is_none() {
-                    if is_dir {
-                        rimraf(target)?;
-                    } else {
-                        fs::remove_file(&target).with_context(|| {
-                            format!(
-                                "Failed to remove file\n\
-                                 <yellow> >></> Path: {}",
-                                target.display(),
-                            )
-                        })?;
-                    }
+                    rimraf(&target).with_context(|| {
+                        format!(
+                            "Failed to remove file\n\
+                             <yellow> >></> Path: {}",
+                            target.display(),
+                        )
+                    })?;
                 } else if is_dir {
                     cleanup(&source, &target)?;
                 }

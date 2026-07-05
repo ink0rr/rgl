@@ -42,6 +42,19 @@ impl Export {
             Export::World(_) => "world",
         }
     }
+
+    /// Whether the exported files should be made read-only after export.
+    /// Mirrors Go's `ExportTarget.ReadOnly`, which is available on every
+    /// export target type.
+    pub fn read_only(&self) -> bool {
+        match self {
+            Export::Development(e) => e.read_only,
+            Export::Local(e) => e.read_only,
+            Export::Exact(e) => e.read_only,
+            Export::None(e) => e.read_only,
+            Export::World(e) => e.read_only,
+        }
+    }
 }
 
 /// A profile's `export` value. Accepts either a single export target object
@@ -190,6 +203,8 @@ pub struct DevelopmentExport {
     bp_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     rp_name: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    read_only: bool,
 }
 
 impl ExportPaths for DevelopmentExport {
@@ -226,6 +241,8 @@ pub struct LocalExport {
     bp_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     rp_name: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    read_only: bool,
 }
 
 impl ExportPaths for LocalExport {
@@ -254,6 +271,8 @@ impl ExportPaths for LocalExport {
 pub struct ExactExport {
     bp_path: String,
     rp_path: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    read_only: bool,
 }
 
 impl ExportPaths for ExactExport {
@@ -303,7 +322,14 @@ fn resolve_path(path: &str) -> Result<PathBuf> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct NoneExport {}
+pub struct NoneExport {
+    #[serde(
+        default,
+        rename = "readOnly",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
+    read_only: bool,
+}
 
 impl ExportPaths for NoneExport {
     fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
@@ -326,6 +352,8 @@ pub struct WorldExport {
     bp_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     rp_name: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    read_only: bool,
 }
 
 impl ExportPaths for WorldExport {
