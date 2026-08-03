@@ -9,16 +9,35 @@ use clap::{crate_name, Parser, Subcommand};
 use commands::*;
 use enum_dispatch::enum_dispatch;
 use logger::Logger;
+use std::path::Path;
 use std::thread;
 
 fn main() {
     let cli = Cli::parse();
     Logger::set_debug(cli.debug);
+    if let Err(e) = load_env(cli.env.as_deref()) {
+        error!("{e}");
+        e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
+        std::process::exit(1);
+    }
     if let Err(e) = run_command(cli) {
         error!("{e}");
         e.chain().skip(1).for_each(|e| log!("<red>[+]</> {e}"));
         std::process::exit(1);
     }
+}
+
+fn load_env(env: Option<&str>) -> Result<()> {
+    let path = Path::new(env.unwrap_or(".env"));
+    if env.is_none() && !path.exists() {
+        return Ok(());
+    }
+    dotenvy::from_path(path).with_context(|| {
+        format!(
+            "Failed to load environment variables from file: {}",
+            path.display()
+        )
+    })
 }
 
 fn run_command(cli: Cli) -> Result<()> {
@@ -52,6 +71,14 @@ fn run_command(cli: Cli) -> Result<()> {
     Ok(())
 }
 
+fn non_empty(s: &str) -> Result<String, String> {
+    if s.trim().is_empty() {
+        Err("value cannot be empty".into())
+    } else {
+        Ok(s.to_owned())
+    }
+}
+
 /// Fast and efficient Bedrock Addon Compiler
 #[derive(Parser)]
 #[command(bin_name = crate_name!(), version)]
@@ -61,6 +88,9 @@ struct Cli {
     /// Print debug messages
     #[arg(long, global = true)]
     debug: bool,
+    /// Path to a custom .env file to load
+    #[arg(long, global = true, value_parser = non_empty)]
+    env: Option<String>,
 }
 
 #[derive(Subcommand)]
