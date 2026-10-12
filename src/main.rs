@@ -109,6 +109,7 @@ enum Subcommands {
     Run(Run),
     Uninstall(Uninstall),
     Update(Update),
+    UpdateResolvers(UpdateResolvers),
     Upgrade(Upgrade),
     Watch(Watch),
 }
