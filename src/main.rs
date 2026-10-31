@@ -45,6 +45,10 @@ fn run_command(cli: Cli) -> Result<()> {
     if !cache_dir.exists() {
         fs::empty_dir(cache_dir)?;
     }
+    let config_dir = rgl::get_config_dir()?;
+    if !config_dir.exists() {
+        fs::empty_dir(config_dir)?;
+    }
     let handle = match cli.subcommand {
         // Don't trigger update check when running these commands
         Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,

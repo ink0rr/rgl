@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{get_cache_dir, get_global_filters_path, get_user_config_path};
+use crate::rgl::{get_cache_dir, get_config_dir, get_global_filters_path, get_user_config_path};
 use anyhow::Result;
 use clap::{crate_version, Args};
 
@@ -8,7 +8,8 @@ pub struct Info {}
 impl Command for Info {
     fn dispatch(&self) -> Result<()> {
         println!("rgl version: {}", crate_version!());
-        println!("RGL_DIR location: {}", get_cache_dir()?.display());
+        println!("RGL_CACHE_DIR location: {}", get_cache_dir()?.display());
+        println!("RGL_CONFIG_DIR location: {}", get_config_dir()?.display());
         println!(
             "User config location: {}",
             get_user_config_path()?.display()
