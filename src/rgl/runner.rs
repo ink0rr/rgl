@@ -1,4 +1,4 @@
-use super::{check_export_path_collision, Config, ExportPaths, Temp};
+use super::{check_export_path_collision, Config, EditedFiles, Export, ExportPaths, Temp};
 use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
@@ -24,9 +24,7 @@ pub async fn runner(
     let profile = config.get_profile(profile_name)?;
     let targets = profile.export.targets();
 
-    // Resolve every active (non-"none") export target's paths before
-    // touching the filesystem, and reject the run if any two targets would
-    // collide (resolve to the same, or an overlapping, destination).
+    // Resolve all active export paths up front and reject overlapping targets.
     let mut resolved: Vec<(PathBuf, PathBuf)> = Vec::new();
     let mut seen_paths: Vec<(PathBuf, String)> = Vec::new();
     for (i, target) in profile.export.active() {
@@ -53,18 +51,39 @@ pub async fn runner(
         resolved.push((target_bp, target_rp));
     }
     let is_none_export = resolved.is_empty();
-    // Symlinking straight into the export target only makes sense when
-    // there's exactly one destination to point at.
+    // Symlinking only makes sense with a single destination.
     let use_symlink = !compat && resolved.len() == 1;
 
-    // Used to set up `tmp/` below. When there's no active export target,
-    // fall back to the first (necessarily "none") target's paths.
+    // With no active export target, fall back to the "none" target's paths.
     let (primary_bp, primary_rp) = match resolved.first() {
         Some(pair) => pair.clone(),
         None => targets[0].get_paths(config.get_name(), profile_name)?,
     };
 
     let temp = Temp::from_dot_regolith();
+
+    // Refuse to touch `exact` export targets containing files rgl didn't create.
+    let mut edited_files = EditedFiles::load();
+    for ((_, target), (target_bp, target_rp)) in profile.export.active().zip(&resolved) {
+        if !matches!(target, Export::Exact(_)) {
+            continue;
+        }
+        measure_time!("Check deletion safety", {
+            edited_files
+                    .check_deletion_safety(target_bp, target_rp)
+                    .with_context(|| {
+                        format!(
+                            "Safety mechanism stopped rgl to protect unexpected files from your export targets.\n\
+                             Did you edit the exported files manually?\n\
+                             Please clear your export paths and try again.\n\
+                             <yellow> >></> Behavior pack export path: {}\n\
+                             <yellow> >></> Resource pack export path: {}",
+                            target_bp.display(),
+                            target_rp.display()
+                        )
+                    })?;
+        });
+    }
 
     measure_time!("Setup temp", {
         if clean {
@@ -108,6 +127,13 @@ pub async fn runner(
                 symlink(&primary_rp, &temp.rp)?;
             }
             sync_dir(&data, &temp.data)?;
+
+            // The target was just reseeded with raw source; record it now so a
+            // filter failure doesn't make the next run's safety check reject it.
+            edited_files.update_from_paths(&primary_bp, &primary_rp)?;
+            edited_files.dump().context(
+                "Failed to update the list of files edited by rgl. This may cause the next run to fail.",
+            )?;
         }
     });
     smol::future::yield_now().await;
@@ -163,6 +189,17 @@ pub async fn runner(
             }
         }
     });
+
+    if !is_none_export {
+        measure_time!("Update edited files", {
+            for (target_bp, target_rp) in &resolved {
+                edited_files.update_from_paths(target_bp, target_rp)?;
+            }
+            edited_files
+                .dump()
+                .context("Failed to update the list of files edited by rgl. This may cause the next run to fail.")?;
+        });
+    }
 
     info!("Successfully ran the <profile>{profile_name}</> profile");
     info!("<green>Finished</> in {}ms", start.elapsed().as_millis());
