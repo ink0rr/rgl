@@ -1,4 +1,5 @@
 use super::get_current_dir;
+use crate::logger::Logger;
 use anyhow::{anyhow, bail, Context, Result};
 use std::{
     ffi::OsStr,
@@ -44,6 +45,7 @@ impl Subprocess {
     }
 
     pub fn setup_env(&mut self, filter_dir: impl AsRef<Path>) -> &mut Self {
+        self.command.env("DEBUG", Logger::get_debug().to_string());
         self.command.env("FILTER_DIR", filter_dir.as_ref());
         self
     }
