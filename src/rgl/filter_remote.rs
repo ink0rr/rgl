@@ -1,5 +1,5 @@
 use super::{
-    get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
+    get_remote_filter_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
     Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
@@ -108,7 +108,7 @@ impl RemoteFilter {
     pub fn install(&self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
         let url = &self.url;
         let version = &self.version;
-        let filter_dir = get_filter_cache_dir(name, self)?;
+        let filter_dir = get_remote_filter_dir(name, self)?;
 
         if force {
             rimraf(&filter_dir)?;

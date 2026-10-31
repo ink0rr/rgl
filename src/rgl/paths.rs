@@ -106,9 +106,12 @@ pub fn get_global_filters_path() -> Result<PathBuf> {
     Ok(get_config_dir()?.join("global_filters.json"))
 }
 
-pub fn get_filter_cache_dir(name: &str, remote: &RemoteFilter) -> Result<PathBuf> {
-    Ok(get_cache_dir()?
-        .join("filters")
+pub fn get_filter_cache_dir() -> Result<PathBuf> {
+    Ok(get_cache_dir()?.join("filters"))
+}
+
+pub fn get_remote_filter_dir(name: &str, remote: &RemoteFilter) -> Result<PathBuf> {
+    Ok(get_filter_cache_dir()?
         .join(&remote.url)
         .join(name)
         .join(&remote.version))

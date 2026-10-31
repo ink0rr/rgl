@@ -1,5 +1,5 @@
 use super::{
-    get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterDotnet, FilterExe,
+    get_current_dir, get_remote_filter_dir, FilterBun, FilterDeno, FilterDotnet, FilterExe,
     FilterGo, FilterJava, FilterNim, FilterNodejs, FilterPython, FilterShell, RemoteFilter,
     RemoteFilterConfig,
 };
@@ -67,7 +67,7 @@ impl FilterContext {
                 remote_config: None,
             }),
             FilterDefinition::Remote(remote) => {
-                let filter_dir = get_filter_cache_dir(name, remote)?;
+                let filter_dir = get_remote_filter_dir(name, remote)?;
                 if is_dir_empty(&filter_dir)? {
                     info!("Filter <filter>{name}</> is not installed, installing...");
                     remote.install(name, None, false)?;
