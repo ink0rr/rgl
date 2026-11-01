@@ -1,4 +1,4 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{env, path::Path};
@@ -10,23 +10,23 @@ pub struct FilterGo {
 }
 
 impl Filter for FilterGo {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.filter_dir.join(&self.script);
+    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+        let script = info.filter_dir.join(&self.script);
         let mut output = env::current_dir()?
             .join(".regolith")
             .join("cache")
             .join("go")
-            .join(&context.name);
+            .join(&info.name);
         if cfg!(windows) {
             output.set_extension("exe");
         }
 
-        if should_rebuild(&context.filter_dir, &output)? {
+        if should_rebuild(&info.filter_dir, &output)? {
             Subprocess::new("go")
                 .args(vec!["build", "-o"])
                 .arg(&output)
                 .arg(script)
-                .current_dir(&context.filter_dir)
+                .current_dir(&info.filter_dir)
                 .run()?;
         }
 
@@ -34,19 +34,19 @@ impl Filter for FilterGo {
         subprocess
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir);
+            .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
-            subprocess.run_with_prefix(&context.name)?;
+            subprocess.run_with_prefix(&info.name)?;
         } else {
             subprocess.run()?;
         }
         Ok(())
     }
 
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         Subprocess::new("go")
             .args(vec!["mod", "download"])
-            .current_dir(&context.filter_dir)
+            .current_dir(&info.filter_dir)
             .run()?;
         Ok(())
     }

@@ -1,4 +1,4 @@
-use super::{Config, Eval, ExportTargets, Filter, FilterContext};
+use super::{Config, Eval, ExportTargets, Filter, FilterInfo};
 use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use async_recursion::async_recursion;
@@ -96,9 +96,9 @@ impl FilterRunner {
                 }
                 run_args.extend(filter_arguments);
 
-                let context = FilterContext::new(filter_name, &filter)?;
+                let info = FilterInfo::new(filter_name, &filter)?;
                 if let Some(expression) = expression {
-                    let eval = Eval::new(root_profile, &context.filter_dir, settings.clone());
+                    let eval = Eval::new(root_profile, &info.filter_dir, settings.clone());
                     debug!("Evaluating expression: <d>{expression}</>");
                     if !eval.bool(expression).with_context(|| {
                         format!("Failed running evaluator for <filter>{filter_name}</>")
@@ -109,9 +109,9 @@ impl FilterRunner {
                 }
                 info!("Running filter <filter>{filter_name}</>");
                 filter
-                    .run(&context, temp, &run_args)
+                    .run(&info, temp, &run_args)
                     .with_context(|| format!("Failed running filter <filter>{filter_name}</>"))?;
-                if context.remote_config.is_some_and(|cfg| cfg.export_data) {
+                if info.remote_config.is_some_and(|cfg| cfg.export_data) {
                     export_data_names.insert(filter_name.to_owned());
                 }
                 Ok(export_data_names)

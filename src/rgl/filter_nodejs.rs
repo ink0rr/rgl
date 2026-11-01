@@ -1,4 +1,4 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -9,25 +9,25 @@ pub struct FilterNodejs {
 }
 
 impl Filter for FilterNodejs {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
         let runtime = UserConfig::nodejs_runtime();
-        let script = context.filter_dir.join(&self.script);
+        let script = info.filter_dir.join(&self.script);
         let mut subprocess = Subprocess::new(runtime);
         subprocess
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir);
+            .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
-            subprocess.run_with_prefix(&context.name)?;
+            subprocess.run_with_prefix(&info.name)?;
         } else {
             subprocess.run()?;
         }
         Ok(())
     }
 
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let filter_dir = context.filter_dir(&self.script);
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
+        let filter_dir = info.filter_dir(&self.script);
         if filter_dir.join("package.json").exists() {
             let package_manager = UserConfig::nodejs_package_manager();
             Subprocess::new(package_manager)

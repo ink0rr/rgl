@@ -1,4 +1,4 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -14,32 +14,32 @@ pub struct FilterNim {
 }
 
 impl Filter for FilterNim {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.filter_dir.join(&self.script);
+    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+        let script = info.filter_dir.join(&self.script);
         let mut subprocess = Subprocess::new("nim");
         subprocess
             .args(vec!["-r", "c", "--hints:off", "--warnings:off", "--mm:orc"])
             .arg(script)
             .args(run_args)
             .current_dir(temp)
-            .setup_env(&context.filter_dir);
+            .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
-            subprocess.run_with_prefix(&context.name)?;
+            subprocess.run_with_prefix(&info.name)?;
         } else {
             subprocess.run()?;
         }
         Ok(())
     }
 
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         let requirements_path: PathBuf = match &self.requirements {
-            Some(requirements) => context.filter_dir.join(requirements),
+            Some(requirements) => info.filter_dir.join(requirements),
             None => {
-                let script = context.filter_dir.join(&self.script);
+                let script = info.filter_dir.join(&self.script);
                 script
                     .parent()
                     .map(|parent| parent.to_path_buf())
-                    .unwrap_or_else(|| context.filter_dir.clone())
+                    .unwrap_or_else(|| info.filter_dir.clone())
             }
         };
         if has_nimble(&requirements_path) {

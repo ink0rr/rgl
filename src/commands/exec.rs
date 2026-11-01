@@ -1,7 +1,7 @@
 use super::Command;
 use crate::fs::{copy_dir, empty_dir, sync_dir};
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, GlobalFilters, Session, Temp};
+use crate::rgl::{Config, Filter, FilterInfo, GlobalFilters, Session, Temp};
 use anyhow::Result;
 use clap::Args;
 
@@ -35,14 +35,14 @@ impl Command for Exec {
 
         if let Ok(filter) = config.get_filter(&self.filter) {
             info!("Running filter <filter>{}</>", self.filter);
-            let context = FilterContext::new(&self.filter, &filter)?;
-            filter.run(&context, &temp.root, &self.run_args)?;
+            let info = FilterInfo::new(&self.filter, &filter)?;
+            filter.run(&info, &temp.root, &self.run_args)?;
         } else {
             let global_filters = GlobalFilters::load()?;
             let filter = global_filters.get(&self.filter)?.into();
             info!("Running global filter <filter>{}</>", self.filter);
-            let context = FilterContext::new(&self.filter, &filter)?;
-            filter.run(&context, &temp.root, &self.run_args)?;
+            let info = FilterInfo::new(&self.filter, &filter)?;
+            filter.run(&info, &temp.root, &self.run_args)?;
         }
 
         info!("Applying changes to source directory:");

@@ -52,13 +52,13 @@ pub enum LocalFilter {
     Shell(FilterShell),
 }
 
-pub struct FilterContext {
+pub struct FilterInfo {
     pub name: String,
     pub filter_dir: PathBuf,
     pub remote_config: Option<RemoteFilterConfig>,
 }
 
-impl FilterContext {
+impl FilterInfo {
     pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
         match filter {
             FilterDefinition::Local(_) => Ok(Self {
@@ -98,9 +98,9 @@ impl FilterContext {
 
 #[enum_dispatch(FilterDefinition, LocalFilter)]
 pub trait Filter {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()>;
+    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()>;
     #[allow(unused_variables)]
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         Ok(())
     }
 }

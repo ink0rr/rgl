@@ -1,6 +1,6 @@
 use super::Command;
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, FilterDefinition, Session};
+use crate::rgl::{Config, Filter, FilterDefinition, FilterInfo, Session};
 use anyhow::Result;
 use clap::Args;
 
@@ -24,8 +24,8 @@ impl Command for Get {
                 }
                 filter => {
                     info!("Installing dependencies for <filter>{name}</>...");
-                    let context = FilterContext::new(&name, &filter)?;
-                    filter.install_dependencies(&context)?;
+                    let info = FilterInfo::new(&name, &filter)?;
+                    filter.install_dependencies(&info)?;
                 }
             };
         }

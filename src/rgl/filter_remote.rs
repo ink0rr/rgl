@@ -1,5 +1,5 @@
 use super::{
-    get_remote_filter_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
+    get_remote_filter_dir, get_repo_cache_dir, Eval, Filter, FilterInfo, LocalFilter, Resolver,
     Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
@@ -16,20 +16,20 @@ pub struct RemoteFilter {
 }
 
 impl Filter for RemoteFilter {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let config = context.remote_config.as_ref().unwrap();
+    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+        let config = info.remote_config.as_ref().unwrap();
         for (i, entry) in config.filters.iter().enumerate() {
             if entry.disabled {
                 debug!(
                     "The {} subfilter of <filter>{}</> filter is disabled, skipping.",
                     ordinal(i),
-                    context.name
+                    info.name
                 );
                 continue;
             }
             if let Some(expression) = &entry.expression {
-                let name = &context.name;
-                let eval = Eval::new(name, &context.filter_dir, None);
+                let name = &info.name;
+                let eval = Eval::new(name, &info.filter_dir, None);
                 debug!("Evaluating expression: <d>{expression}</>");
                 if !eval
                     .bool(expression)
@@ -46,14 +46,14 @@ impl Filter for RemoteFilter {
             if let Some(arguments) = entry.arguments.to_owned() {
                 run_args.extend(arguments);
             };
-            entry.filter.run(context, temp, &run_args)?;
+            entry.filter.run(info, temp, &run_args)?;
         }
         Ok(())
     }
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let config = context.remote_config.as_ref().unwrap();
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
+        let config = info.remote_config.as_ref().unwrap();
         for entry in &config.filters {
-            entry.filter.install_dependencies(context)?;
+            entry.filter.install_dependencies(info)?;
         }
         Ok(())
     }
@@ -153,9 +153,9 @@ impl RemoteFilter {
         }
 
         let filter = self.to_owned().into();
-        let context = FilterContext::new(name, &filter)?;
+        let info = FilterInfo::new(name, &filter)?;
         info!("Installing dependencies for <filter>{name}</>...");
-        filter.install_dependencies(&context)
+        filter.install_dependencies(&info)
     }
 
     pub fn update(&mut self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
