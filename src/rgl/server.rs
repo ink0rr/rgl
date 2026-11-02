@@ -82,8 +82,8 @@ impl MinecraftServer {
                 "commandLine": cmd,
             }
         });
-        for entry in self.peers.iter() {
-            let (addr, tx) = entry.pair();
+        for mut entry in self.peers.iter_mut() {
+            let (addr, tx) = entry.pair_mut();
             if let Err(e) = tx.send(request.to_string().into()).await {
                 log!("<red>[SERVER]</> Failed to send message: {e} (client {addr})");
             }
