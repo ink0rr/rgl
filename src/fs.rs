@@ -65,9 +65,7 @@ where
     let path = path.as_ref();
     let inner = || -> Result<T> {
         let data = fs::read_to_string(path)?;
-        let value = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?
-            .unwrap_or_default();
-        let json = serde_json::from_value(value)?;
+        let json = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?;
         Ok(json)
     };
     inner().with_context(|| {
