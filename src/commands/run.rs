@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{runner, Config, Session, UserConfig};
+use crate::rgl::{runner, Config, RunContext, Session, Temp, UserConfig};
 use anyhow::Result;
 use clap::Args;
 
@@ -22,13 +22,13 @@ impl Command for Run {
     fn dispatch(&self) -> Result<()> {
         let config = Config::load()?;
         let mut session = Session::lock()?;
+        let temp = Temp::from_dot_regolith();
+        let ctx = RunContext::new(&config, &temp, &self.profile, &self.filter_args);
 
         smol::block_on(runner(
-            &config,
-            &self.profile,
+            &ctx,
             self.clean,
             self.compat || UserConfig::force_compat(),
-            &self.filter_args,
         ))?;
 
         session.unlock()

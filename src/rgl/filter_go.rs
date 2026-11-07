@@ -1,4 +1,4 @@
-use super::{Filter, FilterInfo, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{env, path::Path};
@@ -10,7 +10,7 @@ pub struct FilterGo {
 }
 
 impl Filter for FilterGo {
-    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
         let mut output = env::current_dir()?
             .join(".regolith")
@@ -33,7 +33,7 @@ impl Filter for FilterGo {
         let mut subprocess = Subprocess::new(output);
         subprocess
             .args(run_args)
-            .current_dir(temp)
+            .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
             subprocess.run_with_prefix(&info.name)?;

@@ -1,4 +1,4 @@
-use super::{Filter, FilterInfo, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -14,14 +14,14 @@ pub struct FilterNim {
 }
 
 impl Filter for FilterNim {
-    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
         let mut subprocess = Subprocess::new("nim");
         subprocess
             .args(vec!["-r", "c", "--hints:off", "--warnings:off", "--mm:orc"])
             .arg(script)
             .args(run_args)
-            .current_dir(temp)
+            .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
             subprocess.run_with_prefix(&info.name)?;

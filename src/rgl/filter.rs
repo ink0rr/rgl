@@ -1,7 +1,7 @@
 use super::{
     get_current_dir, get_remote_filter_dir, FilterBun, FilterDeno, FilterDotnet, FilterExe,
     FilterGo, FilterJava, FilterNim, FilterNodejs, FilterPython, FilterShell, RemoteFilter,
-    RemoteFilterConfig,
+    RemoteFilterConfig, RunContext,
 };
 use crate::fs::{is_dir_empty, read_json};
 use crate::info;
@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use strum::Display;
 
 #[derive(Serialize, Deserialize)]
@@ -98,7 +98,7 @@ impl FilterInfo {
 
 #[enum_dispatch(FilterDefinition, LocalFilter)]
 pub trait Filter {
-    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()>;
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()>;
     #[allow(unused_variables)]
     fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         Ok(())

@@ -1,7 +1,6 @@
-use super::{Filter, FilterInfo, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct FilterPython {
@@ -9,7 +8,7 @@ pub struct FilterPython {
 }
 
 impl Filter for FilterPython {
-    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
         let venv_dir = info.filter_dir.join(".venv");
         let mut subprocess = Subprocess::new(match venv_dir.exists() {
@@ -23,7 +22,7 @@ impl Filter for FilterPython {
             .arg("-u")
             .arg(script)
             .args(run_args)
-            .current_dir(temp)
+            .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
             subprocess.run_with_prefix(&info.name)?;

@@ -1,7 +1,7 @@
 use super::Command;
 use crate::fs::{copy_dir, empty_dir, sync_dir};
 use crate::info;
-use crate::rgl::{Config, Session, Temp};
+use crate::rgl::{Config, RunContext, Session, Temp};
 use anyhow::Result;
 use clap::Args;
 
@@ -34,7 +34,8 @@ impl Command for Apply {
         copy_dir(&data, &temp.data)?;
 
         info!("Running <profile>{}</> profile", self.profile);
-        smol::block_on(profile.run(&config, &temp.root, &self.profile, &[]))?;
+        let ctx = RunContext::new(&config, &temp, &self.profile, &[]);
+        smol::block_on(profile.run(&ctx))?;
 
         info!("Applying changes to source directory:");
         if let Some(bp) = bp {

@@ -1,6 +1,6 @@
 use super::{
     get_remote_filter_dir, get_repo_cache_dir, Eval, Filter, FilterInfo, LocalFilter, Resolver,
-    Subprocess,
+    RunContext, Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
 use crate::{debug, info, warn};
@@ -16,7 +16,7 @@ pub struct RemoteFilter {
 }
 
 impl Filter for RemoteFilter {
-    fn run(&self, info: &FilterInfo, temp: &Path, run_args: &[String]) -> Result<()> {
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let config = info.remote_config.as_ref().unwrap();
         for (i, entry) in config.filters.iter().enumerate() {
             if entry.disabled {
@@ -46,7 +46,7 @@ impl Filter for RemoteFilter {
             if let Some(arguments) = entry.arguments.to_owned() {
                 run_args.extend(arguments);
             };
-            entry.filter.run(info, temp, &run_args)?;
+            entry.filter.run(ctx, info, &run_args)?;
         }
         Ok(())
     }

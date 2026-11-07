@@ -1,4 +1,4 @@
-use super::{check_export_path_collision, Config, EditedFiles, Export, ExportPaths, Temp};
+use super::{check_export_path_collision, EditedFiles, Export, ExportPaths, RunContext};
 use crate::fs::{rimraf, symlink, sync_dir};
 use crate::{debug, info, measure_time};
 use anyhow::{Context, Result};
@@ -9,14 +9,11 @@ use std::{
 };
 use url::Url;
 
-pub async fn runner(
-    config: &Config,
-    profile_name: &str,
-    clean: bool,
-    compat: bool,
-    extra_args: &[String],
-) -> Result<()> {
+pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<()> {
     let start = Instant::now();
+    let config = ctx.config;
+    let temp = ctx.temp;
+    let profile_name = ctx.profile;
     let bp = config.get_behavior_pack();
     let rp = config.get_resource_pack();
     let data = config.get_data_path();
@@ -28,15 +25,13 @@ pub async fn runner(
     let mut resolved: Vec<(PathBuf, PathBuf)> = Vec::new();
     let mut seen_paths: Vec<(PathBuf, String)> = Vec::new();
     for (i, target) in profile.export.active() {
-        let (target_bp, target_rp) = target
-            .get_paths(config.get_name(), profile_name)
-            .with_context(|| {
-                format!(
-                    "Failed to get export paths for export target {} ({})",
-                    i + 1,
-                    target.kind()
-                )
-            })?;
+        let (target_bp, target_rp) = target.get_paths(ctx).with_context(|| {
+            format!(
+                "Failed to get export paths for export target {} ({})",
+                i + 1,
+                target.kind()
+            )
+        })?;
         let label = format!("export target {} ({})", i + 1, target.kind());
         check_export_path_collision(
             &mut seen_paths,
@@ -57,10 +52,8 @@ pub async fn runner(
     // With no active export target, fall back to the "none" target's paths.
     let (primary_bp, primary_rp) = match resolved.first() {
         Some(pair) => pair.clone(),
-        None => targets[0].get_paths(config.get_name(), profile_name)?,
+        None => targets[0].get_paths(ctx)?,
     };
-
-    let temp = Temp::from_dot_regolith();
 
     // Refuse to touch `exact` export targets containing files rgl didn't create.
     let mut edited_files = EditedFiles::load();
@@ -140,9 +133,7 @@ pub async fn runner(
 
     measure_time!(profile_name, {
         info!("Running <profile>{profile_name}</> profile");
-        let export_data_names = profile
-            .run(config, &temp.root, profile_name, extra_args)
-            .await?;
+        let export_data_names = profile.run(ctx).await?;
         for name in export_data_names {
             let filter_data = temp.data.join(&name);
             if filter_data.is_dir() {

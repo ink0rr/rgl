@@ -1,4 +1,4 @@
-use super::{Config, Eval, ExportTargets, Filter, FilterInfo};
+use super::{Eval, ExportTargets, Filter, FilterInfo, RunContext};
 use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use async_recursion::async_recursion;
@@ -7,7 +7,6 @@ use indexmap::IndexMap;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
@@ -58,13 +57,7 @@ impl FilterRunner {
         }
     }
 
-    async fn run(
-        &self,
-        config: &Config,
-        temp: &Path,
-        root_profile: &str,
-        extra_args: &[String],
-    ) -> Result<DashSet<String>> {
+    async fn run(&self, ctx: &RunContext<'_>) -> Result<DashSet<String>> {
         let export_data_names = DashSet::new();
         match self {
             FilterRunner::Filter {
@@ -79,7 +72,7 @@ impl FilterRunner {
                     info!("Filter <filter>{filter_name}</> is disabled, skipping.");
                     return Ok(export_data_names);
                 }
-                let filter = config.get_filter(filter_name)?;
+                let filter = ctx.config.get_filter(filter_name)?;
                 let mut run_args: Vec<String> = vec![];
                 if let Some(settings) = settings {
                     run_args = vec![serde_json::to_string(settings)?]
@@ -87,8 +80,8 @@ impl FilterRunner {
                 let mut filter_arguments = arguments.to_owned().unwrap_or_default();
                 match extra_arguments_mode.as_deref() {
                     None | Some("") | Some("ignore") => {}
-                    Some("override") => filter_arguments = extra_args.to_vec(),
-                    Some("append") => filter_arguments.extend(extra_args.iter().cloned()),
+                    Some("override") => filter_arguments = ctx.extra_args.to_vec(),
+                    Some("append") => filter_arguments.extend(ctx.extra_args.iter().cloned()),
                     Some(mode) => bail!(
                         "The extraArguments property of a filter is invalid: {mode}\n\
                          Valid values: ignore, override, append"
@@ -98,7 +91,7 @@ impl FilterRunner {
 
                 let info = FilterInfo::new(filter_name, &filter)?;
                 if let Some(expression) = expression {
-                    let eval = Eval::new(root_profile, &info.filter_dir, settings.clone());
+                    let eval = Eval::new(ctx.profile, &info.filter_dir, settings.clone());
                     debug!("Evaluating expression: <d>{expression}</>");
                     if !eval.bool(expression).with_context(|| {
                         format!("Failed running evaluator for <filter>{filter_name}</>")
@@ -109,7 +102,7 @@ impl FilterRunner {
                 }
                 info!("Running filter <filter>{filter_name}</>");
                 filter
-                    .run(&info, temp, &run_args)
+                    .run(ctx, &info, &run_args)
                     .with_context(|| format!("Failed running filter <filter>{filter_name}</>"))?;
                 if info.remote_config.is_some_and(|cfg| cfg.export_data) {
                     export_data_names.insert(filter_name.to_owned());
@@ -124,14 +117,19 @@ impl FilterRunner {
                     info!("Filter <profile>{profile_name}</> is disabled, skipping.");
                     return Ok(export_data_names);
                 }
-                if profile_name == root_profile {
+                if profile_name == ctx.profile {
                     bail!("Found circular profile reference in <profile>{profile_name}</>");
                 }
-                let profile = config.get_profile(profile_name)?;
+                let profile = ctx.config.get_profile(profile_name)?;
                 info!("Running <profile>{profile_name}</> nested profile");
                 // Extra CLI arguments are not forwarded into nested profiles,
                 // matching Regolith's behavior.
-                profile.run(config, temp, root_profile, &[]).await
+                profile
+                    .run(&RunContext {
+                        extra_args: &[],
+                        ..*ctx
+                    })
+                    .await
             }
         }
     }
@@ -139,28 +137,19 @@ impl FilterRunner {
 
 impl Profile {
     #[async_recursion]
-    pub async fn run(
-        &self,
-        config: &Config,
-        temp: &Path,
-        root_profile: &str,
-        extra_args: &[String],
-    ) -> Result<DashSet<String>> {
+    pub async fn run(&self, ctx: &RunContext<'_>) -> Result<DashSet<String>> {
         let mut export_data_names = DashSet::new();
         for entry in self.filters.iter() {
             match entry {
                 ProfileEntry::Filter(filter) => {
                     measure_time!(filter.get_name(), {
-                        export_data_names
-                            .extend(filter.run(config, temp, root_profile, extra_args).await?);
+                        export_data_names.extend(filter.run(ctx).await?);
                     });
                 }
                 ProfileEntry::AsyncFilter { async_filters } => {
                     let results: Vec<Result<DashSet<String>>> = async_filters
                         .par_iter()
-                        .map(|entry| {
-                            smol::block_on(entry.run(config, temp, root_profile, extra_args))
-                        })
+                        .map(|entry| smol::block_on(entry.run(ctx)))
                         .collect();
 
                     for result in results {

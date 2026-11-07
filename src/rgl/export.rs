@@ -1,4 +1,4 @@
-use super::{find_mojang_dir, find_world_dir, get_current_dir, Eval, MinecraftBuild};
+use super::{find_mojang_dir, find_world_dir, get_current_dir, Eval, MinecraftBuild, RunContext};
 use anyhow::{anyhow, bail, Result};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub enum Export {
 
 #[enum_dispatch(Export)]
 pub trait ExportPaths {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)>;
+    fn get_paths(&self, ctx: &RunContext) -> Result<(PathBuf, PathBuf)>;
 }
 
 impl Export {
@@ -184,12 +184,13 @@ pub struct DevelopmentExport {
 }
 
 impl ExportPaths for DevelopmentExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(&self, ctx: &RunContext) -> Result<(PathBuf, PathBuf)> {
+        let project_name = ctx.config.get_name();
         let mojang_dir = find_mojang_dir(self.build.as_ref())?;
         if !mojang_dir.exists() {
             bail!("Failed to find com.mojang directory")
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(ctx.profile, &get_current_dir()?, None);
         let bp = {
             let dir = mojang_dir.join("development_behavior_packs");
             if let Some(bp_name) = &self.bp_name {
@@ -220,12 +221,13 @@ pub struct LocalExport {
 }
 
 impl ExportPaths for LocalExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(&self, ctx: &RunContext) -> Result<(PathBuf, PathBuf)> {
+        let project_name = ctx.config.get_name();
         let build = PathBuf::from("build");
         if !build.exists() {
             fs::create_dir(&build)?;
         }
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(ctx.profile, &get_current_dir()?, None);
         let bp = if let Some(bp_name) = &self.bp_name {
             build.join(eval.string(bp_name)?)
         } else {
@@ -248,7 +250,7 @@ pub struct ExactExport {
 }
 
 impl ExportPaths for ExactExport {
-    fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(&self, _ctx: &RunContext) -> Result<(PathBuf, PathBuf)> {
         let bp = resolve_path(&self.bp_path)?;
         let rp = resolve_path(&self.rp_path)?;
         if bp == rp {
@@ -297,11 +299,9 @@ fn resolve_path(path: &str) -> Result<PathBuf> {
 pub struct NoneExport {}
 
 impl ExportPaths for NoneExport {
-    fn get_paths(&self, _project_name: &str, _profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(&self, ctx: &RunContext) -> Result<(PathBuf, PathBuf)> {
         // Set the export target to temp just to not mess up the log messages
-        let dot_regolith = PathBuf::from(".regolith");
-        let temp = dot_regolith.join("tmp");
-        Ok((temp.join("BP"), temp.join("RP")))
+        Ok((ctx.temp.bp.clone(), ctx.temp.rp.clone()))
     }
 }
 
@@ -321,7 +321,8 @@ pub struct WorldExport {
 }
 
 impl ExportPaths for WorldExport {
-    fn get_paths(&self, project_name: &str, profile_name: &str) -> Result<(PathBuf, PathBuf)> {
+    fn get_paths(&self, ctx: &RunContext) -> Result<(PathBuf, PathBuf)> {
+        let project_name = ctx.config.get_name();
         let world_dir = match (&self.world_name, &self.world_path) {
             (Some(world_name), None) => find_world_dir(self.build.as_ref(), world_name)?,
             (None, Some(world_path)) => resolve_path(world_path)?,
@@ -330,7 +331,7 @@ impl ExportPaths for WorldExport {
                 "The `world` export target requires either a `worldName` or `worldPath property`"
             ),
         };
-        let eval = Eval::new(profile_name, &get_current_dir()?, None);
+        let eval = Eval::new(ctx.profile, &get_current_dir()?, None);
         let bp = {
             let dir = world_dir.join("behavior_packs");
             if let Some(bp_name) = &self.bp_name {
