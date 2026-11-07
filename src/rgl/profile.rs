@@ -91,7 +91,7 @@ impl FilterRunner {
 
                 let info = FilterInfo::new(filter_name, &filter)?;
                 if let Some(expression) = expression {
-                    let eval = Eval::new(ctx.profile, &info.filter_dir, settings.clone());
+                    let eval = Eval::new(ctx, &info.filter_dir, settings.as_ref());
                     debug!("Evaluating expression: <d>{expression}</>");
                     if !eval.bool(expression).with_context(|| {
                         format!("Failed running evaluator for <filter>{filter_name}</>")
@@ -117,19 +117,10 @@ impl FilterRunner {
                     info!("Filter <profile>{profile_name}</> is disabled, skipping.");
                     return Ok(export_data_names);
                 }
-                if profile_name == ctx.profile {
-                    bail!("Found circular profile reference in <profile>{profile_name}</>");
-                }
                 let profile = ctx.config.get_profile(profile_name)?;
+                let nested_ctx = ctx.nested_profile(profile_name)?;
                 info!("Running <profile>{profile_name}</> nested profile");
-                // Extra CLI arguments are not forwarded into nested profiles,
-                // matching Regolith's behavior.
-                profile
-                    .run(&RunContext {
-                        extra_args: &[],
-                        ..*ctx
-                    })
-                    .await
+                profile.run(&nested_ctx).await
             }
         }
     }

@@ -29,7 +29,7 @@ impl Filter for RemoteFilter {
             }
             if let Some(expression) = &entry.expression {
                 let name = &info.name;
-                let eval = Eval::new(name, &info.filter_dir, None);
+                let eval = Eval::new(ctx, &info.filter_dir, None);
                 debug!("Evaluating expression: <d>{expression}</>");
                 if !eval
                     .bool(expression)

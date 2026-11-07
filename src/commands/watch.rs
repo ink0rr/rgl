@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{runner, Config, MinecraftServer, RunContext, Session, Temp, UserConfig};
+use crate::rgl::{runner, Config, MinecraftServer, RunContext, RunMode, Session, Temp, UserConfig};
 use crate::{error, info, log, warn};
 use anyhow::Result;
 use clap::Args;
@@ -35,12 +35,20 @@ impl Command for Watch {
         };
 
         let temp = Temp::from_dot_regolith();
+        let mut initial = true;
         smol::block_on(async {
             loop {
                 let config = Config::load()?;
                 let watcher = config.get_watcher()?;
                 let mut session = Session::lock()?;
-                let ctx = RunContext::new(&config, &temp, &self.profile, &self.filter_args);
+                let ctx = RunContext::new(
+                    &config,
+                    &temp,
+                    &self.profile,
+                    &self.filter_args,
+                    RunMode::Watch { initial },
+                );
+                initial = false;
 
                 let is_interrupted = smol::future::or(
                     async {

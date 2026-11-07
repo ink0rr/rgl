@@ -98,6 +98,10 @@ impl Config {
         &self.name
     }
 
+    pub fn get_author(&self) -> String {
+        self.author.to_owned().unwrap_or_else(UserConfig::username)
+    }
+
     pub fn get_behavior_pack(&self) -> Option<PathBuf> {
         Some(PathBuf::from(&self.packs.behavior_pack.to_owned()?))
     }

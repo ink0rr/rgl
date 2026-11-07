@@ -1,7 +1,7 @@
 use super::Command;
 use crate::fs::{copy_dir, empty_dir, sync_dir};
 use crate::info;
-use crate::rgl::{Config, Filter, FilterInfo, GlobalFilters, RunContext, Session, Temp};
+use crate::rgl::{Config, Filter, FilterInfo, GlobalFilters, RunContext, RunMode, Session, Temp};
 use anyhow::Result;
 use clap::Args;
 
@@ -33,7 +33,7 @@ impl Command for Exec {
         }
         copy_dir(&data, &temp.data)?;
 
-        let ctx = RunContext::new(&config, &temp, "[dynamic profile]", &[]);
+        let ctx = RunContext::new(&config, &temp, "[dynamic profile]", &[], RunMode::Run);
         if let Ok(filter) = config.get_filter(&self.filter) {
             info!("Running filter <filter>{}</>", self.filter);
             let info = FilterInfo::new(&self.filter, &filter)?;
