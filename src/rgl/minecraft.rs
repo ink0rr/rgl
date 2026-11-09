@@ -1,5 +1,3 @@
-use super::UserConfig;
-use crate::warn;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -46,10 +44,6 @@ fn mojang_dir() -> Result<PathBuf> {
 
 fn find_standard_mojang_dir() -> Result<PathBuf> {
     if let Ok(com_mojang) = env::var("COM_MOJANG") {
-        return Ok(PathBuf::from(com_mojang));
-    }
-    if let Some(com_mojang) = UserConfig::mojang_dir() {
-        warn!("User config `mojang_dir` is deprecated, use the `COM_MOJANG` environment variable instead");
         return Ok(PathBuf::from(com_mojang));
     }
     mojang_dir()

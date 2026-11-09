@@ -18,7 +18,6 @@ pub struct UserConfig {
     pub force_compat: bool,
     #[serde(default)]
     pub subprocess_logging: bool,
-    pub mojang_dir: Option<String>,
     pub nodejs_runtime: Option<String>,
     pub nodejs_package_manager: Option<String>,
     pub python_command: Option<String>,
@@ -33,7 +32,6 @@ impl UserConfig {
             websocket_port: default_websocket_port(),
             force_compat: false,
             subprocess_logging: false,
-            mojang_dir: None,
             nodejs_runtime: None,
             nodejs_package_manager: None,
             python_command: None,
@@ -62,10 +60,6 @@ impl UserConfig {
 
     pub fn subprocess_logging() -> bool {
         get_user_config().subprocess_logging
-    }
-
-    pub fn mojang_dir() -> Option<String> {
-        get_user_config().mojang_dir.to_owned()
     }
 
     pub fn nodejs_runtime() -> String {
