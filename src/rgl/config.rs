@@ -59,6 +59,7 @@ impl Config {
                 filters: vec![ProfileEntry::Filter(FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
                     disabled: false,
+                    expression: None,
                 })],
             },
         );

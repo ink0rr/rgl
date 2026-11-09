@@ -1,4 +1,4 @@
-use super::{Eval, ExportTargets, Filter, FilterInfo, RunContext};
+use super::{get_current_dir, Eval, ExportTargets, Filter, FilterInfo, RunContext};
 use crate::{debug, info, measure_time};
 use anyhow::{bail, Context, Result};
 use async_recursion::async_recursion;
@@ -46,6 +46,8 @@ pub enum FilterRunner {
         profile_name: String,
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         disabled: bool,
+        #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
+        expression: Option<String>,
     },
 }
 
@@ -107,10 +109,21 @@ impl FilterRunner {
             FilterRunner::ProfileFilter {
                 profile_name,
                 disabled,
+                expression,
             } => {
                 if *disabled {
                     info!("Filter <profile>{profile_name}</> is disabled, skipping.");
                     return Ok(export_data_names);
+                }
+                if let Some(expression) = expression {
+                    let eval = Eval::new(ctx, &get_current_dir()?);
+                    debug!("Evaluating expression: <d>{expression}</>");
+                    if !eval.bool(expression).with_context(|| {
+                        format!("Failed running evaluator for <profile>{profile_name}</>")
+                    })? {
+                        info!("Skipping nested profile <profile>{profile_name}</>");
+                        return Ok(export_data_names);
+                    }
                 }
                 let profile = ctx.config.get_profile(profile_name)?;
                 let nested_ctx = ctx.nested_profile(profile_name)?;
