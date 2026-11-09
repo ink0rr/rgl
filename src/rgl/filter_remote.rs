@@ -29,7 +29,7 @@ impl Filter for RemoteFilter {
             }
             if let Some(expression) = &entry.expression {
                 let name = &info.name;
-                let eval = Eval::new(ctx, &info.filter_dir, None);
+                let eval = Eval::new(ctx, &info.filter_dir);
                 debug!("Evaluating expression: <d>{expression}</>");
                 if !eval
                     .bool(expression)
@@ -38,15 +38,9 @@ impl Filter for RemoteFilter {
                     continue;
                 }
             }
-            // This behavior is different from Regolith. It might break some filters
-            // that need the arguments to be passed in a specific order.
-            // Regolith: [settings, remote_args, parent_args]
-            // rgl: [settings, parent_args, remote_args]
-            let mut run_args = run_args.to_vec();
-            if let Some(arguments) = entry.arguments.to_owned() {
-                run_args.extend(arguments);
-            };
-            entry.filter.run(ctx, info, &run_args)?;
+            let mut args = entry.arguments.to_owned().unwrap_or_default();
+            args.extend_from_slice(run_args);
+            entry.filter.run(ctx, info, &args)?;
         }
         Ok(())
     }

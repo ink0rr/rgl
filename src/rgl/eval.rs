@@ -1,7 +1,6 @@
 use super::RunContext;
 use crate::logger::Logger;
 use anyhow::{anyhow, Result};
-use indexmap::IndexMap;
 use oxide_eval::{context::ContextEntry, Evaluator};
 use serde_json::{json, Value};
 use std::env::consts::{ARCH, OS};
@@ -17,11 +16,7 @@ static ENV: LazyLock<serde_json::Map<String, Value>> = LazyLock::new(|| {
 pub struct Eval(Evaluator);
 
 impl Eval {
-    pub fn new(
-        ctx: &RunContext,
-        filter_location: &Path,
-        settings: Option<&IndexMap<String, Value>>,
-    ) -> Self {
+    pub fn new(ctx: &RunContext, filter_location: &Path) -> Self {
         let context = [
             ("os", json!(OS)),
             ("arch", json!(ARCH)),
@@ -33,7 +28,7 @@ impl Eval {
                 "filterLocation",
                 json!(filter_location.display().to_string()),
             ),
-            ("settings", json!(settings)),
+            ("settings", json!(ctx.settings)),
             ("debug", json!(Logger::get_debug())),
             ("pi", json!(std::f64::consts::PI)),
             (

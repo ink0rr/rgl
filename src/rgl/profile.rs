@@ -73,10 +73,6 @@ impl FilterRunner {
                     return Ok(export_data_names);
                 }
                 let filter = ctx.config.get_filter(filter_name)?;
-                let mut run_args: Vec<String> = vec![];
-                if let Some(settings) = settings {
-                    run_args = vec![serde_json::to_string(settings)?]
-                }
                 let mut filter_arguments = arguments.to_owned().unwrap_or_default();
                 match extra_arguments_mode.as_deref() {
                     None | Some("") | Some("ignore") => {}
@@ -87,11 +83,10 @@ impl FilterRunner {
                          Valid values: ignore, override, append"
                     ),
                 }
-                run_args.extend(filter_arguments);
-
                 let info = FilterInfo::new(filter_name, &filter)?;
+                let ctx = &ctx.with_settings(settings.as_ref());
                 if let Some(expression) = expression {
-                    let eval = Eval::new(ctx, &info.filter_dir, settings.as_ref());
+                    let eval = Eval::new(ctx, &info.filter_dir);
                     debug!("Evaluating expression: <d>{expression}</>");
                     if !eval.bool(expression).with_context(|| {
                         format!("Failed running evaluator for <filter>{filter_name}</>")
@@ -102,7 +97,7 @@ impl FilterRunner {
                 }
                 info!("Running filter <filter>{filter_name}</>");
                 filter
-                    .run(ctx, &info, &run_args)
+                    .run(ctx, &info, &filter_arguments)
                     .with_context(|| format!("Failed running filter <filter>{filter_name}</>"))?;
                 if info.remote_config.is_some_and(|cfg| cfg.export_data) {
                     export_data_names.insert(filter_name.to_owned());

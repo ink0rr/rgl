@@ -12,6 +12,7 @@ impl Filter for FilterExe {
         let exe = info.filter_dir.join(&self.exe);
         let mut subprocess = Subprocess::new(exe);
         subprocess
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);

@@ -190,7 +190,7 @@ impl ExportPaths for DevelopmentExport {
         if !mojang_dir.exists() {
             bail!("Failed to find com.mojang directory")
         }
-        let eval = Eval::new(ctx, &get_current_dir()?, None);
+        let eval = Eval::new(ctx, &get_current_dir()?);
         let bp = {
             let dir = mojang_dir.join("development_behavior_packs");
             if let Some(bp_name) = &self.bp_name {
@@ -227,7 +227,7 @@ impl ExportPaths for LocalExport {
         if !build.exists() {
             fs::create_dir(&build)?;
         }
-        let eval = Eval::new(ctx, &get_current_dir()?, None);
+        let eval = Eval::new(ctx, &get_current_dir()?);
         let bp = if let Some(bp_name) = &self.bp_name {
             build.join(eval.string(bp_name)?)
         } else {
@@ -331,7 +331,7 @@ impl ExportPaths for WorldExport {
                 "The `world` export target requires either a `worldName` or `worldPath property`"
             ),
         };
-        let eval = Eval::new(ctx, &get_current_dir()?, None);
+        let eval = Eval::new(ctx, &get_current_dir()?);
         let bp = {
             let dir = world_dir.join("behavior_packs");
             if let Some(bp_name) = &self.bp_name {

@@ -14,6 +14,7 @@ impl Filter for FilterJava {
         subprocess
             .arg("-jar")
             .arg(path)
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);

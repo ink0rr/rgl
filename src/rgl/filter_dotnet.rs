@@ -13,6 +13,7 @@ impl Filter for FilterDotnet {
         let mut subprocess = Subprocess::new("dotnet");
         subprocess
             .arg(path)
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);

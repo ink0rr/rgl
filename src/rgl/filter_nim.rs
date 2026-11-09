@@ -20,6 +20,7 @@ impl Filter for FilterNim {
         subprocess
             .args(vec!["-r", "c", "--hints:off", "--warnings:off", "--mm:orc"])
             .arg(script)
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);

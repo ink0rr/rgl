@@ -14,6 +14,7 @@ impl Filter for FilterNodejs {
         let mut subprocess = Subprocess::new(runtime);
         subprocess
             .arg(script)
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);

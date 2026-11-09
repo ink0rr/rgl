@@ -1,5 +1,7 @@
 use super::{Config, Temp};
 use anyhow::{bail, Result};
+use indexmap::IndexMap;
+use serde_json::Value;
 use strum::Display;
 
 #[derive(Clone, Copy, Display)]
@@ -15,6 +17,7 @@ pub struct RunContext<'a> {
     pub profile: &'a str,
     pub extra_args: &'a [String],
     pub mode: RunMode,
+    pub settings: Option<&'a IndexMap<String, Value>>,
     parent: Option<&'a RunContext<'a>>,
 }
 
@@ -33,6 +36,7 @@ impl<'a> RunContext<'a> {
             extra_args,
             mode,
             parent: None,
+            settings: None,
         }
     }
 
@@ -52,6 +56,22 @@ impl<'a> RunContext<'a> {
             parent: Some(self),
             ..*self
         })
+    }
+
+    /// Context for running a filter with `settings`.
+    pub fn with_settings<'b>(
+        &'b self,
+        settings: Option<&'b IndexMap<String, Value>>,
+    ) -> RunContext<'b> {
+        RunContext { settings, ..*self }
+    }
+
+    pub fn settings_arg(&self) -> Result<Option<String>> {
+        Ok(self
+            .settings
+            .filter(|settings| !settings.is_empty())
+            .map(serde_json::to_string)
+            .transpose()?)
     }
 
     pub fn is_nested(&self) -> bool {

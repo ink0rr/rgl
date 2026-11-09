@@ -32,6 +32,7 @@ impl Filter for FilterGo {
 
         let mut subprocess = Subprocess::new(output);
         subprocess
+            .args(ctx.settings_arg()?)
             .args(run_args)
             .current_dir(&ctx.temp.root)
             .setup_env(&info.filter_dir);
