@@ -1816,6 +1816,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "shlex",
  "smol",
  "strum",
  "tempfile",
