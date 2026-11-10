@@ -28,10 +28,12 @@ impl Filter for FilterBun {
 
     fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         let filter_dir = info.filter_dir(&self.script);
-        Subprocess::new("bun")
-            .arg("i")
-            .current_dir(filter_dir)
-            .run()?;
+        if filter_dir.join("package.json").exists() {
+            Subprocess::new("bun")
+                .arg("i")
+                .current_dir(filter_dir)
+                .run()?;
+        }
         Ok(())
     }
 }
