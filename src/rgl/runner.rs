@@ -56,11 +56,15 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
     };
 
     // Refuse to touch `exact` export targets containing files rgl didn't create.
+    let exact_targets: Vec<&(PathBuf, PathBuf)> = profile
+        .export
+        .active()
+        .zip(&resolved)
+        .filter(|((_, target), _)| matches!(target, Export::Exact(_)))
+        .map(|(_, paths)| paths)
+        .collect();
     let mut edited_files = EditedFiles::load();
-    for ((_, target), (target_bp, target_rp)) in profile.export.active().zip(&resolved) {
-        if !matches!(target, Export::Exact(_)) {
-            continue;
-        }
+    for (target_bp, target_rp) in &exact_targets {
         measure_time!("Check deletion safety", {
             edited_files
                     .check_deletion_safety(target_bp, target_rp)
@@ -117,10 +121,12 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
 
             // The target was just reseeded with raw source; record it now so a
             // filter failure doesn't make the next run's safety check reject it.
-            edited_files.update_from_paths(&primary_bp, &primary_rp)?;
-            edited_files.dump().context(
-                "Failed to update the list of files edited by rgl. This may cause the next run to fail.",
-            )?;
+            if !exact_targets.is_empty() {
+                edited_files.update_from_paths(&primary_bp, &primary_rp)?;
+                edited_files.dump().context(
+                    "Failed to update the list of files edited by rgl. This may cause the next run to fail.",
+                )?;
+            }
         }
     });
     smol::future::yield_now().await;
@@ -175,9 +181,9 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
         }
     });
 
-    if !is_none_export {
+    if !exact_targets.is_empty() {
         measure_time!("Update edited files", {
-            for (target_bp, target_rp) in &resolved {
+            for (target_bp, target_rp) in &exact_targets {
                 edited_files.update_from_paths(target_bp, target_rp)?;
             }
             edited_files
