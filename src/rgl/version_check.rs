@@ -40,7 +40,12 @@ pub fn version_check() -> Result<Option<String>> {
     let timestamp = get_timestamp()?;
     let last_checked = timestamp.metadata()?.modified()?;
     let now = SystemTime::now();
-    let elapsed_hour = now.duration_since(last_checked)?.as_secs() / 60 / 60;
+    let elapsed_hour = now
+        .duration_since(last_checked)
+        .unwrap_or(Duration::MAX)
+        .as_secs()
+        / 60
+        / 60;
 
     debug!("Last version check: {elapsed_hour} hour(s) ago");
     if elapsed_hour > 24 {
