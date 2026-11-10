@@ -35,4 +35,4 @@ ureq = "2.12.1"
 url = "2.5.8"
 uuid = { version = "1.29.0", features = ["v4"] }
 walkdir = "2.5.0"
-zip = "0.6.6"
+zip = { version = "9.5.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }

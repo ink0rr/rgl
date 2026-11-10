@@ -72,7 +72,7 @@ fn extract_pkg(bytes: Vec<u8>, path: &Path) -> Result<PathBuf> {
     let mut archive = ZipArchive::new(io::Cursor::new(bytes))?;
     let mut file = archive.by_index(0)?;
 
-    let mangled_name = file.mangled_name();
+    let mangled_name = file.mangled_name()?;
     let file_name = mangled_name.file_name().unwrap();
 
     let file_path = path.join(file_name);
