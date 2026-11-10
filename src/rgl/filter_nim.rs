@@ -1,15 +1,14 @@
 use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterNim {
     pub script: String,
     /// Optional path to the folder with the nimble file. If not specified
     /// the parent of the script path is used instead.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub requirements: Option<String>,
 }
 

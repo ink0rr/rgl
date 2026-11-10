@@ -4,16 +4,16 @@ use crate::fs::{empty_dir, is_dir_empty, read_json, set_modified_time};
 use anyhow::{bail, Context, Result};
 use once_cell::sync::OnceCell;
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct Resolver {
     filters: HashMap<String, ResolverData>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct ResolverData {
     url: String,
     versions: Option<Vec<String>>,

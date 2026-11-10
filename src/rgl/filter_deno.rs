@@ -1,8 +1,8 @@
 use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterDeno {
     pub script: String,
 }

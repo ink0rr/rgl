@@ -2,9 +2,9 @@ use super::{
     Filter, FilterBun, FilterDeno, FilterInfo, NodeRunner, RunContext, Subprocess, UserConfig,
 };
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterNodejs {
     pub script: String,
 }

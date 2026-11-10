@@ -53,19 +53,19 @@ impl Filter for RemoteFilter {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoteFilterConfig {
     #[serde(default, rename = "exportData")]
     pub export_data: bool,
     pub filters: Vec<RemoteFilterEntry>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoteFilterEntry {
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[serde(default)]
     pub disabled: bool,
     pub arguments: Option<Vec<String>>,
-    #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "when")]
     pub expression: Option<String>,
     #[serde(flatten)]
     pub filter: LocalFilter,

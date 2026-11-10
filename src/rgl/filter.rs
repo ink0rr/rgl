@@ -7,13 +7,11 @@ use crate::fs::{is_dir_empty, read_json};
 use crate::info;
 use anyhow::{Context, Result};
 use enum_dispatch::enum_dispatch;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use std::path::PathBuf;
 use strum::Display;
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
 #[enum_dispatch]
 pub enum FilterDefinition {
     Local(LocalFilter),
@@ -36,7 +34,7 @@ impl FilterDefinition {
     }
 }
 
-#[derive(Display, Serialize, Deserialize)]
+#[derive(Display, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "runWith")]
 #[enum_dispatch]
 pub enum LocalFilter {

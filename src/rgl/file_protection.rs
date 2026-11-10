@@ -11,7 +11,7 @@ const EDITED_FILES_PATH: &str = ".regolith/cache/edited_files.json";
 /// Tracks, per export target path, the list of files rgl created there on
 /// the last successful export, so the next export can tell its own files
 /// apart from ones a user (or another tool) put there by hand.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct EditedFiles {
     #[serde(default)]
     bp: HashMap<String, Vec<String>>,

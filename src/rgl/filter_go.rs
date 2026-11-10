@@ -1,10 +1,10 @@
 use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{env, path::Path};
 use walkdir::{DirEntry, WalkDir};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterGo {
     pub script: String,
 }
