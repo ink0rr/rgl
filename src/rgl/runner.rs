@@ -29,10 +29,10 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
             format!(
                 "Failed to get export paths for export target {} ({})",
                 i + 1,
-                target.kind()
+                target
             )
         })?;
-        let label = format!("export target {} ({})", i + 1, target.kind());
+        let label = format!("export target {} ({})", i + 1, target);
         check_export_path_collision(
             &mut seen_paths,
             &target_bp,

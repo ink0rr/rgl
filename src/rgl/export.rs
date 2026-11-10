@@ -6,9 +6,11 @@ use std::{
     env, fs,
     path::{Component, Path, PathBuf},
 };
+use strum::Display;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Display, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase", tag = "target")]
+#[strum(serialize_all = "lowercase")]
 #[enum_dispatch]
 pub enum Export {
     Development(DevelopmentExport),
@@ -28,17 +30,6 @@ impl Export {
     /// during exporting.
     pub fn is_none(&self) -> bool {
         matches!(self, Export::None(_))
-    }
-
-    /// Short name used in log messages and error labels.
-    pub fn kind(&self) -> &'static str {
-        match self {
-            Export::Development(_) => "development",
-            Export::Local(_) => "local",
-            Export::Exact(_) => "exact",
-            Export::None(_) => "none",
-            Export::World(_) => "world",
-        }
     }
 }
 
