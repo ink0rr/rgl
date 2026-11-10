@@ -63,7 +63,7 @@ fn run_command(cli: Cli) -> Result<()> {
         match handle.join().unwrap() {
             Ok(version) => {
                 if let Some(version) = version {
-                    rgl::prompt_upgrade(version)?
+                    rgl::prompt_upgrade(version);
                 }
             }
             Err(e) => {
