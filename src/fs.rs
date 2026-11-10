@@ -10,6 +10,17 @@ use std::{
     time::SystemTime,
 };
 
+fn copy_file(from: &Path, to: &Path) -> io::Result<()> {
+    fs::copy(from, to)?;
+    #[cfg(unix)]
+    {
+        // fs::copy doesn't preserve mtime on Linux.
+        let modified = fs::metadata(from)?.modified()?;
+        fs::File::open(to)?.set_modified(modified)?;
+    }
+    Ok(())
+}
+
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
     fs::read_dir(from)?
@@ -21,7 +32,7 @@ fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
             if path.is_dir() {
                 copy_dir_impl(&path, &to)?;
             } else {
-                fs::copy(path, to)?;
+                copy_file(&path, &to)?;
             }
             Ok(())
         })
@@ -270,7 +281,7 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                     rimraf(&target)?;
                 }
                 if !compare_files(&source, &target)? {
-                    fs::copy(source, target)?;
+                    copy_file(&source, &target)?;
                 }
                 Ok(())
             })
