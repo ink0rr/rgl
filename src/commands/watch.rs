@@ -17,8 +17,8 @@ pub struct Watch {
     #[arg(long)]
     compat: bool,
     /// Automatically reload scripts via WebSocket
-    #[arg(long)]
-    ws: bool,
+    #[arg(long, require_equals = true, value_name = "PORT")]
+    ws: Option<Option<u16>>,
     /// Extra arguments to forward to every filter in the profile
     filter_args: Vec<String>,
 }
@@ -26,12 +26,11 @@ pub struct Watch {
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         let compat = self.compat || UserConfig::force_compat();
-        let server = if self.ws {
-            Some(MinecraftServer::bind_and_accept(
-                UserConfig::websocket_port(),
-            )?)
-        } else {
-            None
+        let server = match self.ws {
+            Some(port) => Some(MinecraftServer::bind_and_accept(
+                port.unwrap_or_else(UserConfig::websocket_port),
+            )?),
+            None => None,
         };
 
         let temp = Temp::from_dot_regolith();

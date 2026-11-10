@@ -1,5 +1,5 @@
 use crate::log;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_tungstenite::{accept_async, WebSocketSender};
 use dashmap::DashMap;
 use serde_json::json;
@@ -17,7 +17,8 @@ pub struct MinecraftServer {
 impl MinecraftServer {
     pub fn bind_and_accept(port: u16) -> Result<Self> {
         let peers = Arc::new(DashMap::new());
-        let listener = smol::block_on(TcpListener::bind(format!("127.0.0.1:{port}")))?;
+        let listener = smol::block_on(TcpListener::bind(format!("127.0.0.1:{port}")))
+            .with_context(|| format!("Failed to start WebSocket server on port {port}"))?;
         let addr = listener.local_addr()?;
         let port = addr.port();
         log!("<green>[SERVER]</> WebSocket is running at port {port}. Run <bright-yellow>/connect {addr}</> in-game to automatically reload scripts");
