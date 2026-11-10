@@ -95,9 +95,6 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
             if temp.rp.is_symlink() {
                 rimraf(&temp.rp)?;
             }
-            if temp.data.is_symlink() {
-                rimraf(&temp.data)?;
-            }
             if let Some(bp) = &bp {
                 sync_dir(bp, &temp.bp)?;
             }
@@ -108,9 +105,6 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
         } else {
             rimraf(&temp.bp)?;
             rimraf(&temp.rp)?;
-            if temp.data.is_symlink() {
-                rimraf(&temp.data)?;
-            }
             if let Some(bp) = &bp {
                 sync_dir(bp, &primary_bp)?;
                 symlink(&primary_bp, &temp.bp)?;
