@@ -10,7 +10,7 @@ pub struct FilterPython {
 impl Filter for FilterPython {
     fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
-        let venv_dir = info.filter_dir.join(".venv");
+        let venv_dir = info.filter_dir(&self.script).join(".venv");
         let mut subprocess = Subprocess::new(match venv_dir.exists() {
             true => match cfg!(windows) {
                 true => venv_dir.join("Scripts").join("python.exe"),

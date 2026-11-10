@@ -87,7 +87,7 @@ impl FilterInfo {
         if self.remote_config.is_some() {
             self.filter_dir.to_owned()
         } else {
-            let mut dir = PathBuf::from(path);
+            let mut dir = self.filter_dir.join(path);
             dir.pop();
             dir
         }
