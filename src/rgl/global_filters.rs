@@ -11,11 +11,13 @@ pub struct GlobalFilters {
 
 impl GlobalFilters {
     pub fn load() -> Result<Self> {
-        read_json(get_global_filters_path()?).or_else(|_| {
-            let global_filters = GlobalFilters::default();
-            global_filters.save()?;
-            Ok(global_filters)
-        })
+        let path = get_global_filters_path()?;
+        if path.exists() {
+            return read_json(path);
+        }
+        let global_filters = GlobalFilters::default();
+        global_filters.save()?;
+        Ok(global_filters)
     }
 
     pub fn save(&self) -> Result<()> {
