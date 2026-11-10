@@ -22,7 +22,7 @@ impl Filter for FilterGo {
         }
 
         if should_rebuild(&info.filter_dir, &output)? {
-            Subprocess::new("go")
+            Subprocess::new(UserConfig::go_runner())
                 .args(vec!["build", "-o"])
                 .arg(&output)
                 .arg(script)
@@ -45,7 +45,7 @@ impl Filter for FilterGo {
     }
 
     fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
-        Subprocess::new("go")
+        Subprocess::new(UserConfig::go_runner())
             .args(vec!["mod", "download"])
             .current_dir(&info.filter_dir)
             .run()?;

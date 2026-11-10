@@ -2,7 +2,16 @@ use super::get_user_config_path;
 use crate::fs::{read_json, write_json};
 use crate::warn;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::sync::OnceLock;
+
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NodeRunner {
+    Nodejs,
+    Bun,
+    Deno,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct UserConfig {
@@ -18,9 +27,19 @@ pub struct UserConfig {
     pub force_compat: bool,
     #[serde(default)]
     pub subprocess_logging: bool,
-    pub nodejs_runtime: Option<String>,
-    pub nodejs_package_manager: Option<String>,
-    pub python_command: Option<String>,
+    /// Maps a filter name, or `*` for every filter, to the runtime used for `nodejs` filters.
+    #[serde(default)]
+    pub node_runner_override: BTreeMap<String, NodeRunner>,
+    pub bun_runner: Option<String>,
+    pub deno_runner: Option<String>,
+    pub dotnet_runner: Option<String>,
+    pub go_runner: Option<String>,
+    pub java_runner: Option<String>,
+    pub nim_runner: Option<String>,
+    pub nimble_runner: Option<String>,
+    pub node_runner: Option<String>,
+    pub npm_runner: Option<String>,
+    pub python_runner: Option<String>,
 }
 
 impl UserConfig {
@@ -32,9 +51,17 @@ impl UserConfig {
             websocket_port: default_websocket_port(),
             force_compat: false,
             subprocess_logging: false,
-            nodejs_runtime: None,
-            nodejs_package_manager: None,
-            python_command: None,
+            node_runner_override: BTreeMap::new(),
+            bun_runner: None,
+            deno_runner: None,
+            dotnet_runner: None,
+            go_runner: None,
+            java_runner: None,
+            nim_runner: None,
+            nimble_runner: None,
+            node_runner: None,
+            npm_runner: None,
+            python_runner: None,
         }
     }
 
@@ -62,28 +89,69 @@ impl UserConfig {
         get_user_config().subprocess_logging
     }
 
-    pub fn nodejs_runtime() -> String {
-        get_user_config()
-            .nodejs_runtime
-            .to_owned()
-            .unwrap_or("node".to_owned())
+    /// Runtime for the `nodejs` filter `name`. A filter-specific entry wins over `*`.
+    pub fn node_runner_override(name: &str) -> NodeRunner {
+        let overrides = &get_user_config().node_runner_override;
+        overrides
+            .get(name)
+            .or_else(|| overrides.get("*"))
+            .copied()
+            .unwrap_or(NodeRunner::Nodejs)
     }
 
-    pub fn nodejs_package_manager() -> String {
+    pub fn bun_runner() -> &'static str {
+        get_user_config().bun_runner.as_deref().unwrap_or("bun")
+    }
+
+    pub fn deno_runner() -> &'static str {
+        get_user_config().deno_runner.as_deref().unwrap_or("deno")
+    }
+
+    pub fn dotnet_runner() -> &'static str {
         get_user_config()
-            .nodejs_package_manager
-            .to_owned()
+            .dotnet_runner
+            .as_deref()
+            .unwrap_or("dotnet")
+    }
+
+    pub fn go_runner() -> &'static str {
+        get_user_config().go_runner.as_deref().unwrap_or("go")
+    }
+
+    pub fn java_runner() -> &'static str {
+        get_user_config().java_runner.as_deref().unwrap_or("java")
+    }
+
+    pub fn nim_runner() -> &'static str {
+        get_user_config().nim_runner.as_deref().unwrap_or("nim")
+    }
+
+    pub fn nimble_runner() -> &'static str {
+        get_user_config()
+            .nimble_runner
+            .as_deref()
+            .unwrap_or("nimble")
+    }
+
+    pub fn node_runner() -> &'static str {
+        get_user_config().node_runner.as_deref().unwrap_or("node")
+    }
+
+    pub fn npm_runner() -> &'static str {
+        get_user_config()
+            .npm_runner
+            .as_deref()
             .unwrap_or(match cfg!(windows) {
-                true => "npm.cmd".to_owned(),
-                false => "npm".to_owned(),
+                true => "npm.cmd",
+                false => "npm",
             })
     }
 
-    pub fn python_command() -> String {
+    pub fn python_runner() -> &'static str {
         get_user_config()
-            .python_command
-            .to_owned()
-            .unwrap_or("python".to_owned())
+            .python_runner
+            .as_deref()
+            .unwrap_or("python")
     }
 }
 

@@ -16,7 +16,7 @@ pub struct FilterNim {
 impl Filter for FilterNim {
     fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new("nim");
+        let mut subprocess = Subprocess::new(UserConfig::nim_runner());
         subprocess
             .args(vec!["-r", "c", "--hints:off", "--warnings:off", "--mm:orc"])
             .arg(script)
@@ -44,7 +44,7 @@ impl Filter for FilterNim {
             }
         };
         if has_nimble(&requirements_path) {
-            Subprocess::new("nimble")
+            Subprocess::new(UserConfig::nimble_runner())
                 .args(vec!["install", "-d", "-y"])
                 .current_dir(requirements_path)
                 .run()?;

@@ -1,4 +1,6 @@
-use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
+use super::{
+    Filter, FilterBun, FilterDeno, FilterInfo, NodeRunner, RunContext, Subprocess, UserConfig,
+};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -7,11 +9,29 @@ pub struct FilterNodejs {
     pub script: String,
 }
 
+impl FilterNodejs {
+    fn as_bun(&self) -> FilterBun {
+        FilterBun {
+            script: self.script.clone(),
+        }
+    }
+
+    fn as_deno(&self) -> FilterDeno {
+        FilterDeno {
+            script: self.script.clone(),
+        }
+    }
+}
+
 impl Filter for FilterNodejs {
     fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
-        let runtime = UserConfig::nodejs_runtime();
+        match UserConfig::node_runner_override(&info.name) {
+            NodeRunner::Bun => return self.as_bun().run(ctx, info, run_args),
+            NodeRunner::Deno => return self.as_deno().run(ctx, info, run_args),
+            NodeRunner::Nodejs => {}
+        }
         let script = info.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new(runtime);
+        let mut subprocess = Subprocess::new(UserConfig::node_runner());
         subprocess
             .arg(script)
             .args(ctx.settings_arg()?)
@@ -27,10 +47,14 @@ impl Filter for FilterNodejs {
     }
 
     fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
+        match UserConfig::node_runner_override(&info.name) {
+            NodeRunner::Bun => return self.as_bun().install_dependencies(info),
+            NodeRunner::Deno => return self.as_deno().install_dependencies(info),
+            NodeRunner::Nodejs => {}
+        }
         let filter_dir = info.filter_dir(&self.script);
         if filter_dir.join("package.json").exists() {
-            let package_manager = UserConfig::nodejs_package_manager();
-            Subprocess::new(package_manager)
+            Subprocess::new(UserConfig::npm_runner())
                 .arg("i")
                 .current_dir(filter_dir)
                 .run()?;

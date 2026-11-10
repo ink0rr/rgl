@@ -10,7 +10,7 @@ pub struct FilterDeno {
 impl Filter for FilterDeno {
     fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new("deno");
+        let mut subprocess = Subprocess::new(UserConfig::deno_runner());
         subprocess
             .args(vec!["run", "-A", "--no-lock"])
             .arg(script)

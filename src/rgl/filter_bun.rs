@@ -10,7 +10,7 @@ pub struct FilterBun {
 impl Filter for FilterBun {
     fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
         let script = info.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new("bun");
+        let mut subprocess = Subprocess::new(UserConfig::bun_runner());
         subprocess
             .arg("run")
             .arg(script)
@@ -29,7 +29,7 @@ impl Filter for FilterBun {
     fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         let filter_dir = info.filter_dir(&self.script);
         if filter_dir.join("package.json").exists() {
-            Subprocess::new("bun")
+            Subprocess::new(UserConfig::bun_runner())
                 .arg("i")
                 .current_dir(filter_dir)
                 .run()?;

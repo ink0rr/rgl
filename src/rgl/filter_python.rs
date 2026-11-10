@@ -16,7 +16,7 @@ impl Filter for FilterPython {
                 true => venv_dir.join("Scripts").join("python.exe"),
                 false => venv_dir.join("bin").join("python"),
             },
-            false => UserConfig::python_command().into(),
+            false => UserConfig::python_runner().into(),
         });
         subprocess
             .arg("-u")
@@ -37,8 +37,7 @@ impl Filter for FilterPython {
         let filter_dir = info.filter_dir(&self.script);
         let requirements = filter_dir.join("requirements.txt");
         if requirements.exists() {
-            let py = UserConfig::python_command();
-            Subprocess::new(py)
+            Subprocess::new(UserConfig::python_runner())
                 .args(vec!["-m", "venv", ".venv"])
                 .current_dir(&filter_dir)
                 .run()?;
