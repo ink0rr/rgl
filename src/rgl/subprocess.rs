@@ -144,7 +144,6 @@ impl Subprocess {
             Some("deno") => Some("https://docs.deno.com/runtime/#install-deno"),
             Some("dotnet") => Some("https://dotnet.microsoft.com/download"),
             Some("git") => Some("https://git-scm.com/downloads"),
-            Some("go") => Some("https://go.dev/doc/install"),
             Some("java") => Some("https://adoptopenjdk.net/"),
             Some("nim") => Some("https://nim-lang.org/"),
             Some("nimble") => Some("https://nim-lang.org/"),

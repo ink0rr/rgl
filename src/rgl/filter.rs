@@ -1,6 +1,6 @@
 use super::{
     get_current_dir, get_remote_filter_dir, FilterBun, FilterDeno, FilterDotnet, FilterExe,
-    FilterGo, FilterJava, FilterNim, FilterNodejs, FilterPython, FilterShell, RemoteFilter,
+    FilterJava, FilterNim, FilterNodejs, FilterPython, FilterShell, RemoteFilter,
     RemoteFilterConfig, RunContext,
 };
 use crate::fs::{is_dir_empty, read_json};
@@ -42,7 +42,6 @@ pub enum LocalFilter {
     Deno(FilterDeno),
     Dotnet(FilterDotnet),
     Exe(FilterExe),
-    Go(FilterGo),
     Java(FilterJava),
     Nim(FilterNim),
     Nodejs(FilterNodejs),

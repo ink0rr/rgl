@@ -33,7 +33,6 @@ pub struct UserConfig {
     pub bun_runner: Option<String>,
     pub deno_runner: Option<String>,
     pub dotnet_runner: Option<String>,
-    pub go_runner: Option<String>,
     pub java_runner: Option<String>,
     pub nim_runner: Option<String>,
     pub nimble_runner: Option<String>,
@@ -55,7 +54,6 @@ impl UserConfig {
             bun_runner: None,
             deno_runner: None,
             dotnet_runner: None,
-            go_runner: None,
             java_runner: None,
             nim_runner: None,
             nimble_runner: None,
@@ -112,10 +110,6 @@ impl UserConfig {
             .dotnet_runner
             .as_deref()
             .unwrap_or("dotnet")
-    }
-
-    pub fn go_runner() -> &'static str {
-        get_user_config().go_runner.as_deref().unwrap_or("go")
     }
 
     pub fn java_runner() -> &'static str {
