@@ -31,7 +31,7 @@ shlex = "2.0.1"
 smol = "2.0.2"
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.27.0"
-ureq = "2.12.1"
+ureq = "3.5.1"
 url = "2.5.8"
 uuid = { version = "1.29.0", features = ["v4"] }
 walkdir = "2.5.0"

@@ -21,10 +21,13 @@ fn get_timestamp() -> Result<PathBuf> {
 
 pub fn fetch_latest_version() -> Result<String> {
     let version = ureq::get(CARGO_URL)
-        .timeout(Duration::from_secs(10))
+        .config()
+        .timeout_global(Some(Duration::from_secs(10)))
+        .build()
         .call()
         .context("Failed to fetch Cargo.toml")?
-        .into_string()
+        .into_body()
+        .read_to_string()
         .context("Failed to parse Cargo.toml")?
         .lines()
         .find(|line| line.starts_with("version = \""))

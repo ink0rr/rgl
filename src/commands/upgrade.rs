@@ -60,9 +60,12 @@ impl Command for Upgrade {
 fn download_pkg(url: &str) -> Result<Vec<u8>> {
     loading!("Downloading {url}");
 
-    let mut reader = ureq::get(url).call()?.into_reader();
-    let mut bytes = Vec::new();
-    reader.read_to_end(&mut bytes)?;
+    let bytes = ureq::get(url)
+        .call()?
+        .into_body()
+        .with_config()
+        .limit(u64::MAX)
+        .read_to_vec()?;
 
     success!("Downloaded {url}");
     Ok(bytes)
