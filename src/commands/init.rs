@@ -48,13 +48,17 @@ impl Command for Init {
             .with_prompt("Minimum engine version")
             .default("1.26.20".to_owned())
             .validate_with(|input: &String| -> Result<(), String> {
-                if Version::parse(input).is_ok() {
-                    Ok(())
-                } else {
-                    Err("Invalid version".to_string())
+                match Version::parse(input) {
+                    Ok(v) if v.build.is_empty() && v.pre.is_empty() => Ok(()),
+                    _ => Err("Invalid version".to_string()),
                 }
             })
-            .interact_text()?;
+            .interact_text()
+            .map(|s| {
+                // Already validated in the prompt
+                let v = Version::parse(&s).unwrap();
+                [v.major, v.minor, v.patch]
+            })?;
 
         let bp = "./packs/BP";
         let rp = "./packs/RP";
@@ -116,7 +120,7 @@ fn create_manifest(
     pack_type: PackType,
     header_uuid: &str,
     deps_uuid: &str,
-    min_engine_version: &str,
+    min_engine_version: &[u64; 3],
 ) -> serde_json::Value {
     json!({
         "format_version": 2,
@@ -125,10 +129,7 @@ fn create_manifest(
             "description": "pack.description",
             "uuid": header_uuid,
             "version": [1, 0, 0],
-            "min_engine_version": min_engine_version
-                .split('.')
-                .map(|s| s.parse().unwrap())
-                .collect::<Vec<i32>>(),
+            "min_engine_version": min_engine_version,
         },
         "modules": [{
             "type": match pack_type {
