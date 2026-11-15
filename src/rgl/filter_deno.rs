@@ -1,25 +1,25 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{Filter, FilterInfo, RunContext, Subprocess, UserConfig};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::path::Path;
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterDeno {
     pub script: String,
 }
 
 impl Filter for FilterDeno {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let script = context.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new("deno");
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
+        let script = info.filter_dir.join(&self.script);
+        let mut subprocess = Subprocess::new(UserConfig::deno_runner());
         subprocess
             .args(vec!["run", "-A", "--no-lock"])
             .arg(script)
+            .args(ctx.settings_arg()?)
             .args(run_args)
-            .current_dir(temp)
-            .setup_env(&context.filter_dir);
+            .current_dir(&ctx.temp.root)
+            .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
-            subprocess.run_with_prefix(&context.name)?;
+            subprocess.run_with_prefix(&info.name)?;
         } else {
             subprocess.run()?;
         }

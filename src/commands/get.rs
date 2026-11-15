@@ -1,6 +1,6 @@
 use super::Command;
 use crate::info;
-use crate::rgl::{Config, Filter, FilterContext, FilterDefinition, Session};
+use crate::rgl::{Config, Filter, FilterDefinition, FilterInfo, Session};
 use anyhow::Result;
 use clap::Args;
 
@@ -20,12 +20,12 @@ impl Command for Get {
             match filter {
                 FilterDefinition::Remote(remote) => {
                     info!("Downloading filter <filter>{name}</>...");
-                    remote.install(&name, Some(&data_path), false)?;
+                    remote.install(&name, Some(&data_path), self.force)?;
                 }
                 filter => {
                     info!("Installing dependencies for <filter>{name}</>...");
-                    let context = FilterContext::new(&name, &filter)?;
-                    filter.install_dependencies(&context)?;
+                    let info = FilterInfo::new(&name, &filter)?;
+                    filter.install_dependencies(&info)?;
                 }
             };
         }

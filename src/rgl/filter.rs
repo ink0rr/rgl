@@ -1,18 +1,17 @@
 use super::{
-    get_current_dir, get_filter_cache_dir, FilterBun, FilterDeno, FilterExe, FilterGo,
-    FilterNodejs, FilterPython, FilterShell, RemoteFilter, RemoteFilterConfig,
+    get_current_dir, get_remote_filter_dir, FilterBun, FilterDeno, FilterDotnet, FilterExe,
+    FilterJava, FilterNim, FilterNodejs, FilterPython, FilterShell, RemoteFilter,
+    RemoteFilterConfig, RunContext,
 };
 use crate::fs::{is_dir_empty, read_json};
 use crate::info;
 use anyhow::{Context, Result};
 use enum_dispatch::enum_dispatch;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use strum::Display;
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
 #[enum_dispatch]
 pub enum FilterDefinition {
     Local(LocalFilter),
@@ -35,26 +34,28 @@ impl FilterDefinition {
     }
 }
 
-#[derive(Display, Serialize, Deserialize)]
+#[derive(Display, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "runWith")]
 #[enum_dispatch]
 pub enum LocalFilter {
     Bun(FilterBun),
     Deno(FilterDeno),
+    Dotnet(FilterDotnet),
     Exe(FilterExe),
-    Go(FilterGo),
+    Java(FilterJava),
+    Nim(FilterNim),
     Nodejs(FilterNodejs),
     Python(FilterPython),
     Shell(FilterShell),
 }
 
-pub struct FilterContext {
+pub struct FilterInfo {
     pub name: String,
     pub filter_dir: PathBuf,
     pub remote_config: Option<RemoteFilterConfig>,
 }
 
-impl FilterContext {
+impl FilterInfo {
     pub fn new(name: &str, filter: &FilterDefinition) -> Result<Self> {
         match filter {
             FilterDefinition::Local(_) => Ok(Self {
@@ -63,7 +64,7 @@ impl FilterContext {
                 remote_config: None,
             }),
             FilterDefinition::Remote(remote) => {
-                let filter_dir = get_filter_cache_dir(name, remote)?;
+                let filter_dir = get_remote_filter_dir(name, remote)?;
                 if is_dir_empty(&filter_dir)? {
                     info!("Filter <filter>{name}</> is not installed, installing...");
                     remote.install(name, None, false)?;
@@ -85,7 +86,7 @@ impl FilterContext {
         if self.remote_config.is_some() {
             self.filter_dir.to_owned()
         } else {
-            let mut dir = PathBuf::from(path);
+            let mut dir = self.filter_dir.join(path);
             dir.pop();
             dir
         }
@@ -94,9 +95,9 @@ impl FilterContext {
 
 #[enum_dispatch(FilterDefinition, LocalFilter)]
 pub trait Filter {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()>;
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()>;
     #[allow(unused_variables)]
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
         Ok(())
     }
 }

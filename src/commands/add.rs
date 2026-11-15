@@ -13,6 +13,8 @@ pub struct Add {
     profile: Vec<String>,
     #[arg(short, long)]
     force: bool,
+    #[arg(long)]
+    update_resolvers: bool,
 }
 
 impl Command for Add {
@@ -24,7 +26,7 @@ impl Command for Add {
 
         for arg in &self.filters {
             info!("Adding filter <filter>{arg}</>...");
-            let (filter_name, remote) = RemoteFilter::parse(arg)?;
+            let (filter_name, remote) = RemoteFilter::parse(arg, self.update_resolvers)?;
             remote.install(&filter_name, Some(&data_path), self.force)?;
 
             for profile_name in &self.profile {

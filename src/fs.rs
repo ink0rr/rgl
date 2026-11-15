@@ -6,9 +6,19 @@ use rayon::prelude::*;
 use std::{
     fs, io,
     path::{Path, PathBuf},
-    sync::LazyLock,
     time::SystemTime,
 };
+
+fn copy_file(from: &Path, to: &Path) -> io::Result<()> {
+    fs::copy(from, to)?;
+    #[cfg(unix)]
+    {
+        // fs::copy doesn't preserve mtime on Linux.
+        let modified = fs::metadata(from)?.modified()?;
+        fs::File::open(to)?.set_modified(modified)?;
+    }
+    Ok(())
+}
 
 fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to)?;
@@ -21,7 +31,7 @@ fn copy_dir_impl(from: &Path, to: &Path) -> Result<()> {
             if path.is_dir() {
                 copy_dir_impl(&path, &to)?;
             } else {
-                fs::copy(path, to)?;
+                copy_file(&path, &to)?;
             }
             Ok(())
         })
@@ -65,9 +75,7 @@ where
     let path = path.as_ref();
     let inner = || -> Result<T> {
         let data = fs::read_to_string(path)?;
-        let value = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?
-            .unwrap_or_default();
-        let json = serde_json::from_value(value)?;
+        let json = jsonc_parser::parse_to_serde_value(&data, &ParseOptions::default())?;
         Ok(json)
     };
     inner().with_context(|| {
@@ -226,34 +234,31 @@ where
 }
 
 /// Sync target directory with source directory.
-///
-/// **Not thread-safe!** Uses a global cache internally. Do NOT call in parallel or from async code.
 pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()> {
-    static METADATA_CACHE: LazyLock<DashMap<PathBuf, Option<fs::Metadata>>> =
-        LazyLock::new(DashMap::new);
+    type MetadataCache = DashMap<PathBuf, Option<fs::Metadata>>;
 
-    fn get_metadata(path: impl AsRef<Path>) -> Option<fs::Metadata> {
+    fn get_metadata(cache: &MetadataCache, path: impl AsRef<Path>) -> Option<fs::Metadata> {
         let path = path.as_ref();
 
-        if let Some(entry) = METADATA_CACHE.get(path) {
+        if let Some(entry) = cache.get(path) {
             return entry.value().clone();
         }
 
         let metadata = path.metadata().ok();
-        METADATA_CACHE.insert(path.to_owned(), metadata.clone());
+        cache.insert(path.to_owned(), metadata.clone());
         metadata
     }
 
     /// Compare two files by size and modified time. Returns true if both are equal.
-    fn compare_files(a: &Path, b: &Path) -> Result<bool> {
-        if let (Some(a), Some(b)) = (get_metadata(a), get_metadata(b)) {
+    fn compare_files(cache: &MetadataCache, a: &Path, b: &Path) -> Result<bool> {
+        if let (Some(a), Some(b)) = (get_metadata(cache, a), get_metadata(cache, b)) {
             return Ok(a.len() == b.len() && a.modified()? == b.modified()?);
         }
         Ok(false)
     }
 
-    fn sync(source: &Path, target: &Path) -> Result<()> {
-        if get_metadata(target).is_none() {
+    fn sync(cache: &MetadataCache, source: &Path, target: &Path) -> Result<()> {
+        if get_metadata(cache, target).is_none() {
             fs::create_dir_all(target)?;
         }
         fs::read_dir(source)?
@@ -262,32 +267,34 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                 let entry = entry?;
                 let source = entry.path();
                 let target = target.join(entry.file_name());
-                if get_metadata(&source).is_some_and(|m| m.is_dir()) {
-                    if get_metadata(&target).is_some_and(|m| m.is_file()) {
+                if get_metadata(cache, &source).is_some_and(|m| m.is_dir()) {
+                    if get_metadata(cache, &target).is_some_and(|m| m.is_file()) {
                         fs::remove_file(&target)?;
+                        cache.insert(target.clone(), None);
                     }
-                    return sync(&source, &target);
+                    return sync(cache, &source, &target);
                 }
-                if get_metadata(&target).is_some_and(|m| m.is_dir()) {
+                if get_metadata(cache, &target).is_some_and(|m| m.is_dir()) {
                     rimraf(&target)?;
+                    cache.insert(target.clone(), None);
                 }
-                if !compare_files(&source, &target)? {
-                    fs::copy(source, target)?;
+                if !compare_files(cache, &source, &target)? {
+                    copy_file(&source, &target)?;
                 }
                 Ok(())
             })
     }
 
     /// Remove files that are not present in the source directory.
-    fn cleanup(source: &Path, target: &Path) -> Result<()> {
+    fn cleanup(cache: &MetadataCache, source: &Path, target: &Path) -> Result<()> {
         fs::read_dir(target)?
             .par_bridge()
             .try_for_each(|entry| -> Result<()> {
                 let entry = entry?;
                 let source = source.join(entry.file_name());
                 let target = entry.path();
-                let is_dir = get_metadata(&target).is_some_and(|m| m.is_dir());
-                if get_metadata(&source).is_none() {
+                let is_dir = get_metadata(cache, &target).is_some_and(|m| m.is_dir());
+                if get_metadata(cache, &source).is_none() {
                     if is_dir {
                         rimraf(target)?;
                     } else {
@@ -300,7 +307,7 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                         })?;
                     }
                 } else if is_dir {
-                    cleanup(&source, &target)?;
+                    cleanup(cache, &source, &target)?;
                 }
                 Ok(())
             })
@@ -308,8 +315,9 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
 
     let source = source.as_ref();
     let target = target.as_ref();
-    if get_metadata(target).is_some_and(|m| m.is_dir()) {
-        sync(source, target).with_context(|| {
+    let cache = MetadataCache::new();
+    if get_metadata(&cache, target).is_some_and(|m| m.is_dir()) {
+        sync(&cache, source, target).with_context(|| {
             format!(
                 "Failed to copy directory\n\
                  <yellow> >></> From: {}\n\
@@ -318,10 +326,9 @@ pub fn sync_dir(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<()
                 target.display(),
             )
         })?;
-        cleanup(source, target)?;
+        cleanup(&cache, source, target)?;
     } else {
         copy_dir(source, target)?;
     }
-    METADATA_CACHE.clear();
     Ok(())
 }

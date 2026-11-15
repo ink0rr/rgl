@@ -1,5 +1,5 @@
 use super::Command;
-use crate::rgl::{runner, Config, MinecraftServer, Session, UserConfig};
+use crate::rgl::{runner, Config, MinecraftServer, RunContext, RunMode, Session, Temp, UserConfig};
 use crate::{error, info, log, warn};
 use anyhow::Result;
 use clap::Args;
@@ -17,30 +17,41 @@ pub struct Watch {
     #[arg(long)]
     compat: bool,
     /// Automatically reload scripts via WebSocket
-    #[arg(long)]
-    ws: bool,
+    #[arg(long, require_equals = true, value_name = "PORT")]
+    ws: Option<Option<u16>>,
+    /// Extra arguments to forward to every filter in the profile
+    filter_args: Vec<String>,
 }
 
 impl Command for Watch {
     fn dispatch(&self) -> Result<()> {
         let compat = self.compat || UserConfig::force_compat();
-        let server = if self.ws {
-            Some(MinecraftServer::bind_and_accept(
-                UserConfig::websocket_port(),
-            )?)
-        } else {
-            None
+        let server = match self.ws {
+            Some(port) => Some(MinecraftServer::bind_and_accept(
+                port.unwrap_or_else(UserConfig::websocket_port),
+            )?),
+            None => None,
         };
 
+        let temp = Temp::from_dot_regolith();
+        let mut initial = true;
         smol::block_on(async {
             loop {
                 let config = Config::load()?;
                 let watcher = config.get_watcher()?;
                 let mut session = Session::lock()?;
+                let ctx = RunContext::new(
+                    &config,
+                    &temp,
+                    &self.profile,
+                    &self.filter_args,
+                    RunMode::Watch { initial },
+                );
+                initial = false;
 
                 let is_interrupted = smol::future::or(
                     async {
-                        if let Err(e) = runner(&config, &self.profile, self.clean, compat).await {
+                        if let Err(e) = runner(&ctx, self.clean, compat).await {
                             error!("{}", self.error_context());
                             e.chain().for_each(|e| log!("<red>[+]</> {e}"));
                         }

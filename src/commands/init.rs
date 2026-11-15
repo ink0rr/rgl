@@ -46,15 +46,19 @@ impl Command for Init {
 
         let min_engine_version = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Minimum engine version")
-            .default("1.26.20".to_owned())
+            .default("1.26.60".to_owned())
             .validate_with(|input: &String| -> Result<(), String> {
-                if Version::parse(input).is_ok() {
-                    Ok(())
-                } else {
-                    Err("Invalid version".to_string())
+                match Version::parse(input) {
+                    Ok(v) if v.build.is_empty() && v.pre.is_empty() => Ok(()),
+                    _ => Err("Invalid version".to_string()),
                 }
             })
-            .interact_text()?;
+            .interact_text()
+            .map(|s| {
+                // Already validated in the prompt
+                let v = Version::parse(&s).unwrap();
+                [v.major, v.minor, v.patch]
+            })?;
 
         let bp = "./packs/BP";
         let rp = "./packs/RP";
@@ -68,21 +72,54 @@ impl Command for Init {
 
         write_json(
             format!("{bp}/manifest.json"),
-            &create_manifest(
-                PackType::Behavior,
-                &bp_header,
-                &rp_header,
-                &min_engine_version,
-            ),
+            &json!({
+                "format_version": 2,
+                "header": {
+                    "name": "pack.name",
+                    "description": "pack.description",
+                    "uuid": bp_header,
+                    "version": [1, 0, 0],
+                    "min_engine_version": min_engine_version,
+                },
+                "metadata": {
+                    "product_type": "addon"
+                },
+                "modules": [{
+                    "type": "data",
+                    "uuid": Uuid::new_v4().to_string(),
+                    "version": [1, 0, 0],
+                }],
+                "dependencies": [{
+                    "uuid": rp_header,
+                    "version": [1, 0, 0],
+                }],
+            }),
         )?;
         write_json(
             format!("{rp}/manifest.json"),
-            &create_manifest(
-                PackType::Resource,
-                &rp_header,
-                &bp_header,
-                &min_engine_version,
-            ),
+            &json!({
+                "format_version": 2,
+                "header": {
+                    "name": "pack.name",
+                    "description": "pack.description",
+                    "uuid": rp_header,
+                    "version": [1, 0, 0],
+                    "min_engine_version": min_engine_version,
+                },
+                "capabilities": ["pbr"],
+                "metadata": {
+                    "product_type": "addon"
+                },
+                "modules": [{
+                    "type": "resources",
+                    "uuid": Uuid::new_v4().to_string(),
+                    "version": [1, 0, 0],
+                }],
+                "dependencies": [{
+                    "uuid": bp_header,
+                    "version": [1, 0, 0],
+                }],
+            }),
         )?;
 
         write_json(format!("{bp}/texts/languages.json"), &json!(["en_US"]))?;
@@ -90,11 +127,17 @@ impl Command for Init {
 
         write_file(
             format!("{bp}/texts/en_US.lang"),
-            create_lang(PackType::Behavior, &name),
+            format!(
+                "pack.name={name} Add-On\n\
+                 pack.description=Behavior Pack for {name}\n"
+            ),
         )?;
         write_file(
             format!("{rp}/texts/en_US.lang"),
-            create_lang(PackType::Resource, &name),
+            format!(
+                "pack.name={name} Add-On\n\
+                 pack.description=Resource Pack for {name}\n"
+            ),
         )?;
         write_file(".gitignore", "/build\n/.regolith\n")?;
 
@@ -105,53 +148,4 @@ impl Command for Init {
     fn error_context(&self) -> String {
         "Error initializing project".to_owned()
     }
-}
-
-enum PackType {
-    Behavior,
-    Resource,
-}
-
-fn create_manifest(
-    pack_type: PackType,
-    header_uuid: &str,
-    deps_uuid: &str,
-    min_engine_version: &str,
-) -> serde_json::Value {
-    json!({
-        "format_version": 2,
-        "header": {
-            "name": "pack.name",
-            "description": "pack.description",
-            "uuid": header_uuid,
-            "version": [1, 0, 0],
-            "min_engine_version": min_engine_version
-                .split('.')
-                .map(|s| s.parse().unwrap())
-                .collect::<Vec<i32>>(),
-        },
-        "modules": [{
-            "type": match pack_type {
-                PackType::Behavior => "data",
-                PackType::Resource => "resources",
-            },
-            "uuid": Uuid::new_v4().to_string(),
-            "version": [1, 0, 0],
-        }],
-        "dependencies": [{
-            "uuid": deps_uuid,
-            "version": [1, 0, 0],
-        }],
-    })
-}
-
-fn create_lang(pack_type: PackType, name: &str) -> String {
-    let (pack_type, suffix) = match pack_type {
-        PackType::Behavior => ("Behavior Pack", "BP"),
-        PackType::Resource => ("Resource Pack", "RP"),
-    };
-    format!(
-        "pack.name={name} {suffix}\n\
-         pack.description={pack_type} for {name}\n"
-    )
 }

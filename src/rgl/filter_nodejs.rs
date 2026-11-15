@@ -1,36 +1,60 @@
-use super::{Filter, FilterContext, Subprocess, UserConfig};
+use super::{
+    Filter, FilterBun, FilterDeno, FilterInfo, NodeRunner, RunContext, Subprocess, UserConfig,
+};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::path::Path;
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FilterNodejs {
     pub script: String,
 }
 
+impl FilterNodejs {
+    fn as_bun(&self) -> FilterBun {
+        FilterBun {
+            script: self.script.clone(),
+        }
+    }
+
+    fn as_deno(&self) -> FilterDeno {
+        FilterDeno {
+            script: self.script.clone(),
+        }
+    }
+}
+
 impl Filter for FilterNodejs {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let runtime = UserConfig::nodejs_runtime();
-        let script = context.filter_dir.join(&self.script);
-        let mut subprocess = Subprocess::new(runtime);
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
+        match UserConfig::node_runner_override(&info.name) {
+            NodeRunner::Bun => return self.as_bun().run(ctx, info, run_args),
+            NodeRunner::Deno => return self.as_deno().run(ctx, info, run_args),
+            NodeRunner::Nodejs => {}
+        }
+        let script = info.filter_dir.join(&self.script);
+        let mut subprocess = Subprocess::new(UserConfig::node_runner());
         subprocess
             .arg(script)
+            .args(ctx.settings_arg()?)
             .args(run_args)
-            .current_dir(temp)
-            .setup_env(&context.filter_dir);
+            .current_dir(&ctx.temp.root)
+            .setup_env(&info.filter_dir);
         if UserConfig::subprocess_logging() {
-            subprocess.run_with_prefix(&context.name)?;
+            subprocess.run_with_prefix(&info.name)?;
         } else {
             subprocess.run()?;
         }
         Ok(())
     }
 
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let filter_dir = context.filter_dir(&self.script);
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
+        match UserConfig::node_runner_override(&info.name) {
+            NodeRunner::Bun => return self.as_bun().install_dependencies(info),
+            NodeRunner::Deno => return self.as_deno().install_dependencies(info),
+            NodeRunner::Nodejs => {}
+        }
+        let filter_dir = info.filter_dir(&self.script);
         if filter_dir.join("package.json").exists() {
-            let package_manager = UserConfig::nodejs_package_manager();
-            Subprocess::new(package_manager)
+            Subprocess::new(UserConfig::npm_runner())
                 .arg("i")
                 .current_dir(filter_dir)
                 .run()?;

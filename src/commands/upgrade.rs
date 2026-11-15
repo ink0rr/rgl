@@ -60,9 +60,12 @@ impl Command for Upgrade {
 fn download_pkg(url: &str) -> Result<Vec<u8>> {
     loading!("Downloading {url}");
 
-    let mut reader = ureq::get(url).call()?.into_reader();
-    let mut bytes = Vec::new();
-    reader.read_to_end(&mut bytes)?;
+    let bytes = ureq::get(url)
+        .call()?
+        .into_body()
+        .with_config()
+        .limit(u64::MAX)
+        .read_to_vec()?;
 
     success!("Downloaded {url}");
     Ok(bytes)
@@ -72,7 +75,7 @@ fn extract_pkg(bytes: Vec<u8>, path: &Path) -> Result<PathBuf> {
     let mut archive = ZipArchive::new(io::Cursor::new(bytes))?;
     let mut file = archive.by_index(0)?;
 
-    let mangled_name = file.mangled_name();
+    let mangled_name = file.mangled_name()?;
     let file_name = mangled_name.file_name().unwrap();
 
     let file_path = path.join(file_name);

@@ -1,6 +1,7 @@
 mod add;
 mod apply;
 mod clean;
+mod completions;
 mod exec;
 mod get;
 mod info;
@@ -11,12 +12,14 @@ mod remove;
 mod run;
 mod uninstall;
 mod update;
+mod update_resolvers;
 mod upgrade;
 mod watch;
 
 pub use self::add::*;
 pub use self::apply::*;
 pub use self::clean::*;
+pub use self::completions::*;
 pub use self::exec::*;
 pub use self::get::*;
 pub use self::info::*;
@@ -27,6 +30,7 @@ pub use self::remove::*;
 pub use self::run::*;
 pub use self::uninstall::*;
 pub use self::update::*;
+pub use self::update_resolvers::*;
 pub use self::upgrade::*;
 pub use self::watch::*;
 

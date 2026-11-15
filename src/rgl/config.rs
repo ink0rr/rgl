@@ -4,13 +4,14 @@ use super::{
 };
 use crate::file_watcher::FileWatcher;
 use crate::fs::{read_json, write_file, write_json};
+use crate::warn;
 use anyhow::{anyhow, bail, Context, Result};
 use indexmap::IndexMap;
 use jsonc_parser::cst::{CstObject, CstRootNode};
 use jsonc_parser::{json, ParseOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -48,16 +49,18 @@ impl Config {
         profiles.insert(
             "default".to_owned(),
             Profile {
-                export: Export::Development(DevelopmentExport::default()),
+                export: Export::Development(DevelopmentExport::default()).into(),
                 filters: vec![],
             },
         );
         profiles.insert(
             "build".to_owned(),
             Profile {
-                export: Export::Local(LocalExport::default()),
+                export: Export::Local(LocalExport::default()).into(),
                 filters: vec![ProfileEntry::Filter(FilterRunner::ProfileFilter {
                     profile_name: "default".to_owned(),
+                    disabled: false,
+                    expression: None,
                 })],
             },
         );
@@ -95,6 +98,10 @@ impl Config {
 
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn get_author(&self) -> String {
+        self.author.to_owned().unwrap_or_else(UserConfig::username)
     }
 
     pub fn get_behavior_pack(&self) -> Option<PathBuf> {
@@ -157,10 +164,17 @@ impl Config {
         if let Some(rp) = self.get_resource_pack() {
             watcher.add_path(rp)?;
         }
-        watcher.add_path(self.get_data_path())?;
+        let data = self.get_data_path();
+        if data.exists() {
+            watcher.add_path(data)?;
+        }
         if let Some(watch_paths) = &self.regolith.watch_paths {
             for path in watch_paths {
-                watcher.add_path(path)?;
+                if fs::metadata(path).is_ok() {
+                    watcher.add_path(path)?;
+                } else {
+                    warn!("Watch path <b>{path}</> not found, skipping");
+                }
             }
         }
 

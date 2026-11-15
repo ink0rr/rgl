@@ -1,6 +1,6 @@
 use super::{
-    get_filter_cache_dir, get_repo_cache_dir, Eval, Filter, FilterContext, LocalFilter, Resolver,
-    Subprocess,
+    get_remote_filter_dir, get_repo_cache_dir, Eval, Filter, FilterInfo, LocalFilter, Resolver,
+    RunContext, Subprocess,
 };
 use crate::fs::{copy_dir, empty_dir, is_dir_empty, rimraf};
 use crate::{debug, info, warn};
@@ -16,12 +16,20 @@ pub struct RemoteFilter {
 }
 
 impl Filter for RemoteFilter {
-    fn run(&self, context: &FilterContext, temp: &Path, run_args: &[String]) -> Result<()> {
-        let config = context.remote_config.as_ref().unwrap();
-        for entry in &config.filters {
+    fn run(&self, ctx: &RunContext, info: &FilterInfo, run_args: &[String]) -> Result<()> {
+        let config = info.remote_config.as_ref().unwrap();
+        for (i, entry) in config.filters.iter().enumerate() {
+            if entry.disabled {
+                debug!(
+                    "The {} subfilter of <filter>{}</> filter is disabled, skipping.",
+                    ordinal(i),
+                    info.name
+                );
+                continue;
+            }
             if let Some(expression) = &entry.expression {
-                let name = &context.name;
-                let eval = Eval::new(name, &context.filter_dir, None);
+                let name = &info.name;
+                let eval = Eval::new(ctx, &info.filter_dir);
                 debug!("Evaluating expression: <d>{expression}</>");
                 if !eval
                     .bool(expression)
@@ -30,38 +38,34 @@ impl Filter for RemoteFilter {
                     continue;
                 }
             }
-            // This behavior is different from Regolith. It might break some filters
-            // that need the arguments to be passed in a specific order.
-            // Regolith: [settings, remote_args, parent_args]
-            // rgl: [settings, parent_args, remote_args]
-            let mut run_args = run_args.to_vec();
-            if let Some(arguments) = entry.arguments.to_owned() {
-                run_args.extend(arguments);
-            };
-            entry.filter.run(context, temp, &run_args)?;
+            let mut args = entry.arguments.to_owned().unwrap_or_default();
+            args.extend_from_slice(run_args);
+            entry.filter.run(ctx, info, &args)?;
         }
         Ok(())
     }
-    fn install_dependencies(&self, context: &FilterContext) -> Result<()> {
-        let config = context.remote_config.as_ref().unwrap();
+    fn install_dependencies(&self, info: &FilterInfo) -> Result<()> {
+        let config = info.remote_config.as_ref().unwrap();
         for entry in &config.filters {
-            entry.filter.install_dependencies(context)?;
+            entry.filter.install_dependencies(info)?;
         }
         Ok(())
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoteFilterConfig {
     #[serde(default, rename = "exportData")]
     pub export_data: bool,
     pub filters: Vec<RemoteFilterEntry>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoteFilterEntry {
+    #[serde(default)]
+    pub disabled: bool,
     pub arguments: Option<Vec<String>>,
-    #[serde(rename = "when", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "when")]
     pub expression: Option<String>,
     #[serde(flatten)]
     pub filter: LocalFilter,
@@ -69,7 +73,7 @@ pub struct RemoteFilterEntry {
 
 impl RemoteFilter {
     /// Parse RemoteFilter from string argument
-    pub fn parse(arg: &str) -> Result<(String, Self)> {
+    pub fn parse(arg: &str, update_resolvers: bool) -> Result<(String, Self)> {
         // Extract version argument if present
         let parts: Vec<_> = arg.split('@').collect();
         let (arg, version_arg) = match parts.len() {
@@ -81,7 +85,10 @@ impl RemoteFilter {
         // Resolve filter name and URL
         let url_parts: Vec<_> = arg.split('/').collect();
         let (name, url) = match url_parts.len() {
-            1 => (arg.to_owned(), Resolver::resolve_url(arg)?),
+            1 => (
+                arg.to_owned(),
+                Resolver::resolve_url(arg, update_resolvers)?,
+            ),
             4 => (url_parts[3].to_owned(), url_parts[..3].join("/")),
             _ => bail!("Incorrect URL format. Expected: `github.com/<user>/<repo>/<filter-name>`"),
         };
@@ -95,7 +102,7 @@ impl RemoteFilter {
     pub fn install(&self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
         let url = &self.url;
         let version = &self.version;
-        let filter_dir = get_filter_cache_dir(name, self)?;
+        let filter_dir = get_remote_filter_dir(name, self)?;
 
         if force {
             rimraf(&filter_dir)?;
@@ -140,9 +147,9 @@ impl RemoteFilter {
         }
 
         let filter = self.to_owned().into();
-        let context = FilterContext::new(name, &filter)?;
+        let info = FilterInfo::new(name, &filter)?;
         info!("Installing dependencies for <filter>{name}</>...");
-        filter.install_dependencies(&context)
+        filter.install_dependencies(&info)
     }
 
     pub fn update(&mut self, name: &str, data_path: Option<&Path>, force: bool) -> Result<()> {
@@ -156,5 +163,21 @@ impl RemoteFilter {
         self.version = latest_version.to_owned();
         self.install(name, data_path, force)?;
         Ok(())
+    }
+}
+
+/// Returns the ordinal numeral of a 0-based index. For example: `ordinal(0)`
+/// returns "1st", `ordinal(1)` returns "2nd", etc.
+fn ordinal(i: usize) -> String {
+    let i = i + 1;
+    let j = i % 100;
+    if j > 10 && j < 20 {
+        return format!("{i}th");
+    }
+    match j % 10 {
+        1 => format!("{i}st"),
+        2 => format!("{i}nd"),
+        3 => format!("{i}rd"),
+        _ => format!("{i}th"),
     }
 }
