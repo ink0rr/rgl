@@ -99,18 +99,23 @@ impl Serialize for ExportTargets {
     }
 }
 
-/// Resolves `path` to an absolute, lexically-cleaned path (canonicalized
-/// when possible) so it can be compared for export path collisions the same
-/// way regardless of how it was originally written (relative, with `./`,
-/// symlinked, etc).
+/// Resolves `path` to an absolute path so it can be compared for export path
+/// collisions regardless of how it was written (relative, with `./`, symlinked,
+/// etc). The deepest existing ancestor is canonicalized and the components that
+/// don't exist yet are cleaned lexically.
 fn normalize_export_path_for_collision(path: &Path) -> Result<PathBuf> {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
         get_current_dir()?.join(path)
     };
-    let cleaned = clean_path(&absolute);
-    Ok(dunce::canonicalize(&cleaned).unwrap_or(cleaned))
+    for ancestor in absolute.ancestors() {
+        if let Ok(canonical) = dunce::canonicalize(ancestor) {
+            let rest = absolute.strip_prefix(ancestor)?;
+            return Ok(clean_path(&canonical.join(rest)));
+        }
+    }
+    Ok(clean_path(&absolute))
 }
 
 /// Lexically removes `.` and `..` components without touching the
