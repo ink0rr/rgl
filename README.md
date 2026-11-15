@@ -38,6 +38,24 @@ PowerShell (Windows):
 irm rgl.ink0rr.dev/install.ps1 | iex
 ```
 
+### Shell Completions
+
+Generate a completion script with `rgl completions <shell>`:
+
+```sh
+# Bash: ~/.bashrc
+eval "$(rgl completions bash)"
+# Zsh: ~/.zshrc
+source <(rgl completions zsh)
+# Fish: ~/.config/fish/config.fish
+rgl completions fish | source
+```
+
+```powershell
+# PowerShell: $PROFILE
+rgl completions powershell | Out-String | Invoke-Expression
+```
+
 ### Uninstall
 
 Delete the `~/.rgl` directory.

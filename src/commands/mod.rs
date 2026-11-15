@@ -1,6 +1,7 @@
 mod add;
 mod apply;
 mod clean;
+mod completions;
 mod exec;
 mod get;
 mod info;
@@ -18,6 +19,7 @@ mod watch;
 pub use self::add::*;
 pub use self::apply::*;
 pub use self::clean::*;
+pub use self::completions::*;
 pub use self::exec::*;
 pub use self::get::*;
 pub use self::info::*;

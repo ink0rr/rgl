@@ -51,7 +51,7 @@ fn run_command(cli: Cli) -> Result<()> {
     }
     let handle = match cli.subcommand {
         // Don't trigger update check when running these commands
-        Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,
+        Subcommands::Completions(_) | Subcommands::Upgrade(_) | Subcommands::Watch(_) => None,
         _ => Some(thread::spawn(rgl::version_check)),
     };
     measure_time!("Total time", {
@@ -103,6 +103,7 @@ enum Subcommands {
     Add(Add),
     Apply(Apply),
     Clean(Clean),
+    Completions(Completions),
     Exec(Exec),
     Get(Get),
     Info(Info),
