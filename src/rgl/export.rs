@@ -137,10 +137,6 @@ fn clean_path(path: &Path) -> PathBuf {
     result
 }
 
-fn path_contains(parent: &Path, child: &Path) -> bool {
-    parent != child && child.strip_prefix(parent).is_ok()
-}
-
 /// Checks whether `path` (labeled `label`) collides with any previously
 /// seen export path, i.e. resolves to the same location or is nested inside
 /// (or contains) a previously seen export path.
@@ -151,10 +147,7 @@ pub fn check_export_path_collision(
 ) -> Result<()> {
     let normalized = normalize_export_path_for_collision(path)?;
     for (seen_path, seen_label) in seen.iter() {
-        if normalized == *seen_path
-            || path_contains(&normalized, seen_path)
-            || path_contains(seen_path, &normalized)
-        {
+        if normalized.starts_with(seen_path) || seen_path.starts_with(&normalized) {
             bail!(
                 "Export path collision detected\n\
                  <yellow> >></> First path: {seen_label}\n\

@@ -22,7 +22,7 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
     let targets = profile.export.targets();
 
     // Resolve all active export paths up front and reject overlapping targets.
-    let mut resolved: Vec<(PathBuf, PathBuf)> = Vec::new();
+    let mut resolved: Vec<(&Export, PathBuf, PathBuf)> = Vec::new();
     let mut seen_paths: Vec<(PathBuf, String)> = Vec::new();
     for (i, target) in profile.export.active() {
         let (target_bp, target_rp) = target.get_paths(ctx).with_context(|| {
@@ -43,7 +43,7 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
             &target_rp,
             &format!("{label} resource pack: {}", target_rp.display()),
         )?;
-        resolved.push((target_bp, target_rp));
+        resolved.push((target, target_bp, target_rp));
     }
     let is_none_export = resolved.is_empty();
     // Symlinking only makes sense with a single destination.
@@ -51,41 +51,39 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
 
     // With no active export target, fall back to the "none" target's paths.
     let (primary_bp, primary_rp) = match resolved.first() {
-        Some(pair) => pair.clone(),
+        Some((_, bp, rp)) => (bp.clone(), rp.clone()),
         None => targets[0].get_paths(ctx)?,
     };
 
     // Refuse to touch `exact` export targets containing files rgl didn't create.
-    let exact_targets: Vec<&(PathBuf, PathBuf)> = profile
-        .export
-        .active()
-        .zip(&resolved)
-        .filter(|((_, target), _)| matches!(target, Export::Exact(_)))
-        .map(|(_, paths)| paths)
+    let exact_targets: Vec<(&Path, &Path)> = resolved
+        .iter()
+        .filter(|(target, _, _)| matches!(target, Export::Exact(_)))
+        .map(|(_, bp, rp)| (bp.as_path(), rp.as_path()))
         .collect();
     let mut edited_files = EditedFiles::load();
-    for (target_bp, target_rp) in &exact_targets {
+    for &(target_bp, target_rp) in &exact_targets {
         measure_time!("Check deletion safety", {
             edited_files
-                    .check_deletion_safety(target_bp, target_rp)
-                    .with_context(|| {
-                        format!(
-                            "Safety mechanism stopped rgl to protect unexpected files from your export targets.\n\
-                             Did you edit the exported files manually?\n\
-                             Please clear your export paths and try again.\n\
-                             <yellow> >></> Behavior pack export path: {}\n\
-                             <yellow> >></> Resource pack export path: {}",
-                            target_bp.display(),
-                            target_rp.display()
-                        )
-                    })?;
+                .check_deletion_safety(target_bp, target_rp)
+                .with_context(|| {
+                    format!(
+                        "Safety mechanism stopped rgl to protect unexpected files from your export targets.\n\
+                         Did you edit the exported files manually?\n\
+                         Please clear your export paths and try again.\n\
+                         <yellow> >></> Behavior pack export path: {}\n\
+                         <yellow> >></> Resource pack export path: {}",
+                        target_bp.display(),
+                        target_rp.display()
+                    )
+                })?;
         });
     }
 
     measure_time!("Setup temp", {
         if clean {
             rimraf(&temp.root)?;
-            for (target_bp, target_rp) in &resolved {
+            for (_, target_bp, target_rp) in &resolved {
                 rimraf(target_bp)?;
                 rimraf(target_rp)?;
             }
@@ -154,7 +152,7 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
             }
         } else {
             let multiple = resolved.len() > 1;
-            for (i, (target_bp, target_rp)) in resolved.iter().enumerate() {
+            for (i, (_, target_bp, target_rp)) in resolved.iter().enumerate() {
                 let bp_label = if multiple {
                     format!("BP (target {})", i + 1)
                 } else {
@@ -183,7 +181,7 @@ pub async fn runner(ctx: &RunContext<'_>, clean: bool, compat: bool) -> Result<(
 
     if !exact_targets.is_empty() {
         measure_time!("Update edited files", {
-            for (target_bp, target_rp) in &exact_targets {
+            for &(target_bp, target_rp) in &exact_targets {
                 edited_files.update_from_paths(target_bp, target_rp)?;
             }
             edited_files

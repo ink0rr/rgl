@@ -1,7 +1,10 @@
 use crate::fs::{read_json, write_json};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+};
 use walkdir::WalkDir;
 
 /// Path (relative to the project root) of the cache file that records
@@ -112,27 +115,21 @@ fn check_deletion_safety(path: &Path, removable_files: &[String]) -> Result<()> 
         return Ok(()); // Directory doesn't exist, nothing to check.
     }
     if !path.is_dir() {
-        anyhow::bail!(
+        bail!(
             "Path is not a directory\n<yellow> >></> Path: {}",
             path.display()
         );
     }
-    let removable: std::collections::HashSet<&str> =
-        removable_files.iter().map(String::as_str).collect();
-    for entry in WalkDir::new(path).sort_by_file_name() {
-        let entry = entry?;
-        if entry.file_type().is_dir() {
-            continue;
-        }
-        let relative = entry.path().strip_prefix(path)?;
-        let normalized = to_slash(relative);
-        if !removable.contains(normalized.as_str()) {
-            anyhow::bail!(
-                "File is not on the list of files created by rgl\n\
-                 <yellow> >></> Path: {}",
-                normalized
-            );
-        }
+    let removable: HashSet<&str> = removable_files.iter().map(String::as_str).collect();
+    let unexpected = list_files(path)?
+        .into_iter()
+        .filter(|file| !removable.contains(file.as_str()))
+        .min();
+    if let Some(file) = unexpected {
+        bail!(
+            "File is not on the list of files created by rgl\n\
+             <yellow> >></> Path: {file}"
+        );
     }
     Ok(())
 }
