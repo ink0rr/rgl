@@ -14,21 +14,15 @@ pub enum NodeRunner {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(default)]
 pub struct UserConfig {
-    #[serde(default = "default_username")]
     pub username: String,
-    #[serde(default = "default_resolvers")]
     pub resolvers: Vec<String>,
-    #[serde(default = "default_resolver_update_interval")]
     pub resolver_update_interval: u64,
-    #[serde(default = "default_websocket_port")]
     pub websocket_port: u16,
-    #[serde(default)]
     pub force_compat: bool,
-    #[serde(default)]
     pub subprocess_logging: bool,
     /// Maps a filter name, or `*` for every filter, to the runtime used for `nodejs` filters.
-    #[serde(default)]
     pub node_runner_override: BTreeMap<String, NodeRunner>,
     pub bun_runner: Option<String>,
     pub deno_runner: Option<String>,
@@ -41,13 +35,15 @@ pub struct UserConfig {
     pub python_runner: Option<String>,
 }
 
-impl UserConfig {
+impl Default for UserConfig {
     fn default() -> Self {
         Self {
-            username: default_username(),
-            resolvers: default_resolvers(),
-            resolver_update_interval: default_resolver_update_interval(),
-            websocket_port: default_websocket_port(),
+            username: "Your name".to_owned(),
+            resolvers: vec![
+                "github.com/Bedrock-OSS/regolith-filter-resolver/resolver.json".to_owned(),
+            ],
+            resolver_update_interval: 300,
+            websocket_port: 80,
             force_compat: false,
             subprocess_logging: false,
             node_runner_override: BTreeMap::new(),
@@ -62,7 +58,9 @@ impl UserConfig {
             python_runner: None,
         }
     }
+}
 
+impl UserConfig {
     pub fn username() -> String {
         get_user_config().username.to_owned()
     }
@@ -147,22 +145,6 @@ impl UserConfig {
             .as_deref()
             .unwrap_or("python")
     }
-}
-
-fn default_username() -> String {
-    "Your name".to_owned()
-}
-
-fn default_resolvers() -> Vec<String> {
-    vec!["github.com/Bedrock-OSS/regolith-filter-resolver/resolver.json".to_owned()]
-}
-
-fn default_resolver_update_interval() -> u64 {
-    300
-}
-
-fn default_websocket_port() -> u16 {
-    80
 }
 
 fn get_user_config() -> &'static UserConfig {
