@@ -7,22 +7,25 @@ Fast and efficient Bedrock Addon Compiler.
 Benchmark result on the [bedrock-samples](https://github.com/Mojang/bedrock-samples) repo.
 
 ```
-$ hyperfine --warmup 2 --runs 10 --setup 'rgl clean' 'regolith run --experiments=size_time_check' 'rgl run'
+$ hyperfine --warmup 2 --runs 10 --setup 'rgl clean' 'regolith run' 'regolith run --unsafe --symlink-export' 'rgl run'
 
-Benchmark 1: regolith run --experiments=size_time_check
-  Time (mean ± σ):      2.447 s ±  0.013 s    [User: 0.502 s, System: 1.992 s]
-  Range (min … max):    2.430 s …  2.477 s    10 runs
+Benchmark 1: regolith run (10 runs)
+                mean     ±       σ          min     …     max
+  Wall Time    356.6 ms  ±    23.9 ms     323.3 ms  …   395.6 ms
+  Memory        49.2 MiB ±     1.9 MiB     46.8 MiB …    52.0 MiB
 
-Benchmark 2: rgl run
-  Time (mean ± σ):     151.7 ms ±   3.2 ms    [User: 512.5 ms, System: 624.4 ms]
-  Range (min … max):   148.7 ms … 157.0 ms    10 runs
+Benchmark 2: regolith run --unsafe --symlink-export (10 runs)
+                mean     ±       σ          min     …     max
+  Wall Time    185.9 ms  ±    16.8 ms     160.8 ms  …   209.2 ms           -47.9%  (1.9x faster)
+  Memory        46.7 MiB ±     2.5 MiB     43.4 MiB …    49.8 MiB           -5.0%
 
-Summary
-  rgl run ran
-   16.13 ± 0.35 times faster than regolith run --experiments=size_time_check
+Benchmark 3: rgl run (10 runs)
+                mean     ±       σ          min     …     max
+  Wall Time     44.6 ms  ±     4.9 ms      37.8 ms  …    51.5 ms           -87.5%  (8.0x faster)
+  Memory        25.7 MiB ±     0.2 MiB     25.2 MiB …    25.9 MiB          -47.8%  (1.9x less)
 ```
 
-Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 16x faster than Regolith with `size_time_check` experiment enabled.
+Results may vary depending on your machine, project size, and what kind of filters are used. In this case, rgl is 8x faster than Regolith and 4.2x faster than Regolith with `--unsafe --symlink-export`.
 
 ### Install
 
